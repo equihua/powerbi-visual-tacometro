@@ -88,18 +88,6 @@
                         "bool": true
                     }
                 },
-                "lowThreshold": {
-                    "displayName": "Umbral Bajo (%)",
-                    "type": {
-                        "numeric": true
-                    }
-                },
-                "midThreshold": {
-                    "displayName": "Umbral Medio (%)",
-                    "type": {
-                        "numeric": true
-                    }
-                },
                 "lowColor": {
                     "displayName": "Color Bajo",
                     "type": {
@@ -163,20 +151,6 @@
                         "formatting": {
                             "fontFamily": true
                         }
-                    }
-                },
-                "displayUnits": {
-                    "displayName": "Unidades de Visualización",
-                    "type": {
-                        "formatting": {
-                            "labelDisplayUnits": true
-                        }
-                    }
-                },
-                "decimalPlaces": {
-                    "displayName": "Decimales",
-                    "type": {
-                        "numeric": true
                     }
                 }
             }

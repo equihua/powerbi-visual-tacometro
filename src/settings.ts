@@ -36,17 +36,6 @@ import FormattingSettingsModel = formattingSettings.Model;
  * Gauge Formatting Card
  */
 class GaugeCardSettings extends FormattingSettingsCard {
-    min = new formattingSettings.NumUpDown({
-        name: "min",
-        displayName: "Valor Mínimo",
-        value: 0
-    });
-
-    max = new formattingSettings.NumUpDown({
-        name: "max",
-        displayName: "Valor Máximo",
-        value: 100
-    });
 
     startAngle = new formattingSettings.NumUpDown({
         name: "startAngle",
@@ -69,26 +58,11 @@ class GaugeCardSettings extends FormattingSettingsCard {
     name: string = "gauge";
     displayName: string = "Configuración del Medidor";
     slices: Array<FormattingSettingsSlice> = [
-        this.min,
-        this.max,
         this.startAngle,
         this.endAngle,
         this.thickness
     ];
 
-    setMeasureStates(hasMinData: boolean, hasMaxData: boolean): void {
-
-        this.min.visible = !hasMinData;
-        this.max.visible = !hasMaxData;
-
-        this.slices = [
-            ...(hasMinData ? [] : [this.min]),
-            ...(hasMaxData ? [] : [this.max]),
-            this.startAngle,
-            this.endAngle,
-            this.thickness
-        ];
-    }
 }
 
 class RangesCardSettings extends FormattingSettingsCard {
@@ -127,15 +101,6 @@ class RangesCardSettings extends FormattingSettingsCard {
         this.highColor
     ];
 
-    setMeasureStates(hasLowThresholdData: boolean, hasMidThresholdData: boolean): void {
-        this.slices =  [
-            this.showRanges, 
-            this.lowColor, 
-            this.mediumColor, 
-            this.highColor
-        ];
-
-    }
 }
 
 class ValueLabelCardSettings extends FormattingSettingsCard {

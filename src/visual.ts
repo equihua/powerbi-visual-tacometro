@@ -71,8 +71,6 @@ export class Visual implements IVisual {
       fontSize: this.formattingSettings.valueLabelCard.fontSize.value,
       fontFamily: this.formattingSettings.valueLabelCard.fontFamily.value,
       labelColor: this.formattingSettings.valueLabelCard.color.value.value,
-      maxValue: this.formattingSettings.gaugeCard.max.value,
-      minValue: this.formattingSettings.gaugeCard.min.value
     };
   }
 
