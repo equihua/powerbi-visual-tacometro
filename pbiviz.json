@@ -1,1 +1,23 @@
-{"visual":{"name":"tacometroGauge","displayName":"TacometroGauge","guid":"tacometroGaugeB63B8DC5DC4B41EAA8DB957E263A29AB","visualClassName":"Visual","version":"1.0.0.0","description":"","supportUrl":"","gitHubUrl":""},"apiVersion":"5.3.0","author":{"name":"","email":""},"assets":{"icon":"assets/icon.png"},"externalJS":null,"style":"style/visual.less","capabilities":"capabilities.json","dependencies":null,"stringResources":[],"version":"1.0.0.0"}
+{
+  "visual": {
+    "name": "TachometroGauge",
+    "displayName": "Tacometro Gauge",
+    "guid": "PBI_CV_TACOMETRO_GAUGE",
+    "visualClassName": "Visual",
+    "version": "0.1.0-beta.1",
+    "description": "A radial gauge visual that replicates the Power BI Radial Gauge visual functionality",
+    "supportUrl": "https://github.com",
+    "gitHubUrl": ""
+  },
+  "apiVersion": "5.3.0",
+  "author": {
+    "name": "Power BI Developer",
+    "email": "developer@powerbi.com"
+  },
+  "assets": { "icon": "assets/icon.png" },
+  "externalJS": null,
+  "style": "style/visual.less",
+  "capabilities": "capabilities.json",
+  "dependencies": null,
+  "stringResources": []
+}

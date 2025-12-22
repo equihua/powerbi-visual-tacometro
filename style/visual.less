@@ -1,9 +1,75 @@
-p {
-    font-size: 20px;
-    font-weight: bold;
-    em {
-        background: yellow;
-        padding: 5px;
-        
+@gauge-background-color: #e0e0e0;
+@gauge-transition-duration: 0.3s;
+@gauge-transition-timing: ease-in-out;
+@no-data-color: #666666;
+@no-data-font-size: 16px;
+
+.gauge-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.no-data-message {
+    color: @no-data-color;
+    font-size: @no-data-font-size;
+    text-align: center;
+}
+
+.gauge-background {
+    fill: @gauge-background-color;
+    stroke: none;
+    transition: fill @gauge-transition-duration @gauge-transition-timing;
+}
+
+.gauge-ranges {
+    .range-low,
+    .range-medium,
+    .range-high {
+        stroke: none;
+        transition: fill @gauge-transition-duration @gauge-transition-timing;
+    }
+}
+
+.performance-arc {
+    stroke: none;
+    transition: fill @gauge-transition-duration @gauge-transition-timing;
+}
+
+.value-marker {
+    transition: transform @gauge-transition-duration @gauge-transition-timing;
+
+    line {
+        stroke-linecap: round;
+        transition: stroke @gauge-transition-duration @gauge-transition-timing;
+    }
+
+    circle {
+        transition: fill @gauge-transition-duration @gauge-transition-timing,
+                    stroke @gauge-transition-duration @gauge-transition-timing;
+    }
+
+    path {
+        transition: fill @gauge-transition-duration @gauge-transition-timing,
+                    stroke @gauge-transition-duration @gauge-transition-timing;
+    }
+}
+
+.center-text {
+    text-anchor: middle;
+    dominant-baseline: middle;
+    transition: fill @gauge-transition-duration @gauge-transition-timing,
+                font-size @gauge-transition-duration @gauge-transition-timing;
+    user-select: none;
+    pointer-events: none;
+}
+
+svg {
+    overflow: visible;
+
+    g {
+        transition: transform @gauge-transition-duration @gauge-transition-timing;
     }
 }

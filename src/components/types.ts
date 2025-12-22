@@ -29,8 +29,6 @@ export interface GaugeSettings {
   fontSize: number;
   fontFamily: string;
   labelColor: string;
-  maxValue: number;
-  minValue: number;
 }
 
 export interface MarkerProps {
