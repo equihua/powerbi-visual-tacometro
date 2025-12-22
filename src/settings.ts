@@ -92,17 +92,7 @@ class GaugeCardSettings extends FormattingSettingsCard {
 }
 
 class RangesCardSettings extends FormattingSettingsCard {
-    lowThreshold = new formattingSettings.NumUpDown({
-        name: "lowThreshold",
-        displayName: "Low Threshold (%)",
-        value: 33
-    });
-
-    midThreshold = new formattingSettings.NumUpDown({
-        name: "midThreshold",
-        displayName: "Medium Threshold (%)",
-        value: 66
-    });
+    
 
     lowColor = new formattingSettings.ColorPicker({
         name: "lowColor",
@@ -132,21 +122,14 @@ class RangesCardSettings extends FormattingSettingsCard {
     displayName: string = "Rangos de Color";
     slices: Array<FormattingSettingsSlice> = [
         this.showRanges, 
-        this.lowThreshold, 
-        this.midThreshold, 
         this.lowColor, 
         this.mediumColor, 
         this.highColor
     ];
 
     setMeasureStates(hasLowThresholdData: boolean, hasMidThresholdData: boolean): void {
-        this.lowThreshold.visible = !hasLowThresholdData;
-        this.midThreshold.visible = !hasMidThresholdData;
-
         this.slices =  [
             this.showRanges, 
-            ...(hasLowThresholdData ? []:  [this.lowThreshold]),
-            ...(hasMidThresholdData ? [] : [this.midThreshold]),
             this.lowColor, 
             this.mediumColor, 
             this.highColor
@@ -180,20 +163,13 @@ class ValueLabelCardSettings extends FormattingSettingsCard {
         value: "wf_standard-font, helvetica, arial, sans-serif"
     });
 
-    displayUnits = new formattingSettings.AutoDropdown({
-        name: "displayUnits",
-        displayName: "Unidades de Visualización",
-        value: 0
-    });
-
     name: string = "valueLabel";
     displayName: string = "Etiqueta";
     slices: Array<FormattingSettingsSlice> = [
         this.show,
         this.color,
         this.fontSize,
-        this.fontFamily,
-        this.displayUnits
+        this.fontFamily
     ];
 }
 

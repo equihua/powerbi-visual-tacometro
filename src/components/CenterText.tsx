@@ -6,7 +6,6 @@ interface CenterTextProps {
     fontSize: number;
     fontFamily: string;
     color: string;
-    displayUnits: number;
     dataFormat: DataFormat;
 }
 
@@ -15,7 +14,6 @@ export const CenterText: React.FC<CenterTextProps> = ({
     fontSize,
     fontFamily,
     color,
-    displayUnits,
     dataFormat
 }) => {
     const formatValue = (value: number): string => {
@@ -27,23 +25,6 @@ export const CenterText: React.FC<CenterTextProps> = ({
             suffix = "%";
             const precision = dataFormat.decimalPlaces !== null ? dataFormat.decimalPlaces : 0;
             return formattedValue.toFixed(precision) + suffix;
-        }
-
-        if (displayUnits > 0) {
-            formattedValue = value / displayUnits;
-            switch (displayUnits) {
-                case 1000:
-                    suffix = "K";
-                    break;
-                case 1000000:
-                    suffix = "M";
-                    break;
-                case 1000000000:
-                    suffix = "B";
-                    break;
-                default:
-                    suffix = "";
-            }
         }
 
         const precision = dataFormat.decimalPlaces !== null ? dataFormat.decimalPlaces : 0;
