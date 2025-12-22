@@ -1,0 +1,299 @@
+{
+    "dataRoles": [
+        {
+            "displayName": "Valor",
+            "name": "measure",
+            "kind": "Measure",
+            "description": "El valor a mostrar en el indicador del medidor"
+        },
+        {
+            "displayName": "Valor Mínimo",
+            "name": "min",
+            "kind": "Measure",
+            "description": "El valor mínimo de la escala del medidor"
+        },
+        {
+            "displayName": "Valor Máximo",
+            "name": "max",
+            "kind": "Measure",
+            "description": "El valor máximo de la escala del medidor"
+        },
+        {
+            "displayName": "Valor Objetivo",
+            "name": "target",
+            "kind": "Measure",
+            "description": "El valor objetivo para mostrar en el medidor"
+        },
+        {
+            "displayName": "Umbral Bajo",
+            "name": "lowThreshold",
+            "kind": "Measure"
+        },
+        {
+            "displayName": "Umbral Medio",
+            "name": "midThreshold",
+            "kind": "Measure"
+        }
+    ],
+    "objects": {
+        "gauge": {
+            "displayName": "Configuración del Medidor",
+            "properties": {
+                "min": {
+                    "displayName": "Valor Mínimo",
+                    "description": "El valor mínimo permitido para el medidor",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "max": {
+                    "displayName": "Valor Máximo",
+                    "description": "El valor máximo permitido para el medidor",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "target": {
+                    "displayName": "Valor Objetivo",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "startAngle": {
+                    "displayName": "Ángulo Inicial (grados)",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "endAngle": {
+                    "displayName": "Ángulo Final (grados)",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "thickness": {
+                    "displayName": "Grosor del Medidor",
+                    "type": {
+                        "numeric": true
+                    }
+                }
+            }
+        },
+        "ranges": {
+            "displayName": "Rangos de Color",
+            "properties": {
+                "showRanges": {
+                    "displayName": "Mostrar Rangos",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "lowThreshold": {
+                    "displayName": "Umbral Bajo (%)",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "midThreshold": {
+                    "displayName": "Umbral Medio (%)",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "lowColor": {
+                    "displayName": "Color Bajo",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "mediumColor": {
+                    "displayName": "Color Medio",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "highColor": {
+                    "displayName": "Color Alto",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "valueLabel": {
+            "displayName": "Etiqueta",
+            "properties": {
+                "show": {
+                    "displayName": "Mostrar Valor",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "color": {
+                    "displayName": "Color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "fontSize": {
+                    "displayName": "Tamaño de Fuente",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "fontFamily": {
+                    "displayName": "Familia de Fuente",
+                    "type": {
+                        "formatting": {
+                            "fontFamily": true
+                        }
+                    }
+                },
+                "displayUnits": {
+                    "displayName": "Unidades de Visualización",
+                    "type": {
+                        "formatting": {
+                            "labelDisplayUnits": true
+                        }
+                    }
+                },
+                "decimalPlaces": {
+                    "displayName": "Decimales",
+                    "type": {
+                        "numeric": true
+                    }
+                }
+            }
+        },
+
+        "valueMarker": {
+            "displayName": "Marcador",
+            "properties": {
+                "show": {
+                    "displayName": "Mostrar Marcador",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "color": {
+                    "displayName": "Color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "size": {
+                    "displayName": "Tamaño",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "style": {
+                    "displayName": "Estilo",
+                    "type": {
+                        "enumeration": [
+                            {
+                                "value": "circle",
+                                "displayName": "Círculo"
+                            },
+                            {
+                                "value": "line",
+                                "displayName": "Línea"
+                            },
+                            {
+                                "value": "triangle",
+                                "displayName": "Triángulo"
+                            },
+                            {
+                                "value": "diamond",
+                                "displayName": "Diamante"
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    "dataViewMappings": [
+        {
+            "conditions": [
+                {
+                    "measure": {
+                        "max": 1
+                    },
+                    "min": {
+                        "max": 1
+                    },
+                    "max": {
+                        "max": 1
+                    },
+                    "target": {
+                        "max": 1
+                    },
+                    "lowThreshold": {
+                        "max": 1
+                    },
+                    "midThreshold": {
+                        "max": 1
+                    }
+                }
+            ],
+            "categorical": {
+                "values": {
+                    "select": [
+                        {
+                            "bind": {
+                                "to": "measure"
+                            }
+                        },
+                        {
+                            "bind": {
+                                "to": "min"
+                            }
+                        },
+                        {
+                            "bind": {
+                                "to": "max"
+                            }
+                        },
+                        {
+                            "bind": {
+                                "to": "target"
+                            }
+                        },
+                        {
+                            "bind": {
+                                "to": "lowThreshold"
+                            }
+                        },
+                        {
+                            "bind": {
+                                "to": "midThreshold"
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "privileges": []
+}
