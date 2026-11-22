@@ -1,0 +1,33 @@
+
+> visual@1.0.0.0 test:coverage
+> vitest run --coverage
+
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+      Coverage enabled with v8
+
+
+ Test Files  3 passed (3)
+      Tests  60 passed (60)
+   Start at  07:22:23
+   Duration  309ms (import 66%, transform 16%, worker 12%, tests 6%)
+
+[34m % [39m[2mCoverage report from [22m[33mv8[39m
+----------------|---------|----------|---------|---------|-------------------
+File            | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+----------------|---------|----------|---------|---------|-------------------
+All files       |   97.14 |    88.88 |   95.65 |   96.93 |                   
+ src            |   96.29 |     88.4 |    90.9 |   96.05 |                   
+  visual.ts     |   96.29 |     88.4 |    90.9 |   96.05 | 121-122,197       
+ src/components |     100 |    91.66 |     100 |     100 |                   
+  arcUtils.ts   |     100 |       50 |     100 |     100 | 23                
+  scales.ts     |     100 |      100 |     100 |     100 |                   
+----------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 97.14% ( 102/105 )
+Branches     : 88.88% ( 72/81 )
+Functions    : 95.65% ( 22/23 )
+Lines        : 96.93% ( 95/98 )
+================================================================================
+EXIT=0

@@ -4,13 +4,28 @@ export interface DataFormat {
 }
 
 export interface GaugeData {
+  /** Valor recortado a [min, max] para dibujar. */
   value: number;
+  /** Valor real del measure sin recortar (tooltip/accesibilidad); si falta se usa `value`. */
+  actualValue?: number;
   min: number;
   max: number;
+  /** Siempre definido: measure bindeado o, por defecto, min + (max - min) / 3. */
   lowThreshold: number;
+  /** Siempre definido: measure bindeado o, por defecto, min + 2 * (max - min) / 3. */
   midThreshold: number;
+  /** Measure bindeado > valor del panel; undefined si no hay ninguno. */
+  target?: number;
+  /** Meta con margen (B3); undefined si no hay measure. */
+  targetWithMargin?: number;
+  /** Programado (B3); undefined si no hay measure. */
+  programmed?: number;
+  /** Real del mes anterior (B3); undefined si no hay measure. */
+  previousMonth?: number;
   hasValidData: boolean;
   dataFormat: DataFormat;
+  /** Semáforo de la fuente (Verde/Amarillo/Rojo, clase text-* o #hex); null si no hay. */
+  semaphore: string | null;
 }
 
 export interface GaugeSettings {
@@ -29,16 +44,18 @@ export interface GaugeSettings {
   fontSize: number;
   fontFamily: string;
   labelColor: string;
+  /** B2: "menor es mejor" invierte la asignación de colores de desempeño. */
+  lowerIsBetter: boolean;
+  /** B3: colores de los marcadores adicionales. */
+  targetMarginColor: string;
+  programmedColor: string;
+  previousMonthColor: string;
+  /** A3: presente sólo en modo alto contraste (colores del host). */
+  highContrast?: HighContrastColors;
 }
 
-export interface MarkerProps {
-  radius: number;
-  value: number;
-  scale: (value: number) => number;
-  settings: {
-    size: number;
-    color: string;
-    style: string;
-    thickness: number;
-  };
+export interface HighContrastColors {
+  foreground: string;
+  background: string;
 }
+

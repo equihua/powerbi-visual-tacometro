@@ -1,0 +1,33 @@
+$ git status --short; git log --oneline -1; git stash list  # 2026-11-22T07:58:01-06:00
+ M .gitignore
+ M README.md
+ M capabilities.json
+ M eslint.config.mjs
+ M package-lock.json
+ M package.json
+ M pbiviz.json
+ M src/components/CenterText.tsx
+ M src/components/Gauge.tsx
+ M src/components/GaugeBackground.tsx
+ M src/components/GaugeRanges.tsx
+ M src/components/PerformanceArc.tsx
+ M src/components/ValueMarker.tsx
+ M src/components/types.ts
+ M src/settings.ts
+ M src/visual.ts
+?? .nvmrc
+?? CHANGELOG.md
+?? dev-harness/
+?? reports/
+?? src/components/GaugeMarker.tsx
+?? src/components/TargetMarker.tsx
+?? src/components/arcUtils.ts
+?? src/components/markers.ts
+?? src/components/scales.ts
+?? src/components/semaphore.ts
+?? src/highContrast.ts
+?? src/tooltips.ts
+?? tests/
+?? tsconfig.test.json
+?? vitest.config.mts
+b7334d3 Merge branch 'main' of https://github.com/equihua/powerbi-visual-tacometro into main

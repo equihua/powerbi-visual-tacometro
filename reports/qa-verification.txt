@@ -1,0 +1,68 @@
+Dictamen QA independiente: APROBADO CON OBSERVACIONES
+
+Alcance: verificación ejecutada en /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro. No se hizo commit ni se modificaron fuentes, pruebas ni expectativas de forma permanente. El único cambio temporal fue la mutación controlada de src/components/scales.ts; fue restaurado y su SHA-256 quedó idéntico.
+
+Precondiciones y preservación
+- El puerto 8080 estaba ocupado antes de iniciar las pruebas por node-MainThread PID 7565, correspondiente al proyecto ajeno indicado. No se detuvo ni alteró.
+- Estado inicial del árbol: había modificaciones y archivos no rastreados preexistentes (incluidos src/components/scales.ts, tests/, dev-harness/ y reports/). No se atribuyen a QA.
+- git diff -- capabilities.json pbiviz.json: sin salida, exit 0. Por tanto, no hay cambios rastreados en dichos manifiestos.
+- Tras detener servidores, ss confirmó que 8080 continúa escuchando en PID 7565 y que 8081/5178 ya no escuchan.
+
+Instalación limpia y auditoría de dependencias
+1. npm ci — exit 0
+   Resumen real: "added 629 packages, and audited 630 packages in 11s"; "found 0 vulnerabilities".
+   Aviso: lodash.isequal@4.5.0 está deprecado.
+2. npm audit — exit 0
+   Salida: "found 0 vulnerabilities".
+3. npm ls sockjs uuid minimatch --all — exit 0
+   Confirmó @typescript-eslint/typescript-estree > minimatch@11.0.5 overridden y powerbi-visuals-tools > webpack-dev-server > sockjs@0.3.24 > uuid@11.1.1 overridden. También existen minimatch@3.1.5 transitivos de ESLint, sin que el override solicitado pretendiera eliminarlos.
+
+Calidad estática y pruebas
+1. npx tsc --noEmit — exit 0 (sin salida).
+2. npm run typecheck:test — exit 0. Ejecutó tsc -p tsconfig.test.json.
+3. npm run lint — exit 0. Ejecutó npx eslint ..
+4. npm test — exit 0.
+   Resultado: 3 archivos de prueba aprobados; 60 de 60 pruebas aprobadas; duración 1.23 s.
+   Observación: Vitest emitió cuatro avisos de sourcemap faltante para powerbi-visuals-utils-formattingmodel en node_modules; no fallaron la suite.
+5. npm run test:coverage — exit 0.
+   Resultado: 3 archivos aprobados; 60 de 60 pruebas aprobadas; duración 1.17 s.
+   Cobertura reportada:
+   - src/visual.ts: sentencias 96.25%, ramas 88.05%, funciones 90.9%, líneas 96% (no cubiertas: 121-122, 196).
+   - src/components/arcUtils.ts: sentencias 100%, ramas 50%, funciones 100%, líneas 100% (rama/línea señalada: 23).
+   - src/components/scales.ts: N/D — no apareció como fila en el reporte de cobertura que produjo exactamente npm run test:coverage, pese a que vitest.config.mts lo incluye y tests/scales.test.ts existe/importa el módulo. No se inventa un porcentaje.
+   - Total: sentencias 97.11% (101/104), ramas 88.6% (70/79), funciones 95.65% (22/23), líneas 96.9% (94/97).
+
+Prueba de sensibilidad (mutación mínima)
+- Línea mutada temporalmente en createPerformanceColorScale: se sustituyeron Math.min/Math.max de umbrales por asignación directa, con el fin de retirar la corrección de umbrales invertidos.
+- npm test durante la mutación — exit 1, como se esperaba:
+  FAIL tests/scales.test.ts > createPerformanceColorScale > con umbrales invertidos (low > mid) se comporta como si estuvieran ordenados
+  AssertionError: expected 'LOW' to be 'MED'
+  Resultado: 1 archivo falló | 2 pasaron; 1 prueba falló | 59 pasaron.
+- Restauración: SHA256 antes = 7131ffa0f6fcfdd2e18fa4d67684a4996227e6e93d1bd45729dca1e8d2433ebb; SHA256 después = 7131ffa0f6fcfdd2e18fa4d67684a4996227e6e93d1bd45729dca1e8d2433ebb. Coinciden.
+
+Empaquetado y exclusión de pruebas
+- npm run package — exit 0. pbiviz package completó con "Package created!" y "Build completed successfully".
+- Artefacto regenerado: dist/PBI_CV_TACOMETRO_GAUGE.0.1.0-beta.1.pbiviz, tamaño 89,255 bytes; mtime cambió de 2026-11-09T10:09:45.4960932530 a 2026-11-09T10:13:09.4926362720.
+- El archivo contiene package.json, resources/ y resources/PBI_CV_TACOMETRO_GAUGE.pbiviz.json.
+- Se descomprimió en el directorio temporal de QA y se buscaron rutas tests/test/vitest, el literal "vitest" y nombres *.test.* / *.spec.*. Resultado: sin coincidencias.
+- Avisos de package no bloqueantes: configuración ESLint recomendada, deprecación Node DEP0187 y nueve capacidades opcionales de Power BI no soportadas.
+
+Servidor pbiviz (puerto alterno)
+- npm start -- --port 8081 se inició en segundo plano; webpack compiló correctamente en 3740 ms.
+- curl -k https://localhost:8081/assets/status — exit 0, HTTP=200, 42 bytes; cuerpo: "1794240837014 PBI_CV_TACOMETRO_GAUGE_DEBUG".
+- El servidor se detuvo explícitamente después de la comprobación. La ejecución, junto con npm ls, verificó que sockjs resuelve uuid@11.1.1 overridden.
+
+Harness visual
+- dev-harness/node_modules ya existía, por lo cual npm install no era necesario y no se ejecutó.
+- Intento previo de scripts/verify-dom.mjs sin servidor: exit 1, error reproducido net::ERR_CONNECTION_REFUSED a http://127.0.0.1:5178/. Clasificación: precondición de entorno (servidor aún no iniciado), no defecto de producto.
+- npm run serve se inició en segundo plano y expuso http://127.0.0.1:5178/; build finished, watching for changes.
+- node scripts/verify-dom.mjs — exit 0. Los siete escenarios conservaron estado OK: s1-normal, s2a-clamp-high, s2b-clamp-low, s3-thirds, s4-range, s5a-anim-ranges y s5b-anim-arc.
+- node scripts/screenshots.mjs — exit 0. Generó 13 capturas en dev-harness/screenshots/ (inicial, siete escenarios y estados de animación); imprimió muestras before/mid/after de arcD y markerA. La única consola de navegador fue la sugerencia informativa de React DevTools.
+- El servidor del harness se detuvo explícitamente después de ejecutar ambos scripts.
+
+Riesgos y observaciones residuales
+1. La ejecución estándar de cobertura no proporciona porcentaje para scales.ts aunque está solicitado por la configuración. Esto impide afirmar cobertura porcentual para dicho archivo; revisar la instrumentación/reporte V8 antes de usar ese indicador como criterio de calidad.
+2. Persisten avisos externos de sourcemaps de powerbi-visuals-utils-formattingmodel y la deprecación de lodash.isequal; no causaron fallas en instalación, compilación, pruebas ni empaquetado.
+3. Los avisos de nueve capacidades opcionales de Power BI pertenecen a cobertura funcional/accesibilidad pendiente del visual, no bloquean el paquete actual.
+
+Siguiente responsable: desarrollo/mantenimiento para decidir si corrige la emisión de cobertura de scales.ts y si atiende las observaciones no bloqueantes. QA recomienda no cambiar expectativas para ocultar la ausencia de ese porcentaje.

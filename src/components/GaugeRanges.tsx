@@ -1,4 +1,6 @@
 import * as React from 'react';
+import { arcPath, bandRadii } from './arcUtils';
+import { AngleScale } from './scales';
 
 interface GaugeRangesProps {
     radius: number;
@@ -10,7 +12,9 @@ interface GaugeRangesProps {
     lowColor: string;
     mediumColor: string;
     highColor: string;
-    scale: (value: number) => number;
+    scale: AngleScale;
+    /** Contorno de las bandas (alto contraste); "none" por defecto. */
+    stroke?: string;
 }
 
 export const GaugeRanges: React.FC<GaugeRangesProps> = ({
@@ -23,77 +27,36 @@ export const GaugeRanges: React.FC<GaugeRangesProps> = ({
     lowColor,
     mediumColor,
     highColor,
-    scale
+    scale,
+    stroke = "none"
 }) => {
-    const innerRadius = radius * 0.95;
-    
-    const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInRadians: number) => {
-        return {
-            x: centerX + (radius * Math.sin(angleInRadians)),
-            y: centerY - (radius * Math.cos(angleInRadians))
-        };
-    };
-    
-    const describeArc = (innerR: number, outerR: number, startAngle: number, endAngle: number): string => {
-        const startInner = polarToCartesian(0, 0, innerR, endAngle);
-        const endInner = polarToCartesian(0, 0, innerR, startAngle);
-        const startOuter = polarToCartesian(0, 0, outerR, endAngle);
-        const endOuter = polarToCartesian(0, 0, outerR, startAngle);
-        
-        const largeArcFlag = endAngle - startAngle <= Math.PI ? "0" : "1";
-        
-        return [
-            "M", startInner.x, startInner.y,
-            "A", innerR, innerR, 0, largeArcFlag, 0, endInner.x, endInner.y,
-            "L", endOuter.x, endOuter.y,
-            "A", outerR, outerR, 0, largeArcFlag, 1, startOuter.x, startOuter.y,
-            "Z"
-        ].join(" ");
-    };
-    
+    const radii = bandRadii(radius, thickness);
     const lowEndAngle = scale(lowThreshold);
     const mediumEndAngle = scale(midThreshold);
-    
-    const lowRangePath = describeArc(
-        innerRadius - thickness / 2,
-        innerRadius + thickness / 2,
-        startAngle,
-        lowEndAngle
-    );
-    
-    const mediumRangePath = describeArc(
-        innerRadius - thickness / 2,
-        innerRadius + thickness / 2,
-        lowEndAngle,
-        mediumEndAngle
-    );
-    
-    const highRangePath = describeArc(
-        innerRadius - thickness / 2,
-        innerRadius + thickness / 2,
-        mediumEndAngle,
-        endAngle
-    );
-    
+
+    const lowRangePath = arcPath({ ...radii, startAngle, endAngle: lowEndAngle });
+    const mediumRangePath = arcPath({ ...radii, startAngle: lowEndAngle, endAngle: mediumEndAngle });
+    const highRangePath = arcPath({ ...radii, startAngle: mediumEndAngle, endAngle });
+
     return (
         <g className="gauge-ranges">
             <path
                 className="range-low"
                 d={lowRangePath}
                 fill={lowColor}
-                stroke="none"
+                stroke={stroke}
             />
             <path
                 className="range-medium"
                 d={mediumRangePath}
                 fill={mediumColor}
-                stroke="none"
+                stroke={stroke}
             />
             <path
                 className="range-high"
                 d={highRangePath}
                 fill={highColor}
-                stroke="none"
+                stroke={stroke}
             />
         </g>
     );

@@ -1,0 +1,3 @@
+$ sha256sum dist/PBI_CV_TACOMETRO_GAUGE.0.2.0.0.pbiviz  # antes de reempaquetar, 2026-11-22T07:57:38-06:00
+a454aff6d973f5af2f8dab54218edc5992a68fd608b067ecad700f48198390a6  dist/PBI_CV_TACOMETRO_GAUGE.0.2.0.0.pbiviz
+92175 bytes mtime=2026-11-22 07:41:31.567000377 -0600

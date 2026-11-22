@@ -1,0 +1,32 @@
+$ npm run package   # 2026-11-22T07:57:46-06:00 node v24.21.0 npm 11.19.0
+
+> visual@0.2.0.0 package
+> pbiviz package
+
+ info   powerbi-visuals-tools version - 7.2.1
+ warn   Using recommended eslint config.
+ info   Running lint check...
+ info   Lint check completed.
+(node:216962) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ info   Certificate is valid.
+ info   Start preparing plugin template
+ info   Finish preparing plugin template
+ info   Start packaging...
+ info   Package compression enabled
+ info   Package created!
+ info   Finish packaging
+Webpack Bundle Analyzer saved report to /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/webpack.statistics.prod.html
+ 
+ done   Build completed successfully
+ warn   Visual doesn't support some features recommended for all custom visuals:
+ 
+ warn   Highlight Data - https://learn.microsoft.com/en-us/power-bi/developer/visuals/highlight
+ warn   Localizations - https://learn.microsoft.com/en-us/power-bi/developer/visuals/localization
+ warn   Selection Across Visuals - https://learn.microsoft.com/en-us/power-bi/developer/visuals/supportsmultivisualselection-feature
+ 
+ info   Visual can be improved by adding 9 more optional features.
+ 
+ info   Run `pbiviz package` with --verbose flag to see more details.
+ 
+EXIT=0

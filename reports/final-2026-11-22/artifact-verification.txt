@@ -1,0 +1,43 @@
+$ sha256sum dist/PBI_CV_TACOMETRO_GAUGE.0.2.0.0.pbiviz; stat; unzip -l; manifiestos  # 2026-11-22T07:58:01-06:00 (tras el último npm run package de npm-run-package.txt)
+bcbc33a3d7f2766898e1546804e1c169bcee4c7fdc0d8a0aeb9a1834456324eb  dist/PBI_CV_TACOMETRO_GAUGE.0.2.0.0.pbiviz
+dist/PBI_CV_TACOMETRO_GAUGE.0.2.0.0.pbiviz 92231 bytes mtime=2026-11-22 07:57:49.721665066 -0600
+Archive:  dist/PBI_CV_TACOMETRO_GAUGE.0.2.0.0.pbiviz
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+      611  2026-11-22 13:57   package.json
+        0  2026-11-22 13:57   resources/
+   289984  2026-11-22 13:57   resources/PBI_CV_TACOMETRO_GAUGE.pbiviz.json
+---------                     -------
+   290595                     3 files
+--- package.json (dentro del .pbiviz)
+{
+		"version": "0.2.0.0",
+		"author": {"name":"Power BI Developer","email":"developer@powerbi.com"},
+		"resources": [
+			{
+				"resourceId": "rId0",
+				"sourceType": 5,
+				"file": "resources/PBI_CV_TACOMETRO_GAUGE.pbiviz.json"
+			}
+		],
+		"visual": {"name":"TachometroGauge","displayName":"Tacometro Gauge","guid":"PBI_CV_TACOMETRO_GAUGE","visualClassName":"Visual","version":"0.2.0.0","description":"A radial gauge visual that replicates the Power BI Radial Gauge visual functionality","supportUrl":"https://github.com","gitHubUrl":""},
+		"metadata": {
+			"pbivizjson": {
+				"resourceId": "rId0"
+			}
+		}
+	}
+--- resources/*.pbiviz.json (visual/apiVersion/capabilities resumen)
+{"name": "TachometroGauge", "displayName": "Tacometro Gauge", "guid": "PBI_CV_TACOMETRO_GAUGE", "visualClassName": "Visual", "version": "0.2.0.0", "description": "A radial gauge visual that replicates the Power BI Radial Gauge visual functionality", "supportUrl": "https://github.com", "gitHubUrl": ""}
+apiVersion 5.3.0
+roles ['measure:Measure', 'min:Measure', 'max:Measure', 'target:Measure', 'targetWithMargin:Measure', 'programmed:Measure', 'previousMonth:Measure', 'lowThreshold:Measure', 'midThreshold:Measure', 'semaphore:Measure', 'tooltips:Measure']
+{'supportsKeyboardFocus': True, 'supportsLandingPage': True, 'supportsEmptyDataView': True, 'tooltips': {'supportedTypes': {'default': True, 'canvas': True}, 'roles': ['tooltips']}}
+objects ['gauge', 'ranges', 'valueLabel', 'valueMarker', 'markers']
+bundle contiene semaphore-indicator: True
+--- dist/
+total 192
+drwxr-xr-x  2 equihua equihua  4096 nov 22 07:36 .
+drwxr-xr-x 13 equihua equihua  4096 nov 22 07:57 ..
+-rw-r--r--  1 equihua equihua   611 nov 22 07:57 package.json
+-rw-r--r--  1 equihua equihua 89260 nov  9 18:04 PBI_CV_TACOMETRO_GAUGE.0.1.0-beta.1.pbiviz
+-rw-rw-r--  1 equihua equihua 92231 nov 22 07:57 PBI_CV_TACOMETRO_GAUGE.0.2.0.0.pbiviz

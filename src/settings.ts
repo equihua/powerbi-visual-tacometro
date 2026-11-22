@@ -37,6 +37,25 @@ import FormattingSettingsModel = formattingSettings.Model;
  */
 class GaugeCardSettings extends FormattingSettingsCard {
 
+    // Valores del panel; un measure bindeado en el rol homónimo tiene prioridad.
+    min = new formattingSettings.NumUpDown({
+        name: "min",
+        displayName: "Mínimo",
+        value: 0
+    });
+
+    max = new formattingSettings.NumUpDown({
+        name: "max",
+        displayName: "Máximo",
+        value: 100
+    });
+
+    target = new formattingSettings.NumUpDown({
+        name: "target",
+        displayName: "Objetivo",
+        value: undefined
+    });
+
     startAngle = new formattingSettings.NumUpDown({
         name: "startAngle",
         displayName: "Ángulo Inicial (grados)",
@@ -58,6 +77,9 @@ class GaugeCardSettings extends FormattingSettingsCard {
     name: string = "gauge";
     displayName: string = "Configuración del Medidor";
     slices: Array<FormattingSettingsSlice> = [
+        this.min,
+        this.max,
+        this.target,
         this.startAngle,
         this.endAngle,
         this.thickness
@@ -92,10 +114,18 @@ class RangesCardSettings extends FormattingSettingsCard {
         value: true
     });
 
+    // B2: indicadores descendentes (p. ej. SAIDI, pérdidas): invierte la asignación de colores.
+    lowerIsBetter = new formattingSettings.ToggleSwitch({
+        name: "lowerIsBetter",
+        displayName: "Menor es mejor",
+        value: false
+    });
+
     name: string = "ranges";
     displayName: string = "Rangos de Color";
     slices: Array<FormattingSettingsSlice> = [
         this.showRanges, 
+        this.lowerIsBetter,
         this.lowColor, 
         this.mediumColor, 
         this.highColor
@@ -148,7 +178,7 @@ class ValueMarkerCardSettings extends FormattingSettingsCard {
     color = new formattingSettings.ColorPicker({
         name: "color",
         displayName: "Color",
-        value: { value: "#FFFFFF" }
+        value: { value: "#333333" }
     });
 
     size = new formattingSettings.NumUpDown({
@@ -179,6 +209,35 @@ class ValueMarkerCardSettings extends FormattingSettingsCard {
     ];
 }
 
+/** B3: colores de los marcadores adicionales (el objetivo original conserva su color fijo). */
+class MarkersCardSettings extends FormattingSettingsCard {
+    targetMarginColor = new formattingSettings.ColorPicker({
+        name: "targetMarginColor",
+        displayName: "Color Meta con margen",
+        value: { value: "#605E5C" }
+    });
+
+    programmedColor = new formattingSettings.ColorPicker({
+        name: "programmedColor",
+        displayName: "Color Programado",
+        value: { value: "#0078D4" }
+    });
+
+    previousMonthColor = new formattingSettings.ColorPicker({
+        name: "previousMonthColor",
+        displayName: "Color Real mes anterior",
+        value: { value: "#8764B8" }
+    });
+
+    name: string = "markers";
+    displayName: string = "Marcadores adicionales";
+    slices: Array<FormattingSettingsSlice> = [
+        this.targetMarginColor,
+        this.programmedColor,
+        this.previousMonthColor
+    ];
+}
+
 /**
 * visual settings model class
 *
@@ -189,7 +248,8 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     rangesCard = new RangesCardSettings();
     valueLabelCard = new ValueLabelCardSettings();
     valueMarkerCard = new ValueMarkerCardSettings();
+    markersCard = new MarkersCardSettings();
 
-    cards = [this.gaugeCard, this.rangesCard, this.valueLabelCard, this.valueMarkerCard];
+    cards = [this.gaugeCard, this.rangesCard, this.valueLabelCard, this.valueMarkerCard, this.markersCard];
 }
 

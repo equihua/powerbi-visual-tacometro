@@ -1,0 +1,39 @@
+$ npm run test:coverage   # 2026-11-22T07:57:39-06:00 node v24.21.0 npm 11.19.0
+
+> visual@0.2.0.0 test:coverage
+> vitest run --coverage
+
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+      Coverage enabled with v8
+
+
+ Test Files  10 passed (10)
+      Tests  120 passed (120)
+   Start at  07:57:40
+   Duration  257ms (import 60%, worker 18%, transform 13%, tests 9%)
+
+ % Coverage report from v8
+------------------|---------|----------|---------|---------|-------------------
+File              | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+------------------|---------|----------|---------|---------|-------------------
+All files         |   99.09 |    92.51 |   98.18 |   99.03 |                   
+ src              |    98.7 |    91.22 |   97.14 |    98.6 |                   
+  highContrast.ts |     100 |      100 |     100 |     100 |                   
+  tooltips.ts     |     100 |      100 |     100 |     100 |                   
+  visual.ts       |   98.54 |    90.47 |   96.66 |   98.43 | 219,327           
+ src/components   |     100 |    96.96 |     100 |     100 |                   
+  GaugeMarker.tsx |     100 |      100 |     100 |     100 |                   
+  arcUtils.ts     |     100 |       50 |     100 |     100 | 23                
+  markers.ts      |     100 |      100 |     100 |     100 |                   
+  scales.ts       |     100 |      100 |     100 |     100 |                   
+  semaphore.ts    |     100 |      100 |     100 |     100 |                   
+------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 99.09% ( 219/221 )
+Branches     : 92.51% ( 136/147 )
+Functions    : 98.18% ( 54/55 )
+Lines        : 99.03% ( 205/207 )
+================================================================================
+EXIT=0

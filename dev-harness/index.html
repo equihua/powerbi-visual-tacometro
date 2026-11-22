@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>TachometroGauge - dev harness</title>
+<style>
+  body { font-family: Segoe UI, Arial, sans-serif; margin: 16px; background: #fafafa; }
+  h1 { font-size: 18px; margin: 0 0 12px; }
+  #grid { display: grid; grid-template-columns: repeat(4, 320px); gap: 12px; }
+  .card { background: #fff; border: 1px solid #ddd; padding: 8px; }
+  .card h2 { font-size: 13px; margin: 0 0 4px; }
+  .visual { width: 300px; height: 300px; border: 1px dashed #ccc; }
+  pre { font-size: 10px; margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+  button { margin: 4px 4px 0 0; }
+</style>
+</head>
+<body>
+<h1>TachometroGauge &mdash; harness local (src/visual.ts real + DataView mock)</h1>
+<div id="grid"></div>
+<script src="main.js"></script>
+</body>
+</html>

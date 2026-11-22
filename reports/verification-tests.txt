@@ -1,0 +1,118 @@
+# Generado 2026-11-09T10:27:52 en /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+# Node v26.8.2, npm 11.19.1, vitest 5.1.0
+
+Resumen exit codes: npx tsc --noEmit=0, npm run typecheck:test=0, npm run lint=0, npm test=0, npm run test:coverage=0, npm audit=0, npm run package=0
+
+===== $ npx tsc --noEmit
+
+----- exit=0
+
+===== $ npm run typecheck:test
+> visual@1.0.0.0 typecheck:test
+> tsc -p tsconfig.test.json
+----- exit=0
+
+===== $ npm run lint
+> visual@1.0.0.0 lint
+> npx eslint .
+----- exit=0
+
+===== $ npm test
+> visual@1.0.0.0 test
+> vitest run
+
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+
+Sourcemap for "/home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/node_modules/powerbi-visuals-utils-formattingmodel/lib/index.js" points to missing source files
+Sourcemap for "/home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/node_modules/powerbi-visuals-utils-formattingmodel/lib/FormattingSettingsComponents.js" points to missing source files
+Sourcemap for "/home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/node_modules/powerbi-visuals-utils-formattingmodel/lib/utils/FormattingSettingsUtils.js" points to missing source files
+Sourcemap for "/home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/node_modules/powerbi-visuals-utils-formattingmodel/lib/FormattingSettingsService.js" points to missing source files
+
+ Test Files  3 passed (3)
+      Tests  60 passed (60)
+   Start at  10:27:24
+   Duration  1.16s (transform 52%, import 39%, tests 7%, worker 2%)
+----- exit=0
+
+===== $ npm run test:coverage
+> visual@1.0.0.0 test:coverage
+> vitest run --coverage
+
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+      Coverage enabled with v8
+
+
+ Test Files  3 passed (3)
+      Tests  60 passed (60)
+   Start at  10:27:26
+   Duration  815ms (import 65%, worker 16%, transform 10%, tests 9%)
+
+ % Coverage report from v8
+----------------|---------|----------|---------|---------|-------------------
+File            | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+----------------|---------|----------|---------|---------|-------------------
+All files       |   97.14 |    88.88 |   95.65 |   96.93 |                   
+ src            |   96.29 |     88.4 |    90.9 |   96.05 |                   
+  visual.ts     |   96.29 |     88.4 |    90.9 |   96.05 | 121-122,197       
+ src/components |     100 |    91.66 |     100 |     100 |                   
+  arcUtils.ts   |     100 |       50 |     100 |     100 | 23                
+  scales.ts     |     100 |      100 |     100 |     100 |                   
+----------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 97.14% ( 102/105 )
+Branches     : 88.88% ( 72/81 )
+Functions    : 95.65% ( 22/23 )
+Lines        : 96.93% ( 95/98 )
+================================================================================
+----- exit=0
+
+===== $ npm audit
+found 0 vulnerabilities
+----- exit=0
+
+===== $ npm run package
+> visual@1.0.0.0 package
+> pbiviz package
+
+ info   powerbi-visuals-tools version - 7.2.1
+ warn   Using recommended eslint config.
+ info   Running lint check...
+ info   Lint check completed.
+(node:2546278) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ info   Certificate is valid.
+ info   Start preparing plugin template
+ info   Finish preparing plugin template
+ info   Start packaging...
+ info   Package compression enabled
+ info   Package created!
+ info   Finish packaging
+Webpack Bundle Analyzer saved report to /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/webpack.statistics.prod.html
+ 
+ done   Build completed successfully
+ warn   Visual doesn't support some features recommended for all custom visuals:
+ 
+ warn   Allow Interactions - https://learn.microsoft.com/en-us/power-bi/developer/visuals/visuals-interactions
+ warn   Color Palette - https://learn.microsoft.com/en-us/power-bi/developer/visuals/add-colors-power-bi-visual
+ warn   Context Menu - https://learn.microsoft.com/en-us/power-bi/developer/visuals/context-menu
+ warn   High Contrast - https://learn.microsoft.com/en-us/power-bi/developer/visuals/high-contrast-support
+ warn   Highlight Data - https://learn.microsoft.com/en-us/power-bi/developer/visuals/highlight
+ warn   Keyboard Navigation - https://learn.microsoft.com/en-us/power-bi/developer/visuals/supportskeyboardfocus-feature
+ warn   Landing Page - https://learn.microsoft.com/en-us/power-bi/developer/visuals/landing-page
+ warn   Localizations - https://learn.microsoft.com/en-us/power-bi/developer/visuals/localization
+ warn   Rendering Events - https://learn.microsoft.com/en-us/power-bi/developer/visuals/event-service
+ warn   Selection Across Visuals - https://learn.microsoft.com/en-us/power-bi/developer/visuals/supportsmultivisualselection-feature
+ warn   Tooltips - https://learn.microsoft.com/en-us/power-bi/developer/visuals/add-tooltips
+ 
+ info   Visual can be improved by adding 9 more optional features.
+ 
+ info   Run `pbiviz package` with --verbose flag to see more details.
+----- exit=0
+
+===== Artefacto
+dist/PBI_CV_TACOMETRO_GAUGE.0.1.0-beta.1.pbiviz
+89260 bytes, mtime 2026-11-09 10:27:44.019085967 -0600
+ea8c8fc3e1f7d8a3a0c76ae5f59ec2ce3ddf1d79faae3039dd0b226f95241591  dist/PBI_CV_TACOMETRO_GAUGE.0.1.0-beta.1.pbiviz

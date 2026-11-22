@@ -1,0 +1,29 @@
+===== npm ls minimatch =====
+visual@1.0.0.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+├─┬ @typescript-eslint/eslint-plugin@8.72.1
+│ └─┬ @typescript-eslint/parser@8.72.1
+│   └─┬ @typescript-eslint/typescript-estree@8.72.1
+│     └── minimatch@11.0.5 overridden
+└─┬ eslint@9.39.2
+  ├─┬ @eslint/config-array@0.21.1
+  │ └── minimatch@3.1.5 deduped
+  ├─┬ @eslint/eslintrc@3.3.3
+  │ └── minimatch@3.1.5 deduped
+  └── minimatch@3.1.5
+
+EXIT_CODE[minimatch]=0
+
+===== npm ls uuid =====
+visual@1.0.0.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+└─┬ powerbi-visuals-tools@7.2.1
+  └─┬ webpack-dev-server@5.2.7
+    └─┬ sockjs@0.3.24
+      └── uuid@11.1.1 overridden
+
+EXIT_CODE[uuid]=0
+
+===== npm ls powerbi-visuals-tools =====
+visual@1.0.0.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+└── powerbi-visuals-tools@7.2.1
+
+EXIT_CODE[powerbi-visuals-tools]=0

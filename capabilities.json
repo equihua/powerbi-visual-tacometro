@@ -25,6 +25,24 @@
             "description": "El valor objetivo para mostrar en el medidor"
         },
         {
+            "displayName": "Meta con margen",
+            "name": "targetWithMargin",
+            "kind": "Measure",
+            "description": "Marcador discontinuo de la meta con margen"
+        },
+        {
+            "displayName": "Programado",
+            "name": "programmed",
+            "kind": "Measure",
+            "description": "Marcador triangular del valor programado"
+        },
+        {
+            "displayName": "Real mes anterior",
+            "name": "previousMonth",
+            "kind": "Measure",
+            "description": "Marcador circular del real del mes anterior"
+        },
+        {
             "displayName": "Umbral Bajo",
             "name": "lowThreshold",
             "kind": "Measure"
@@ -33,6 +51,18 @@
             "displayName": "Umbral Medio",
             "name": "midThreshold",
             "kind": "Measure"
+        },
+        {
+            "displayName": "Semáforo (color de la fuente)",
+            "name": "semaphore",
+            "kind": "Measure",
+            "description": "Texto del semáforo de la fuente (Verde/Amarillo/Rojo, Sin semaforizar, clase text-* o color #hex). Si está presente sustituye al color calculado por umbrales."
+        },
+        {
+            "displayName": "Información sobre herramientas",
+            "name": "tooltips",
+            "kind": "Measure",
+            "description": "Campos adicionales que se muestran en el tooltip"
         }
     ],
     "objects": {
@@ -84,6 +114,13 @@
             "properties": {
                 "showRanges": {
                     "displayName": "Mostrar Rangos",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "lowerIsBetter": {
+                    "displayName": "Menor es mejor",
+                    "description": "Indicadores descendentes: valores bajos son favorables (invierte colores de rangos y desempeño)",
                     "type": {
                         "bool": true
                     }
@@ -155,7 +192,6 @@
                 }
             }
         },
-
         "valueMarker": {
             "displayName": "Marcador",
             "properties": {
@@ -205,6 +241,41 @@
                     }
                 }
             }
+        },
+        "markers": {
+            "displayName": "Marcadores adicionales",
+            "properties": {
+                "targetMarginColor": {
+                    "displayName": "Color Meta con margen",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "programmedColor": {
+                    "displayName": "Color Programado",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "previousMonthColor": {
+                    "displayName": "Color Real mes anterior",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "dataViewMappings": [
@@ -227,6 +298,18 @@
                         "max": 1
                     },
                     "midThreshold": {
+                        "max": 1
+                    },
+                    "semaphore": {
+                        "max": 1
+                    },
+                    "targetWithMargin": {
+                        "max": 1
+                    },
+                    "programmed": {
+                        "max": 1
+                    },
+                    "previousMonth": {
                         "max": 1
                     }
                 }
@@ -263,11 +346,48 @@
                             "bind": {
                                 "to": "midThreshold"
                             }
+                        },
+                        {
+                            "bind": {
+                                "to": "semaphore"
+                            }
+                        },
+                        {
+                            "bind": {
+                                "to": "targetWithMargin"
+                            }
+                        },
+                        {
+                            "bind": {
+                                "to": "programmed"
+                            }
+                        },
+                        {
+                            "bind": {
+                                "to": "previousMonth"
+                            }
+                        },
+                        {
+                            "bind": {
+                                "to": "tooltips"
+                            }
                         }
                     ]
                 }
             }
         }
     ],
-    "privileges": []
+    "privileges": [],
+    "tooltips": {
+        "supportedTypes": {
+            "default": true,
+            "canvas": true
+        },
+        "roles": [
+            "tooltips"
+        ]
+    },
+    "supportsKeyboardFocus": true,
+    "supportsLandingPage": true,
+    "supportsEmptyDataView": true
 }

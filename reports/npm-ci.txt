@@ -1,0 +1,9 @@
+npm warn deprecated lodash.isequal@4.5.0: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.
+
+added 596 packages, and audited 597 packages in 15s
+
+146 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+NPM_CI_EXIT=0

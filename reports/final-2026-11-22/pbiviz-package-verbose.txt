@@ -1,0 +1,37 @@
+$ npx pbiviz package --verbose   # 2026-11-22T07:57:42-06:00 node v24.21.0 npm 11.19.0
+ info   powerbi-visuals-tools version - 7.2.1
+ warn   Using recommended eslint config.
+ info   Running lint check...
+
+ info   Lint check completed.
+(node:216849) [DEP0187] DeprecationWarning: Passing invalid argument types to fs.existsSync is deprecated
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ info   Certificate is valid.
+ info   Start preparing plugin template
+ info   Finish preparing plugin template
+ info   Start packaging...
+ info   Package compression enabled
+ info   Package created!
+ info   Finish packaging
+Webpack Bundle Analyzer saved report to /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/webpack.statistics.prod.html
+ 
+ done   Build completed successfully
+ warn   Visual doesn't support some features recommended for all custom visuals:
+ 
+ warn   Highlight Data - https://learn.microsoft.com/en-us/power-bi/developer/visuals/highlight
+ warn   Localizations - https://learn.microsoft.com/en-us/power-bi/developer/visuals/localization
+ warn   Selection Across Visuals - https://learn.microsoft.com/en-us/power-bi/developer/visuals/supportsmultivisualselection-feature
+ 
+ info   Visual can be improved by adding some features:
+ 
+ info   Analytics Pane - https://learn.microsoft.com/en-us/power-bi/developer/visuals/analytics-pane
+ info   Conditional Formatting - https://learn.microsoft.com/en-us/power-bi/developer/visuals/conditional-format
+ info   Drill Down - https://learn.microsoft.com/en-us/power-bi/developer/visuals/drill-down-support
+ info   Fetch More Data - https://learn.microsoft.com/en-us/power-bi/developer/visuals/fetch-more-data
+ info   File Download - https://learn.microsoft.com/en-us/power-bi/developer/visuals/file-download-api
+ info   Launch URL - https://learn.microsoft.com/en-us/power-bi/developer/visuals/launch-url
+ info   Local Storage - https://learn.microsoft.com/en-us/power-bi/developer/visuals/local-storage
+ info   Modal Dialog - https://learn.microsoft.com/en-us/power-bi/developer/visuals/create-display-dialog-box
+ info   Warning Icon - https://learn.microsoft.com/en-us/power-bi/developer/visuals/visual-display-warning-icon
+ 
+EXIT=0

@@ -1,0 +1,15 @@
+$ npm test   # 2026-11-22T07:57:39-06:00 node v24.21.0 npm 11.19.0
+
+> visual@0.2.0.0 test
+> vitest run
+
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+
+
+ Test Files  10 passed (10)
+      Tests  120 passed (120)
+   Start at  07:57:39
+   Duration  209ms (import 69%, transform 16%, tests 11%, worker 4%)
+
+EXIT=0

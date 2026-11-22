@@ -1,0 +1,44 @@
+$ npx vitest run --coverage --coverage.include=src/**   # 2026-11-22T07:57:41-06:00 node v24.21.0 npm 11.19.0
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+      Coverage enabled with v8
+
+
+ Test Files  10 passed (10)
+      Tests  120 passed (120)
+   Start at  07:57:42
+   Duration  324ms (import 57%, transform 18%, worker 16%, tests 9%)
+
+ % Coverage report from v8
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   82.98 |    82.92 |   80.24 |   82.57 |                   
+ src               |   98.98 |    91.22 |   97.14 |   98.92 |                   
+  highContrast.ts  |     100 |      100 |     100 |     100 |                   
+  settings.ts      |     100 |      100 |     100 |     100 |                   
+  tooltips.ts      |     100 |      100 |     100 |     100 |                   
+  visual.ts        |   98.54 |    90.47 |   96.66 |   98.43 | 219,327           
+ src/components    |   66.49 |    72.52 |   67.39 |   66.31 |                   
+  CenterText.tsx   |     100 |    83.33 |     100 |     100 | 41                
+  Gauge.tsx        |   86.95 |       96 |      50 |   86.95 | 27-31,65          
+  ...ackground.tsx |     100 |      100 |     100 |     100 |                   
+  GaugeMarker.tsx  |     100 |      100 |     100 |     100 |                   
+  GaugeRanges.tsx  |     100 |      100 |     100 |     100 |                   
+  ...rmanceArc.tsx |   27.58 |    11.11 |   14.28 |   28.57 | 46-69,75-78       
+  TargetMarker.tsx |       0 |      100 |       0 |       0 | 6-21              
+  ValueMarker.tsx  |      25 |     6.66 |      25 |      25 | ...,89-92,100-132 
+  arcUtils.ts      |     100 |       50 |     100 |     100 | 23                
+  markers.ts       |     100 |      100 |     100 |     100 |                   
+  scales.ts        |     100 |      100 |     100 |     100 |                   
+  semaphore.ts     |     100 |      100 |     100 |     100 |                   
+  types.ts         |       0 |        0 |       0 |       0 |                   
+-------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 82.98% ( 322/388 )
+Branches     : 82.92% ( 170/205 )
+Functions    : 80.24% ( 65/81 )
+Lines        : 82.57% ( 308/373 )
+================================================================================
+EXIT=0

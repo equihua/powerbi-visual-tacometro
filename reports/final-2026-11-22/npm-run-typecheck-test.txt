@@ -1,0 +1,6 @@
+$ npm run typecheck:test   # 2026-11-22T07:57:38-06:00 node v24.21.0 npm 11.19.0
+
+> visual@0.2.0.0 typecheck:test
+> tsc -p tsconfig.test.json
+
+EXIT=0

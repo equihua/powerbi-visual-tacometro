@@ -1,0 +1,15 @@
+$ npx vitest run --fsModuleCache=false   # 2026-11-22T07:57:40-06:00 node v24.21.0 npm 11.19.0
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+
+Sourcemap for "/home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/node_modules/powerbi-visuals-utils-formattingmodel/lib/index.js" points to missing source files
+Sourcemap for "/home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/node_modules/powerbi-visuals-utils-formattingmodel/lib/FormattingSettingsComponents.js" points to missing source files
+Sourcemap for "/home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/node_modules/powerbi-visuals-utils-formattingmodel/lib/utils/FormattingSettingsUtils.js" points to missing source files
+Sourcemap for "/home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/node_modules/powerbi-visuals-utils-formattingmodel/lib/FormattingSettingsService.js" points to missing source files
+
+ Test Files  10 passed (10)
+      Tests  120 passed (120)
+   Start at  07:57:41
+   Duration  364ms (transform 57%, import 36%, tests 5%, worker 2%)
+
+EXIT=0

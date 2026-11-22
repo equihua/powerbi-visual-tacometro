@@ -1,5 +1,11 @@
 # Node modules
 node_modules/
+
+# Dev harness local (dev-harness/)
+dev-harness/node_modules/
+dev-harness/dist/
+# Capturas locales de evidencia (pueden contener pantallas de login)
+dev-harness/screenshots/
 npm-debug.log*
 yarn-error.log
 yarn-debug.log
