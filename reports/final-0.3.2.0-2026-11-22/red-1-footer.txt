@@ -1,0 +1,95 @@
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+
+ ❯ tests/gaugeFooter.test.ts (13 tests | 4 failed) 17ms
+   ❯ GaugeFooter — leyenda inferior horizontal (13)
+     × 0.3.2.0: 'Real & Mes anterior' muestra Real − Real mes anterior con signo y el color de Dif. Real & Prog. 3ms
+     × 0.3.2.0: usa el mismo formateador que Dif. Real & Prog. y el mismo color (difColor) 1ms
+     × 0.3.2.0: el valor de mes anterior no depende de Programado 0ms
+     × 0.3.2.0: con los tres valores, comparten renglón (mismo y) y las etiquetas el suyo 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/gaugeFooter.test.ts > GaugeFooter — leyenda inferior horizontal > 0.3.2.0: 'Real & Mes anterior' muestra Real − Real mes anterior con signo y el color de Dif. Real & Prog.
+AssertionError: expected 'class="footer-item footer-descriptor"…' to match /class="footer-value"[^>]*fill="#FFC00…/
+
+- Expected:
+/class="footer-value"[^>]*fill="#FFC000"[^>]*>-1.93</
+
++ Received:
+"class=\"footer-item footer-descriptor\" transform=\"translate(250, 0)\" text-anchor=\"middle\"><text class=\"footer-label\" y=\"32.8\" font-size=\"9\" fill=\"#605E5C\">Real &amp; Mes anterior</text>"
+
+ ❯ tests/gaugeFooter.test.ts:55:28
+     53|     it("0.3.2.0: 'Real & Mes anterior' muestra Real − Real mes anterio…
+     54|         const descriptor = item(render({ previousMonth: 93.4 }), "desc…
+     55|         expect(descriptor).toMatch(/class="footer-value"[^>]*fill="#FF…
+       |                            ^
+     56|         expect(descriptor).toMatch(/class="footer-label"[^>]*>Real &am…
+     57|         expect(item(render({ previousMonth: 88.9 }), "descriptor")).to…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/gaugeFooter.test.ts > GaugeFooter — leyenda inferior horizontal > 0.3.2.0: usa el mismo formateador que Dif. Real & Prog. y el mismo color (difColor)
+AssertionError: expected 'class="footer-item footer-descriptor"…' to match /class="footer-value"[^>]*fill="#007F3…/
+
+- Expected:
+/class="footer-value"[^>]*fill="#007F38"[^>]*>\+1.5 pp</
+
++ Received:
+"class=\"footer-item footer-descriptor\" transform=\"translate(250, 0)\" text-anchor=\"middle\"><text class=\"footer-label\" y=\"32.8\" font-size=\"9\" fill=\"#605E5C\">Real &amp; Mes anterior</text>"
+
+ ❯ tests/gaugeFooter.test.ts:64:44
+     62|         const markup = render({ previousMonth: 90, difColor: "#007F38"…
+     63|         expect(item(markup, "difference")).toMatch(/fill="#007F38"[^>]…
+     64|         expect(item(markup, "descriptor")).toMatch(/class="footer-valu…
+       |                                            ^
+     65|     });
+     66|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/gaugeFooter.test.ts > GaugeFooter — leyenda inferior horizontal > 0.3.2.0: el valor de mes anterior no depende de Programado
+AssertionError: expected 'class="footer-item footer-descriptor"…' to match /class="footer-value"[^>]*>-1.93</
+
+- Expected:
+/class="footer-value"[^>]*>-1.93</
+
++ Received:
+"class=\"footer-item footer-descriptor\" transform=\"translate(150, 0)\" text-anchor=\"middle\"><text class=\"footer-label\" y=\"32.8\" font-size=\"9\" fill=\"#605E5C\">Real &amp; Mes anterior</text>"
+
+ ❯ tests/gaugeFooter.test.ts:78:44
+     76|         const markup = render({ programmed: undefined, previousMonth: …
+     77|         expect(markup).not.toContain("footer-difference");
+     78|         expect(item(markup, "descriptor")).toMatch(/class="footer-valu…
+       |                                            ^
+     79|     });
+     80|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  tests/gaugeFooter.test.ts > GaugeFooter — leyenda inferior horizontal > 0.3.2.0: con los tres valores, comparten renglón (mismo y) y las etiquetas el suyo
+AssertionError: expected [ 16.8, 16.8 ] to have a length of 3 but got 2
+
+- Expected
++ Received
+
+- 3
++ 2
+
+ ❯ tests/gaugeFooter.test.ts:84:25
+     82|         const markup = render({ previousMonth: 93.4 });
+     83|         const valueYs = [...markup.matchAll(/class="footer-value" y="(…
+     84|         expect(valueYs).toHaveLength(3);
+       |                         ^
+     85|         expect(new Set(valueYs).size).toBe(1);
+     86|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 9 passed (13)
+   Start at  15:30:31
+   Duration  161ms (import 50%, tests 24%, transform 24%, worker 3%)
+
+exit=1

@@ -1,0 +1,17 @@
+sha256: ffab407875d54e4d2769b5b2e94f438bbd25d662208673724a54f2cc210f8c02
+files: ['package.json', 'resources/', 'resources/PBI_CV_TACOMETRO_GAUGE.pbiviz.json']
+visual: PBI_CV_TACOMETRO_GAUGE 0.3.0.0 apiVersion 5.3.0
+roles: ['measure:Measure', 'min:Measure', 'max:Measure', 'target:Measure', 'targetWithMargin:Measure', 'programmed:Measure', 'previousMonth:Measure', 'period:Grouping', 'periodOrder:Grouping', 'currentPeriod:Measure', 'lowThreshold:Measure', 'midThreshold:Measure', 'semaphore:Measure', 'trendSemaphore:Measure', 'tooltips:Measure']
+categories: {"select": [{"bind": {"to": "period"}}, {"bind": {"to": "periodOrder"}}], "dataReductionAlgorithm": {"top": {"count": 60}}}
+values: ['measure', 'min', 'max', 'target', 'lowThreshold', 'midThreshold', 'semaphore', 'targetWithMargin', 'programmed', 'previousMonth', 'tooltips', 'currentPeriod', 'trendSemaphore']
+sorting: {"implicit": {"clauses": [{"role": "period", "direction": 1}]}}
+conditions nuevas: {'period': {'max': 1}, 'periodOrder': {'max': 1}, 'currentPeriod': {'max': 1}, 'trendSemaphore': {'max': 1}}
+trendSemaphore menciona 'POA Semáforo mes color': True
+bundle contiene 'Real / Prog. Mensual': True
+bundle contiene 'Dif. Real vs Prog.': True
+bundle contiene 'trend-sparkline': True
+bundle contiene 'gauge-footer': True
+bundle contiene 'periodOrder': True
+bundle contiene 'currentPeriod': True
+bundle contiene 'trendSemaphore': True
+bundle contiene 'gaugeData=': False

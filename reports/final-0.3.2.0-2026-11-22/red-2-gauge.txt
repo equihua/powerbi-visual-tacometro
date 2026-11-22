@@ -1,0 +1,55 @@
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+
+ ❯ tests/gaugeTrend.test.ts (15 tests | 2 failed) 29ms
+   ❯ Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor (11)
+     × 0.3.2.0: con Real mes anterior, 'Real & Mes anterior' muestra Real − mes anterior con el color de estado 4ms
+     × 0.3.2.0: la diferencia con el mes anterior usa el mismo Real recortado que el centro 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor > 0.3.2.0: con Real mes anterior, 'Real & Mes anterior' muestra Real − mes anterior con el color de estado
+AssertionError: expected '<svg class="gauge-svg" width="300" he…' to match /footer-descriptor[^]*?class="footer-v…/
+
+- Expected:
+/footer-descriptor[^]*?class="footer-value"[^>]*fill="#FFC000"[^>]*>-1.93</
+
++ Received:
+"<svg class=\"gauge-svg\" width=\"300\" height=\"300\" tabindex=\"0\" role=\"img\" aria-label=\"Tacómetro. Valor: 91.47; Mínimo: 0.00; Máximo: 120.00; Objetivo: 95.00; Meta con margen: 95.00; Programado: 95.00; Real mes anterior: 93.40; Semáforo: Amarillo\"><g transform=\"translate(150, 130)\"><path class=\"gauge-background\" d=\"M-130.5,0A130.5,130.5,0,1,1,130.5,0L110.5,0A110.5,110.5,0,1,0,-110.5,0Z\" fill=\"#e0e0e0\" stroke=\"none\"></path><g class=\"gauge-ranges\"><path class=\"range-low\" d=\"M-130.5,0A130.5,130.5,0,0,1,65.25,-113.016L55.25,-95.696A110.5,110.5,0,0,0,-110.5,0Z\" fill=\"#C00000\" stroke=\"none\"></path><path class=\"range-medium\" d=\"M65.25,-113.016A130.5,130.5,0,0,1,103.533,-79.443L87.666,-67.268A110.5,110.5,0,0,0,55.25,-95.696Z\" fill=\"#FFC000\" stroke=\"none\"></path><path class=\"range-high\" d=\"M103.533,-79.443A130.5,130.5,0,0,1,130.5,0L110.5,0A110.5,110.5,0,0,0,87.666,-67.268Z\" fill=\"#007F38\" stroke=\"none\"></path></g><path class=\"semaphore-indicator\" fill=\"#FFC000\" stroke=\"none\"></path><g class=\"gauge-marker marker-target\" transform=\"rotate(52.49999999999999)\"><title>Objetivo: 95.00</title><line x1=\"0\" y1=\"-136.5\" x2=\"0\" y2=\"-104.49999999999999\" stroke=\"#252423\" stroke-width=\"3\" stroke-linecap=\"butt\"></line></g><g class=\"gauge-marker marker-targetWithMargin\" transform=\"rotate(52.49999999999999)\"><title>Meta con margen: 95.00</title><line x1=\"0\" y1=\"-136.5\" x2=\"0\" y2=\"-104.49999999999999\" stroke=\"#605E5C\" stroke-width=\"3\" stroke-linecap=\"butt\" stroke-dasharray=\"4 3\"></line></g><g class=\"gauge-marker marker-programmed\" transform=\"rotate(52.49999999999999)\"><title>Programado: 95.00</title><polygon points=\"0,-131.5 -6,-141.5 6,-141.5\" fill=\"#0078D4\"></polygon></g><g class=\"gauge-marker marker-previousMonth\" transform=\"rotate(50.100000000000016)\"><title>Real mes anterior: 93.40</title><circle cx=\"0\" cy=\"-120.5\" r=\"5.0000000000000036\" fill=\"none\" stroke=\"#8764B8\" stroke-width=\"2\"></circle></g><g class=\"value-marker\"><g><path d=\"M 0,-6 L -5,3 L 5,3 Z\" fill=\"#333333\" stroke=\"#333333\" stroke-width=\"1\"></path></g></g><text class=\"center-text\" text-anchor=\"middle\" dominant-baseline=\"middle\" y=\"-10\" font-size=\"20\" font-family=\"Arial\" fill=\"#777777\">91.47</text></g><g class=\"gauge-trend-slot\" transform=\"translate(67.13, 141.05)\"><g class=\"trend-sparkline\"><path class=\"trend-programmed-line\" d=\"M6,34.83L82.87,20.42L159.75,6\" fill=\"none\" stroke=\"#0078D4\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\"></path><path class=\"trend-real-line\" d=\"M6,49.25L82.87,26.18L159.75,16.18\" fill=\"none\" stroke=\"#D1D5DB\" stroke-width=\"1.5\"></path><circle class=\"trend-point\" cx=\"6\" cy=\"49.25\" r=\"2.5\" fill=\"#C00000\"><title>Ene: Real 80.00 · Prog. 85.00</title></circle><circle class=\"trend-point\" cx=\"82.87\" cy=\"26.18\" r=\"2.5\" fill=\"#FFC000\"><title>Feb: Real 88.00 · Prog. 90.00</title></circle><circle class=\"trend-point trend-point-current\" cx=\"159.75\" cy=\"16.18\" r=\"4\" fill=\"#FFC000\"><title>Mar: Real 91.47 · Prog. 95.00</title></circle></g></g><g class=\"gauge-footer-slot\" transform=\"translate(0, 260)\"><g class=\"gauge-footer\" font-family=\"Arial\"><g class=\"footer-item footer-programmed\" transform=\"translate(50, 0)\" text-anchor=\"middle\"><text class=\"footer-value\" y=\"16.8\" font-size=\"13\" font-weight=\"600\" fill=\"#252423\">95.00</text><text class=\"footer-label\" y=\"32.8\" font-size=\"9\" fill=\"#605E5C\">Programado</text></g><g class=\"footer-item footer-difference\" transform=\"translate(150, 0)\" text-anchor=\"middle\"><text class=\"footer-value\" y=\"16.8\" font-size=\"13\" font-weight=\"600\" fill=\"#FFC000\">-3.53</text><text class=\"footer-label\" y=\"32.8\" font-size=\"9\" fill=\"#605E5C\">Dif. Real &amp; Prog.</text></g><g class=\"footer-item footer-descriptor\" transform=\"translate(250, 0)\" text-anchor=\"middle\"><text class=\"footer-label\" y=\"32.8\" font-size=\"9\" fill=\"#605E5C\">Real &amp; Mes anterior</text></g></g></g></svg>"
+
+ ❯ tests/gaugeTrend.test.ts:109:24
+    107|     it("0.3.2.0: con Real mes anterior, 'Real & Mes anterior' muestra …
+    108|         const markup = render({ ...withTrend, previousMonth: 93.4 } as…
+    109|         expect(markup).toMatch(/footer-descriptor[^]*?class="footer-va…
+       |                        ^
+    110|         // Sin el rol opcional (baseline.markers no lo trae): sólo la …
+    111|         expect(render(withTrend)).not.toMatch(/footer-descriptor"[^]*?…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor > 0.3.2.0: la diferencia con el mes anterior usa el mismo Real recortado que el centro
+AssertionError: expected '<svg class="gauge-svg" width="300" he…' to match /footer-descriptor[^]*?class="footer-v…/
+
+- Expected:
+/footer-descriptor[^]*?class="footer-value"[^>]*>\+20.00</
+
++ Received:
+"<svg class=\"gauge-svg\" width=\"300\" height=\"300\" tabindex=\"0\" role=\"img\" aria-label=\"Tacómetro. Valor: 150.00; Mínimo: 0.00; Máximo: 120.00; Objetivo: 95.00; Meta con margen: 95.00; Programado: 95.00; Real mes anterior: 100.00; Semáforo: Amarillo\"><g transform=\"translate(150, 130)\"><path class=\"gauge-background\" d=\"M-130.5,0A130.5,130.5,0,1,1,130.5,0L110.5,0A110.5,110.5,0,1,0,-110.5,0Z\" fill=\"#e0e0e0\" stroke=\"none\"></path><g class=\"gauge-ranges\"><path class=\"range-low\" d=\"M-130.5,0A130.5,130.5,0,0,1,65.25,-113.016L55.25,-95.696A110.5,110.5,0,0,0,-110.5,0Z\" fill=\"#C00000\" stroke=\"none\"></path><path class=\"range-medium\" d=\"M65.25,-113.016A130.5,130.5,0,0,1,103.533,-79.443L87.666,-67.268A110.5,110.5,0,0,0,55.25,-95.696Z\" fill=\"#FFC000\" stroke=\"none\"></path><path class=\"range-high\" d=\"M103.533,-79.443A130.5,130.5,0,0,1,130.5,0L110.5,0A110.5,110.5,0,0,0,87.666,-67.268Z\" fill=\"#007F38\" stroke=\"none\"></path></g><path class=\"semaphore-indicator\" fill=\"#FFC000\" stroke=\"none\"></path><g class=\"gauge-marker marker-target\" transform=\"rotate(52.49999999999999)\"><title>Objetivo: 95.00</title><line x1=\"0\" y1=\"-136.5\" x2=\"0\" y2=\"-104.49999999999999\" stroke=\"#252423\" stroke-width=\"3\" stroke-linecap=\"butt\"></line></g><g class=\"gauge-marker marker-targetWithMargin\" transform=\"rotate(52.49999999999999)\"><title>Meta con margen: 95.00</title><line x1=\"0\" y1=\"-136.5\" x2=\"0\" y2=\"-104.49999999999999\" stroke=\"#605E5C\" stroke-width=\"3\" stroke-linecap=\"butt\" stroke-dasharray=\"4 3\"></line></g><g class=\"gauge-marker marker-programmed\" transform=\"rotate(52.49999999999999)\"><title>Programado: 95.00</title><polygon points=\"0,-131.5 -6,-141.5 6,-141.5\" fill=\"#0078D4\"></polygon></g><g class=\"gauge-marker marker-previousMonth\" transform=\"rotate(60.00000000000001)\"><title>Real mes anterior: 100.00</title><circle cx=\"0\" cy=\"-120.5\" r=\"5.0000000000000036\" fill=\"none\" stroke=\"#8764B8\" stroke-width=\"2\"></circle></g><g class=\"value-marker\"><g><path d=\"M 0,-6 L -5,3 L 5,3 Z\" fill=\"#333333\" stroke=\"#333333\" stroke-width=\"1\"></path></g></g><text class=\"center-text\" text-anchor=\"middle\" dominant-baseline=\"middle\" y=\"-10\" font-size=\"20\" font-family=\"Arial\" fill=\"#777777\">120.00</text></g><g class=\"gauge-trend-slot\" transform=\"translate(67.13, 141.05)\"><g class=\"trend-sparkline\"><path class=\"trend-programmed-line\" d=\"M6,34.83L82.87,20.42L159.75,6\" fill=\"none\" stroke=\"#0078D4\" stroke-width=\"1.5\" stroke-dasharray=\"4 3\"></path><path class=\"trend-real-line\" d=\"M6,49.25L82.87,26.18L159.75,16.18\" fill=\"none\" stroke=\"#D1D5DB\" stroke-width=\"1.5\"></path><circle class=\"trend-point\" cx=\"6\" cy=\"49.25\" r=\"2.5\" fill=\"#C00000\"><title>Ene: Real 80.00 · Prog. 85.00</title></circle><circle class=\"trend-point\" cx=\"82.87\" cy=\"26.18\" r=\"2.5\" fill=\"#FFC000\"><title>Feb: Real 88.00 · Prog. 90.00</title></circle><circle class=\"trend-point trend-point-current\" cx=\"159.75\" cy=\"16.18\" r=\"4\" fill=\"#FFC000\"><title>Mar: Real 91.47 · Prog. 95.00</title></circle></g></g><g class=\"gauge-footer-slot\" transform=\"translate(0, 260)\"><g class=\"gauge-footer\" font-family=\"Arial\"><g class=\"footer-item footer-programmed\" transform=\"translate(50, 0)\" text-anchor=\"middle\"><text class=\"footer-value\" y=\"16.8\" font-size=\"13\" font-weight=\"600\" fill=\"#252423\">95.00</text><text class=\"footer-label\" y=\"32.8\" font-size=\"9\" fill=\"#605E5C\">Programado</text></g><g class=\"footer-item footer-difference\" transform=\"translate(150, 0)\" text-anchor=\"middle\"><text class=\"footer-value\" y=\"16.8\" font-size=\"13\" font-weight=\"600\" fill=\"#FFC000\">+25.00</text><text class=\"footer-label\" y=\"32.8\" font-size=\"9\" fill=\"#605E5C\">Dif. Real &amp; Prog.</text></g><g class=\"footer-item footer-descriptor\" transform=\"translate(250, 0)\" text-anchor=\"middle\"><text class=\"footer-label\" y=\"32.8\" font-size=\"9\" fill=\"#605E5C\">Real &amp; Mes anterior</text></g></g></g></svg>"
+
+ ❯ tests/gaugeTrend.test.ts:116:24
+    114|     it("0.3.2.0: la diferencia con el mes anterior usa el mismo Real r…
+    115|         const markup = render({ ...withTrend, value: 120, actualValue:…
+    116|         expect(markup).toMatch(/footer-descriptor[^]*?class="footer-va…
+       |                        ^
+    117|     });
+    118|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 13 passed (15)
+   Start at  15:30:50
+   Duration  268ms (import 47%, transform 36%, tests 16%, worker 1%)
+
+exit=1

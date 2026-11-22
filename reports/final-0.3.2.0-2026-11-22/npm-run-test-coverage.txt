@@ -1,0 +1,42 @@
+
+> visual@0.3.2.0 test:coverage
+> vitest run --coverage
+
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+      Coverage enabled with v8
+
+
+ Test Files  20 passed (20)
+      Tests  220 passed (220)
+   Start at  15:37:16
+   Duration  491ms (import 50%, transform 26%, worker 15%, tests 9%)
+
+[34m % [39m[2mCoverage report from [22m[33mv8[39m
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   99.73 |    95.72 |      99 |   99.71 |                   
+ src               |   99.48 |     93.2 |   97.82 |   99.43 |                   
+  highContrast.ts  |     100 |      100 |     100 |     100 |                   
+  tooltips.ts      |     100 |      100 |     100 |     100 |                   
+  visual.ts        |   99.43 |    92.81 |   97.56 |   99.37 | 412               
+ src/components    |     100 |    99.15 |     100 |     100 |                   
+  GaugeFooter.tsx  |     100 |      100 |     100 |     100 |                   
+  GaugeMarker.tsx  |     100 |      100 |     100 |     100 |                   
+  ...Sparkline.tsx |     100 |      100 |     100 |     100 |                   
+  arcUtils.ts      |     100 |       50 |     100 |     100 | 23                
+  layout.ts        |     100 |      100 |     100 |     100 |                   
+  markers.ts       |     100 |      100 |     100 |     100 |                   
+  scales.ts        |     100 |      100 |     100 |     100 |                   
+  semaphore.ts     |     100 |      100 |     100 |     100 |                   
+  trend.ts         |     100 |      100 |     100 |     100 |                   
+-------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 99.73% ( 383/384 )
+Branches     : 95.72% ( 269/281 )
+Functions    : 99% ( 100/101 )
+Lines        : 99.71% ( 351/352 )
+================================================================================
+exit=0

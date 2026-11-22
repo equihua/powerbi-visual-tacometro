@@ -1,0 +1,92 @@
+=== R1 RED M1 (pie sin serie mensual) — 2026-11-22T10:58:14-06:00
+$ npx vitest run tests/gaugeTrend.test.ts
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+ ❯ tests/gaugeTrend.test.ts (9 tests | 3 failed) 29ms
+   ❯ Gauge 0.3.0.0 — el medidor aprobado no cambia (4)
+     × con Programado pero sin serie mensual el markup es idéntico byte a byte al de 0.2.0.0 (sin pie) 9ms
+     × con un solo mes (serie insuficiente) y Programado el markup es idéntico byte a byte al de 0.2.0.0 5ms
+   ❯ Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor (5)
+     × con un solo mes no hay sparkline ni pie (la serie mensual no es suficiente) 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — el medidor aprobado no cambia > con Programado pero sin serie mensual el markup es idéntico byte a byte al de 0.2.0.0 (sin pie)
+AssertionError: expected '<svg class="gauge-svg" width="300" he…' to be '<svg class="gauge-svg" width="300" he…' // Object.is equality
+Expected: "<svg class="gauge-svg" width="300" height="300" tabindex="0" role="img" aria-label="Tacómetro. Valor: 91.47; Mínimo: 0.00; Máximo: 120.00; Objetivo: 95.00; Meta con margen: 95.00; Programado: 95.00; Semáfo
+Received: "<svg class="gauge-svg" width="300" height="300" tabindex="0" role="img" aria-label="Tacómetro. Valor: 91.47; Mínimo: 0.00; Máximo: 120.00; Objetivo: 95.00; Meta con margen: 95.00; Programado: 95.00; Semáfo
+ ❯ tests/gaugeTrend.test.ts:37:55
+     35|
+     36|     it("con Programado pero sin serie mensual el markup es idéntico by…
+     37|         expect(render(baseline.markers as GaugeData)).toBe(baseline.ma…
+       |                                                       ^
+     38|     });
+     39|
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+ FAIL  tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — el medidor aprobado no cambia > con un solo mes (serie insuficiente) y Programado el markup es idéntico byte a byte al de 0.2.0.0
+AssertionError: expected '<svg class="gauge-svg" width="300" he…' to be '<svg class="gauge-svg" width="300" he…' // Object.is equality
+Expected: "<svg class="gauge-svg" width="300" height="300" tabindex="0" role="img" aria-label="Tacómetro. Valor: 91.47; Mínimo: 0.00; Máximo: 120.00; Objetivo: 95.00; Meta con margen: 95.00; Programado: 95.00; Semáfo
+Received: "<svg class="gauge-svg" width="300" height="300" tabindex="0" role="img" aria-label="Tacómetro. Valor: 91.47; Mínimo: 0.00; Máximo: 120.00; Objetivo: 95.00; Meta con margen: 95.00; Programado: 95.00; Semáfo
+ ❯ tests/gaugeTrend.test.ts:42:34
+     40|     it("con un solo mes (serie insuficiente) y Programado el markup es…
+     41|         const oneMonth = { ...baseline.markers, trend: trend.slice(0, …
+     42|         expect(render(oneMonth)).toBe(baseline.markers300x300);
+       |                                  ^
+     43|     });
+     44|
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+ FAIL  tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor > con un solo mes no hay sparkline ni pie (la serie mensual no es suficiente)
+AssertionError: expected '<svg class="gauge-svg" width="300" he…' not to contain 'gauge-footer'
+Expected: "gauge-footer"
+Received: "<svg class="gauge-svg" width="300" height="300" tabindex="0" role="img" aria-label="Tacómetro. Valor: 91.47; Mínimo: 0.00; Máximo: 120.00; Objetivo: 95.00; Meta con margen: 95.00; Programado: 95.00; Semáfo
+ ❯ tests/gaugeTrend.test.ts:78:28
+     76|         const markup = render({ ...baseline.markers, trend: trend.slic…
+     77|         expect(markup).not.toContain("trend-sparkline");
+     78|         expect(markup).not.toContain("gauge-footer");
+       |                            ^
+     79|     });
+     80|
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+ Test Files  1 failed (1)
+      Tests  3 failed | 6 passed (9)
+   Start at  10:58:14
+   Duration  242ms (import 49%, transform 30%, tests 19%, worker 2%)
+
+=== R1 GREEN M1 — 2026-11-22T10:58:24-06:00
+$ npx vitest run tests/gaugeTrend.test.ts
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+   Start at  10:58:24
+   Duration  229ms (import 54%, transform 34%, tests 10%, worker 2%)
+
+=== R2 RED M2 (diferencia coherente con el centro) — 2026-11-22T10:58:37-06:00
+$ npx vitest run tests/gaugeTrend.test.ts
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+ ❯ tests/gaugeTrend.test.ts (10 tests | 1 failed) 20ms
+   ❯ Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor (6)
+     × Real fuera de rango: la diferencia usa el mismo Real que muestra el centro (recortado a [mín, máx]) 4ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor > Real fuera de rango: la diferencia usa el mismo Real que muestra el centro (recortado a [mín, máx])
+AssertionError: expected '<svg class="gauge-svg" width="300" he…' to match /footer-difference[^]*?class="footer-v…/
+- Expected:
+/footer-difference[^]*?class="footer-value"[^>]*>\+25.00</
++ Received:
+"<svg class=\"gauge-svg\" width=\"300\" height=\"300\" tabindex=\"0\" role=\"img\" aria-label=\"Tacómetro. Valor: 150.00; Mínimo: 0.00; Máximo: 120.00; Objetivo: 95.00; Meta con margen: 95.00; Programado: 95.00; Semá
+ ❯ tests/gaugeTrend.test.ts:85:24
+     83|         const markup = render({ ...withTrend, value: 120, actualValue:…
+     84|         expect(markup).toMatch(/class="center-text"[^>]*>120.00</);
+     85|         expect(markup).toMatch(/footer-difference[^]*?class="footer-va…
+       |                        ^
+     86|     });
+     87|
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 passed (10)
+   Start at  10:58:37
+   Duration  257ms (transform 44%, import 43%, tests 11%, worker 1%)
+
+=== R2 GREEN M2 — 2026-11-22T10:58:44-06:00
+$ npx vitest run tests/gaugeTrend.test.ts
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  10:58:45
+   Duration  246ms (import 48%, transform 41%, tests 10%, worker 1%)

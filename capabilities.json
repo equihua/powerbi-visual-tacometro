@@ -43,6 +43,24 @@
             "description": "Marcador circular del real del mes anterior"
         },
         {
+            "displayName": "Periodo (mes)",
+            "name": "period",
+            "kind": "Grouping",
+            "description": "Opcional. Etiqueta del periodo (p. ej. POA_Mes[Abrev]) para la sparkline Real / Programado. Debe tener «Ordenar por columna» (POA_Mes[Abrev] → POA_Mes[Mes]) o usar «Orden del periodo»; el visual no deduce el orden de los nombres de mes. Un solo año y un solo indicador en contexto."
+        },
+        {
+            "displayName": "Orden del periodo",
+            "name": "periodOrder",
+            "kind": "Grouping",
+            "description": "Opcional. Clave numérica o de fecha que fija el orden cronológico de la serie (p. ej. POA_Mes[Mes]). Si falta, se usa el orden del host por «Periodo (mes)»."
+        },
+        {
+            "displayName": "Periodo actual",
+            "name": "currentPeriod",
+            "kind": "Measure",
+            "description": "Opcional. Periodo que muestran el medidor y el pie (p. ej. POA Mes sel); se compara con «Orden del periodo» o, sin él, con la etiqueta. Si falta, el último periodo con Real."
+        },
+        {
             "displayName": "Umbral Bajo",
             "name": "lowThreshold",
             "kind": "Measure"
@@ -57,6 +75,12 @@
             "name": "semaphore",
             "kind": "Measure",
             "description": "Texto del semáforo de la fuente (Verde/Amarillo/Rojo, Sin semaforizar, clase text-* o color #hex). Si está presente sustituye al color calculado por umbrales."
+        },
+        {
+            "displayName": "Semáforo por periodo",
+            "name": "trendSemaphore",
+            "kind": "Measure",
+            "description": "Opcional. Semáforo de cada periodo para los puntos de la sparkline (p. ej. POA Semáforo mes color). Si está vacío en un periodo, se usa «Semáforo» evaluado en ese periodo y luego los umbrales de ese periodo."
         },
         {
             "displayName": "Información sobre herramientas",
@@ -311,10 +335,41 @@
                     },
                     "previousMonth": {
                         "max": 1
+                    },
+                    "period": {
+                        "max": 1
+                    },
+                    "periodOrder": {
+                        "max": 1
+                    },
+                    "currentPeriod": {
+                        "max": 1
+                    },
+                    "trendSemaphore": {
+                        "max": 1
                     }
                 }
             ],
             "categorical": {
+                "categories": {
+                    "select": [
+                        {
+                            "bind": {
+                                "to": "period"
+                            }
+                        },
+                        {
+                            "bind": {
+                                "to": "periodOrder"
+                            }
+                        }
+                    ],
+                    "dataReductionAlgorithm": {
+                        "top": {
+                            "count": 60
+                        }
+                    }
+                },
                 "values": {
                     "select": [
                         {
@@ -371,12 +426,32 @@
                             "bind": {
                                 "to": "tooltips"
                             }
+                        },
+                        {
+                            "bind": {
+                                "to": "currentPeriod"
+                            }
+                        },
+                        {
+                            "bind": {
+                                "to": "trendSemaphore"
+                            }
                         }
                     ]
                 }
             }
         }
     ],
+    "sorting": {
+        "implicit": {
+            "clauses": [
+                {
+                    "role": "period",
+                    "direction": 1
+                }
+            ]
+        }
+    },
     "privileges": [],
     "tooltips": {
         "supportedTypes": {

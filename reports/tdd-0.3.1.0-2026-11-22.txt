@@ -1,0 +1,18 @@
+TDD 0.3.1.0 (parche de layout) — 2026-11-22, Developer (Hermes)
+
+Ciclos RED → GREEN (npx vitest run <archivo>):
+1. tests/layout.test.ts reescrito (computeGaugeLayout sin franja de sparkline; computeInnerTrendBox; TREND_MIN_HEIGHT)
+   RED: 7 fallidas / 1 pasada (computeInnerTrendBox is not a function; layout devolvía trend/gaugeHeight 200).
+   GREEN tras src/components/layout.ts: 8/8.
+2. tests/gaugeTrend.test.ts (sparkline dentro del semicírculo, slot translate(67.13, 141.05); puntos dentro del círculo
+   interior y bajo el número en 300x300/600x300/300x500/180x160; medidor = render sin tendencia en 300x260)
+   RED: 4 fallidas (sin trend-slot: Gauge aún usaba layout.trend). GREEN tras Gauge.tsx: 13/13.
+3. tests/gaugeFooter.test.ts (etiqueta «Dif. Real & Prog.», etiquetas alineadas en un renglón)
+   RED: 2 fallidas. GREEN tras GaugeFooter.tsx: 7/7.
+4. tests/gaugeFooter.test.ts (fuente de etiquetas responsiva a 220 px)
+   RED: 1 fallida (expected 9 to be less than 9). GREEN tras fitLabelFontSize: 8/8.
+5. tests/version.test.ts → 0.3.1.0. RED: 1 fallida. GREEN tras pbiviz.json/package.json/package-lock.json.
+Pruebas de caracterización (pasan de inmediato, cubren ramas existentes para no bajar cobertura de ramas):
+   tests/trend.test.ts (buildTrendGeometry sin valores / un solo mes), tests/periodOrder.test.ts (fecha inválida).
+
+Suite final: 20 archivos, 204 pruebas, exit 0 (ver final-0.3.1.0-2026-11-22/npm-run-test-coverage.txt).

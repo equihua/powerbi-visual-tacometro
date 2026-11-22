@@ -1,0 +1,670 @@
+=== RED revisión 2 (B1 orden/mes actual, B2 semáforo por periodo) — 2026-11-22T13:00:19-06:00
+$ npx vitest run tests/periodOrder.test.ts tests/visualTrendReview.test.ts tests/visualTrend.test.ts tests/trendSparkline.test.ts tests/gaugeTrend.test.ts tests/capabilities.test.ts
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+
+ ❯ tests/capabilities.test.ts (7 tests | 5 failed) 11ms
+   ❯ capabilities.json — rol «Periodo (mes)» (0.3.0.0) (7)
+     × el mapeo categórico agrupa por periodo (y su orden) con reducción de datos suficiente para 12+ meses 4ms
+     × revisión B1: declara «Orden del periodo» (Grouping) y «Periodo actual» (Measure), opcionales y de un campo 1ms
+     × revisión B1: contrato de orden del host — orden implícito ascendente por el periodo (respeta «Ordenar por columna») 1ms
+     × revisión B2: declara «Semáforo por periodo» (Measure, opcional, un campo) con la guía del semáforo mensual 0ms
+     × conserva los 11 roles de medida previos en values, en el mismo orden (0.2.0.0), y añade los nuevos al final 1ms
+ ❯ tests/periodOrder.test.ts (8 tests | 8 failed) 5ms
+   ❯ periodSortKey — clave explícita de orden del periodo (2)
+     × acepta números, fechas y textos numéricos 3ms
+     × no infiere orden desde abreviaturas de mes ni textos no numéricos 0ms
+   ❯ orderPeriodRows — permutación de filas por clave (2)
+     × ordena ascendente por la clave, sin importar el orden de filas del host 0ms
+     × es estable con claves repetidas y deja al final, en orden del host, las filas sin clave 0ms
+   ❯ findCurrentPosition — periodo actual explícito (3)
+     × con clave de orden compara el valor actual con la clave (numérica) 0ms
+     × sin clave de orden compara con la etiqueta (texto exacto, sin mayúsculas/espacios) 0ms
+     × sin coincidencia devuelve -1 (no se elige otra fila) 0ms
+   ❯ lastIndexWithReal — mes actual por omisión (1)
+     × es el último punto (en orden cronológico) con Real; -1 si ninguno tiene 0ms
+stderr | tests/trendSparkline.test.ts > TrendSparkline — historial mensual Real / Programado > dibuja la línea de Real y la de Programado (discontinua, color Programado)
+Your app (or one of its dependencies) is using an outdated JSX transform. Update to the modern JSX transform for faster performance: https://react.dev/link/new-jsx-transform
+
+ ❯ tests/trendSparkline.test.ts (8 tests | 7 failed) 10ms
+   ❯ TrendSparkline — historial mensual Real / Programado (8)
+     × dibuja la línea de Real y la de Programado (discontinua, color Programado) 5ms
+     × un punto por mes con Real, coloreado por su estado (semáforo del mes > umbrales) 0ms
+     × revisión B2: cada punto se evalúa con los umbrales de su propio mes, no con los del mes actual 0ms
+     × sin mes actual (índice -1) ningún punto se resalta 0ms
+     × cada punto tiene título accesible con mes, Real y Programado 0ms
+     × el mes actual se resalta con un radio mayor 0ms
+     × sin Programado no dibuja su línea 0ms
+ ❯ tests/visualTrend.test.ts (7 tests | 1 failed) 12ms
+   ❯ 0.3.0.0 — rol «Periodo (mes)»: serie mensual (7)
+     × construye un punto por mes con Real, Programado y semáforo del mes 7ms
+ ❯ tests/visualTrendReview.test.ts (11 tests | 10 failed) 14ms
+   ❯ B1 — orden cronológico determinista con «Orden del periodo» (4)
+     × la serie se ordena por la clave explícita, no por el orden de filas del host 7ms
+     × el mes actual por omisión es el último con Real en orden cronológico (Mar), no la última fila del host 1ms
+     × con sólo «Orden del periodo» (sin etiqueta) la clave sirve de etiqueta y ordena la serie 0ms
+   ❯ B1 — «Periodo actual» explícito conserva la semántica del valor actual (3)
+     × con clave de orden, el medidor, el pie y los tooltips usan la fila cuyo orden = Periodo actual 1ms
+     × sin clave de orden, Periodo actual se compara con la etiqueta del periodo 0ms
+     × si Periodo actual no coincide con ninguna fila no se elige otra: sin dato actual (página de inicio) 0ms
+   ❯ B2 — estado de cada punto con datos de su propio periodo (4)
+     × «Semáforo por periodo» define el semáforo de cada punto; el del medidor sigue saliendo de «semaphore» 0ms
+     × sin valor de «Semáforo por periodo» en un mes, ese punto usa el semáforo del medidor evaluado en su mes 0ms
+     × cada punto lleva los umbrales de su propio periodo (no los del mes actual) 1ms
+     × sin umbrales enlazados, cada periodo usa los tercios de su propio rango 0ms
+ ❯ tests/gaugeTrend.test.ts (11 tests | 1 failed) 22ms
+   ❯ Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor (7)
+     × revisión B1: sin índice de mes actual no se resalta ningún punto (no se asume el último) 5ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 32 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/capabilities.test.ts > capabilities.json — rol «Periodo (mes)» (0.3.0.0) > el mapeo categórico agrupa por periodo (y su orden) con reducción de datos suficiente para 12+ meses
+AssertionError: expected undefined to deeply equal [ { bind: { to: 'period' } }, …(1) ]
+
+- Expected:
+[
+  {
+    "bind": {
+      "to": "period",
+    },
+  },
+  {
+    "bind": {
+      "to": "periodOrder",
+    },
+  },
+]
+
++ Received:
+undefined
+
+ ❯ tests/capabilities.test.ts:17:55
+     15|
+     16|     it("el mapeo categórico agrupa por periodo (y su orden) con reducc…
+     17|         expect(mapping.categorical.categories.select).toEqual([{ bind:…
+       |                                                       ^
+     18|         expect(mapping.categorical.categories.dataReductionAlgorithm.t…
+     19|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/32]⎯
+
+ FAIL  tests/capabilities.test.ts > capabilities.json — rol «Periodo (mes)» (0.3.0.0) > revisión B1: declara «Orden del periodo» (Grouping) y «Periodo actual» (Measure), opcionales y de un campo
+AssertionError: expected undefined to match object { kind: 'Grouping', …(1) }
+
+- Expected:
+{
+  "displayName": "Orden del periodo",
+  "kind": "Grouping",
+}
+
++ Received:
+undefined
+
+ ❯ tests/capabilities.test.ts:22:67
+     20|
+     21|     it("revisión B1: declara «Orden del periodo» (Grouping) y «Periodo…
+     22|         expect(roles.find((role) => role.name === "periodOrder")).toMa…
+       |                                                                   ^
+     23|         expect(roles.find((role) => role.name === "currentPeriod")).to…
+     24|         expect(mapping.conditions[0].periodOrder).toEqual({ max: 1 });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/32]⎯
+
+ FAIL  tests/capabilities.test.ts > capabilities.json — rol «Periodo (mes)» (0.3.0.0) > revisión B1: contrato de orden del host — orden implícito ascendente por el periodo (respeta «Ordenar por columna»)
+AssertionError: expected undefined to deeply equal { implicit: { clauses: [ { …(2) } ] } }
+
+- Expected:
+{
+  "implicit": {
+    "clauses": [
+      {
+        "direction": 1,
+        "role": "period",
+      },
+    ],
+  },
+}
+
++ Received:
+undefined
+
+ ❯ tests/capabilities.test.ts:29:47
+     27|
+     28|     it("revisión B1: contrato de orden del host — orden implícito asce…
+     29|         expect((capabilities as any).sorting).toEqual({ implicit: { cl…
+       |                                               ^
+     30|     });
+     31|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/32]⎯
+
+ FAIL  tests/capabilities.test.ts > capabilities.json — rol «Periodo (mes)» (0.3.0.0) > revisión B2: declara «Semáforo por periodo» (Measure, opcional, un campo) con la guía del semáforo mensual
+AssertionError: expected undefined to match object { kind: 'Measure', …(1) }
+
+- Expected:
+{
+  "displayName": "Semáforo por periodo",
+  "kind": "Measure",
+}
+
++ Received:
+undefined
+
+ ❯ tests/capabilities.test.ts:34:22
+     32|     it("revisión B2: declara «Semáforo por periodo» (Measure, opcional…
+     33|         const role = roles.find((entry) => entry.name === "trendSemaph…
+     34|         expect(role).toMatchObject({ kind: "Measure", displayName: "Se…
+       |                      ^
+     35|         expect(role.description).toContain("POA Semáforo mes color");
+     36|         expect(mapping.conditions[0].trendSemaphore).toEqual({ max: 1 …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/32]⎯
+
+ FAIL  tests/capabilities.test.ts > capabilities.json — rol «Periodo (mes)» (0.3.0.0) > conserva los 11 roles de medida previos en values, en el mismo orden (0.2.0.0), y añade los nuevos al final
+AssertionError: expected [ 'measure', 'min', 'max', …(8) ] to deeply equal [ 'measure', 'min', 'max', …(10) ]
+
+- Expected
++ Received
+
+@@ -8,8 +8,6 @@
+    "semaphore",
+    "targetWithMargin",
+    "programmed",
+    "previousMonth",
+    "tooltips",
+-   "currentPeriod",
+-   "trendSemaphore",
+  ]
+
+ ❯ tests/capabilities.test.ts:41:23
+     39|     it("conserva los 11 roles de medida previos en values, en el mismo…
+     40|         const bound = mapping.categorical.values.select.map((entry: { …
+     41|         expect(bound).toEqual([
+       |                       ^
+     42|             "measure", "min", "max", "target", "lowThreshold", "midThr…
+     43|             "semaphore", "targetWithMargin", "programmed", "previousMo…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/32]⎯
+
+ FAIL  tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor > revisión B1: sin índice de mes actual no se resalta ningún punto (no se asume el último)
+AssertionError: expected '<svg class="gauge-svg" width="300" he…' not to contain 'trend-point-current'
+
+Expected: "trend-point-current"
+Received: "<svg class="gauge-svg" width="300" height="300" tabindex="0" role="img" aria-label="Tacómetro. Valor: 91.47; Mínimo: 0.00; Máximo: 120.00; Objetivo: 95.00; Meta con margen: 95.00; Programado: 95.00; Semáforo: Amarillo"><g transform="translate(150, 100)"><path class="gauge-background" d="M-100.5,0A100.5,100.5,0,1,1,100.5,0L80.5,0A80.5,80.5,0,1,0,-80.5,0Z" fill="#e0e0e0" stroke="none"></path><g class="gauge-ranges"><path class="range-low" d="M-100.5,0A100.5,100.5,0,0,1,50.25,-87.036L40.25,-69.715A80.5,80.5,0,0,0,-80.5,0Z" fill="#C00000" stroke="none"></path><path class="range-medium" d="M50.25,-87.036A100.5,100.5,0,0,1,79.732,-61.181L63.865,-49.005A80.5,80.5,0,0,0,40.25,-69.715Z" fill="#FFC000" stroke="none"></path><path class="range-high" d="M79.732,-61.181A100.5,100.5,0,0,1,100.5,0L80.5,0A80.5,80.5,0,0,0,63.865,-49.005Z" fill="#007F38" stroke="none"></path></g><path class="semaphore-indicator" fill="#FFC000" stroke="none"></path><g class="gauge-marker marker-target" transform="rotate(52.49999999999999)"><title>Objetivo: 95.00</title><line x1="0" y1="-106.5" x2="0" y2="-74.5" stroke="#252423" stroke-width="3" stroke-linecap="butt"></line></g><g class="gauge-marker marker-targetWithMargin" transform="rotate(52.49999999999999)"><title>Meta con margen: 95.00</title><line x1="0" y1="-106.5" x2="0" y2="-74.5" stroke="#605E5C" stroke-width="3" stroke-linecap="butt" stroke-dasharray="4 3"></line></g><g class="gauge-marker marker-programmed" transform="rotate(52.49999999999999)"><title>Programado: 95.00</title><polygon points="0,-101.5 -6,-111.5 6,-111.5" fill="#0078D4"></polygon></g><g class="value-marker"><g><path d="M 0,-6 L -5,3 L 5,3 Z" fill="#333333" stroke="#333333" stroke-width="1"></path></g></g><text class="center-text" text-anchor="middle" dominant-baseline="middle" y="-10" font-size="20" font-family="Arial" fill="#777777">91.47</text></g><g class="gauge-trend-slot" transform="translate(0, 200)"><g class="trend-sparkline"><path class="trend-programmed-line" d="M6,38L150,22L294,6" fill="none" stroke="#0078D4" stroke-width="1.5" stroke-dasharray="4 3"></path><path class="trend-real-line" d="M6,54L150,28.4L294,17.3" fill="none" stroke="#D1D5DB" stroke-width="1.5"></path><circle class="trend-point" cx="6" cy="54" r="2.5" fill="#C00000"><title>Ene: Real 80.00 · Prog. 85.00</title></circle><circle class="trend-point" cx="150" cy="28.4" r="2.5" fill="#FFC000"><title>Feb: Real 88.00 · Prog. 90.00</title></circle><circle class="trend-point trend-point-current" cx="294" cy="17.3" r="4" fill="#FFC000"><title>Mar: Real 91.47 · Prog. 95.00</title></circle></g></g><g class="gauge-footer-slot" transform="translate(0, 260)"><g class="gauge-footer" font-family="Arial"><g class="footer-item footer-programmed" transform="translate(50, 0)" text-anchor="middle"><text class="footer-value" y="16.8" font-size="13" font-weight="600" fill="#252423">95.00</text><text class="footer-label" y="32.8" font-size="9" fill="#605E5C">Programado</text></g><g class="footer-item footer-difference" transform="translate(150, 0)" text-anchor="middle"><text class="footer-value" y="16.8" font-size="13" font-weight="600" fill="#FFC000">-3.53</text><text class="footer-label" y="32.8" font-size="9" fill="#605E5C">Dif. Real vs Prog.</text></g><g class="footer-item footer-descriptor" transform="translate(250, 0)" text-anchor="middle"><text class="footer-label" y="24" font-size="9" fill="#605E5C">Real / Prog. Mensual</text></g></g></g></svg>"
+
+ ❯ tests/gaugeTrend.test.ts:79:28
+     77|         const markup = render({ ...baseline.markers, trend } as GaugeD…
+     78|         expect(markup).toContain("trend-sparkline");
+     79|         expect(markup).not.toContain("trend-point-current");
+       |                            ^
+     80|     });
+     81|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/32]⎯
+
+ FAIL  tests/periodOrder.test.ts > periodSortKey — clave explícita de orden del periodo > acepta números, fechas y textos numéricos
+TypeError: periodSortKey is not a function
+ ❯ tests/periodOrder.test.ts:8:16
+      6| describe("periodSortKey — clave explícita de orden del periodo", () =>…
+      7|     it("acepta números, fechas y textos numéricos", () => {
+      8|         expect(periodSortKey(3)).toBe(3);
+       |                ^
+      9|         expect(periodSortKey("12")).toBe(12);
+     10|         expect(periodSortKey(new Date(Date.UTC(2026, 1, 1)))).toBe(Dat…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/32]⎯
+
+ FAIL  tests/periodOrder.test.ts > periodSortKey — clave explícita de orden del periodo > no infiere orden desde abreviaturas de mes ni textos no numéricos
+TypeError: periodSortKey is not a function
+ ❯ tests/periodOrder.test.ts:15:20
+     13|     it("no infiere orden desde abreviaturas de mes ni textos no numéri…
+     14|         for (const value of ["Ene", "Feb", "Oct", "Dic", "", "3a", nul…
+     15|             expect(periodSortKey(value)).toBeNull();
+       |                    ^
+     16|         }
+     17|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/32]⎯
+
+ FAIL  tests/periodOrder.test.ts > orderPeriodRows — permutación de filas por clave > ordena ascendente por la clave, sin importar el orden de filas del host
+TypeError: orderPeriodRows is not a function
+ ❯ tests/periodOrder.test.ts:22:16
+     20| describe("orderPeriodRows — permutación de filas por clave", () => {
+     21|     it("ordena ascendente por la clave, sin importar el orden de filas…
+     22|         expect(orderPeriodRows([3, 1, 4, 2])).toEqual([1, 3, 0, 2]);
+       |                ^
+     23|     });
+     24|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/32]⎯
+
+ FAIL  tests/periodOrder.test.ts > orderPeriodRows — permutación de filas por clave > es estable con claves repetidas y deja al final, en orden del host, las filas sin clave
+TypeError: orderPeriodRows is not a function
+ ❯ tests/periodOrder.test.ts:26:16
+     24|
+     25|     it("es estable con claves repetidas y deja al final, en orden del …
+     26|         expect(orderPeriodRows([2, null, 1, 2, null])).toEqual([2, 0, …
+       |                ^
+     27|     });
+     28| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/32]⎯
+
+ FAIL  tests/periodOrder.test.ts > findCurrentPosition — periodo actual explícito > con clave de orden compara el valor actual con la clave (numérica)
+TypeError: findCurrentPosition is not a function
+ ❯ tests/periodOrder.test.ts:38:16
+     36|
+     37|     it("con clave de orden compara el valor actual con la clave (numér…
+     38|         expect(findCurrentPosition(2, periods, true)).toBe(1);
+       |                ^
+     39|         expect(findCurrentPosition("3", periods, true)).toBe(2);
+     40|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/32]⎯
+
+ FAIL  tests/periodOrder.test.ts > findCurrentPosition — periodo actual explícito > sin clave de orden compara con la etiqueta (texto exacto, sin mayúsculas/espacios)
+TypeError: findCurrentPosition is not a function
+ ❯ tests/periodOrder.test.ts:43:16
+     41|
+     42|     it("sin clave de orden compara con la etiqueta (texto exacto, sin …
+     43|         expect(findCurrentPosition("Feb", periods, false)).toBe(1);
+       |                ^
+     44|         expect(findCurrentPosition(" mar ", periods, false)).toBe(2);
+     45|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/32]⎯
+
+ FAIL  tests/periodOrder.test.ts > findCurrentPosition — periodo actual explícito > sin coincidencia devuelve -1 (no se elige otra fila)
+TypeError: findCurrentPosition is not a function
+ ❯ tests/periodOrder.test.ts:48:16
+     46|
+     47|     it("sin coincidencia devuelve -1 (no se elige otra fila)", () => {
+     48|         expect(findCurrentPosition(12, periods, true)).toBe(-1);
+       |                ^
+     49|         expect(findCurrentPosition("Oct", periods, false)).toBe(-1);
+     50|         expect(findCurrentPosition("Feb", periods, true)).toBe(-1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/32]⎯
+
+ FAIL  tests/periodOrder.test.ts > lastIndexWithReal — mes actual por omisión > es el último punto (en orden cronológico) con Real; -1 si ninguno tiene
+TypeError: lastIndexWithReal is not a function
+ ❯ tests/periodOrder.test.ts:56:16
+     54| describe("lastIndexWithReal — mes actual por omisión", () => {
+     55|     it("es el último punto (en orden cronológico) con Real; -1 si ning…
+     56|         expect(lastIndexWithReal([{ real: 1 }, { real: 2 }, { real: nu…
+       |                ^
+     57|         expect(lastIndexWithReal([{ real: null }, { real: null }])).to…
+     58|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/32]⎯
+
+ FAIL  tests/trendSparkline.test.ts > TrendSparkline — historial mensual Real / Programado > dibuja la línea de Real y la de Programado (discontinua, color Programado)
+ FAIL  tests/trendSparkline.test.ts > TrendSparkline — historial mensual Real / Programado > un punto por mes con Real, coloreado por su estado (semáforo del mes > umbrales)
+ FAIL  tests/trendSparkline.test.ts > TrendSparkline — historial mensual Real / Programado > revisión B2: cada punto se evalúa con los umbrales de su propio mes, no con los del mes actual
+ FAIL  tests/trendSparkline.test.ts > TrendSparkline — historial mensual Real / Programado > sin mes actual (índice -1) ningún punto se resalta
+ FAIL  tests/trendSparkline.test.ts > TrendSparkline — historial mensual Real / Programado > cada punto tiene título accesible con mes, Real y Programado
+ FAIL  tests/trendSparkline.test.ts > TrendSparkline — historial mensual Real / Programado > el mes actual se resalta con un radio mayor
+ FAIL  tests/trendSparkline.test.ts > TrendSparkline — historial mensual Real / Programado > sin Programado no dibuja su línea
+TypeError: Cannot read properties of undefined (reading 'lowThreshold')
+ ❯ statusColor src/components/trend.ts:23:48
+     21|         colors.highContrast?.foreground ??
+     22|         resolveSemaphoreColor(semaphore, colors) ??
+     23|         createPerformanceColorScale(thresholds.lowThreshold, threshold…
+       |                                                ^
+     24|     );
+     25| }
+ ❯ src/components/TrendSparkline.tsx:67:31
+ ❯ TrendSparkline src/components/TrendSparkline.tsx:56:34
+ ❯ Object.react_stack_bottom_frame node_modules/react-dom/cjs/react-dom-server-legacy.node.development.js:9808:18
+ ❯ renderWithHooks node_modules/react-dom/cjs/react-dom-server-legacy.node.development.js:5062:19
+ ❯ renderElement node_modules/react-dom/cjs/react-dom-server-legacy.node.development.js:5497:23
+ ❯ retryNode node_modules/react-dom/cjs/react-dom-server-legacy.node.development.js:6428:21
+ ❯ renderNodeDestructive node_modules/react-dom/cjs/react-dom-server-legacy.node.development.js:6367:11
+ ❯ renderNode node_modules/react-dom/cjs/react-dom-server-legacy.node.development.js:6905:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/32]⎯
+
+ FAIL  tests/visualTrend.test.ts > 0.3.0.0 — rol «Periodo (mes)»: serie mensual > construye un punto por mes con Real, Programado y semáforo del mes
+AssertionError: expected [ …(4) ] to deeply equal [ …(4) ]
+
+- Expected
++ Received
+
+@@ -2,41 +2,25 @@
+    {
+      "label": "Ene",
+      "programmed": 85,
+      "real": 80,
+      "semaphore": "Rojo",
+-     "thresholds": {
+-       "lowThreshold": 40,
+-       "midThreshold": 80,
+-     },
+    },
+    {
+      "label": "Feb",
+      "programmed": 90,
+      "real": 88,
+      "semaphore": "Amarillo",
+-     "thresholds": {
+-       "lowThreshold": 40,
+-       "midThreshold": 80,
+-     },
+    },
+    {
+      "label": "Mar",
+      "programmed": 95,
+      "real": 91.47,
+      "semaphore": "Amarillo",
+-     "thresholds": {
+-       "lowThreshold": 40,
+-       "midThreshold": 80,
+-     },
+    },
+    {
+      "label": "Abr",
+      "programmed": 97,
+      "real": null,
+      "semaphore": null,
+-     "thresholds": {
+-       "lowThreshold": 40,
+-       "midThreshold": 80,
+-     },
+    },
+  ]
+
+ ❯ tests/visualTrend.test.ts:77:28
+     75|         // Revisión B2: cada punto lleva los umbrales de su mes (sin u…
+     76|         const thresholds = { lowThreshold: 40, midThreshold: 80 };
+     77|         expect(data.trend).toEqual([
+       |                            ^
+     78|             { label: "Ene", real: 80, programmed: 85, semaphore: "Rojo…
+     79|             { label: "Feb", real: 88, programmed: 90, semaphore: "Amar…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/32]⎯
+
+ FAIL  tests/visualTrendReview.test.ts > B1 — orden cronológico determinista con «Orden del periodo» > la serie se ordena por la clave explícita, no por el orden de filas del host
+AssertionError: expected [ 'Mar', 'Ene', 'Abr', 'Feb' ] to deeply equal [ 'Ene', 'Feb', 'Mar', 'Abr' ]
+
+- Expected
++ Received
+
+  [
+-   "Ene",
+-   "Feb",
+    "Mar",
++   "Ene",
+    "Abr",
++   "Feb",
+  ]
+
+ ❯ tests/visualTrendReview.test.ts:69:57
+     67|     it("la serie se ordena por la clave explícita, no por el orden de …
+     68|         const data = gaugeDataFor(createVisual(), dataView(shuffled, s…
+     69|         expect(data.trend?.map((point) => point.label)).toEqual(["Ene"…
+       |                                                         ^
+     70|         expect(data.trend?.map((point) => point.real)).toEqual([80, 88…
+     71|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/32]⎯
+
+ FAIL  tests/visualTrendReview.test.ts > B1 — orden cronológico determinista con «Orden del periodo» > el mes actual por omisión es el último con Real en orden cronológico (Mar), no la última fila del host
+AssertionError: expected 3 to be 2 // Object.is equality
+
+- Expected
++ Received
+
+- 2
++ 3
+
+ ❯ tests/visualTrendReview.test.ts:76:40
+     74|         const visual = createVisual();
+     75|         const data = gaugeDataFor(visual, dataView(shuffled, shuffledC…
+     76|         expect(data.trendCurrentIndex).toBe(2);
+       |                                        ^
+     77|         expect(data).toMatchObject({ value: 91.47, programmed: 95, has…
+     78|         expect(extrasOf(visual)).toEqual([{ displayName: "tooltips", v…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/32]⎯
+
+ FAIL  tests/visualTrendReview.test.ts > B1 — orden cronológico determinista con «Orden del periodo» > con sólo «Orden del periodo» (sin etiqueta) la clave sirve de etiqueta y ordena la serie
+AssertionError: expected undefined to deeply equal [ '1', '2', '3', '4' ]
+
+- Expected:
+[
+  "1",
+  "2",
+  "3",
+  "4",
+]
+
++ Received:
+undefined
+
+ ❯ tests/visualTrendReview.test.ts:88:57
+     86|     it("con sólo «Orden del periodo» (sin etiqueta) la clave sirve de …
+     87|         const data = gaugeDataFor(createVisual(), dataView({ periodOrd…
+     88|         expect(data.trend?.map((point) => point.label)).toEqual(["1", …
+       |                                                         ^
+     89|         expect(data.value).toBe(91.47);
+     90|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/32]⎯
+
+ FAIL  tests/visualTrendReview.test.ts > B1 — «Periodo actual» explícito conserva la semántica del valor actual > con clave de orden, el medidor, el pie y los tooltips usan la fila cuyo orden = Periodo actual
+AssertionError: expected 3 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 3
+
+ ❯ tests/visualTrendReview.test.ts:97:40
+     95|         const visual = createVisual();
+     96|         const data = gaugeDataFor(visual, dataView(shuffled, { ...shuf…
+     97|         expect(data.trendCurrentIndex).toBe(1);
+       |                                        ^
+     98|         expect(data).toMatchObject({ value: 88, programmed: 90, hasVal…
+     99|         expect(extrasOf(visual)).toEqual([{ displayName: "tooltips", v…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/32]⎯
+
+ FAIL  tests/visualTrendReview.test.ts > B1 — «Periodo actual» explícito conserva la semántica del valor actual > sin clave de orden, Periodo actual se compara con la etiqueta del periodo
+AssertionError: expected 3 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 3
+
+ ❯ tests/visualTrendReview.test.ts:104:40
+    102|     it("sin clave de orden, Periodo actual se compara con la etiqueta …
+    103|         const data = gaugeDataFor(createVisual(), dataView({ period: s…
+    104|         expect(data.trendCurrentIndex).toBe(1);
+       |                                        ^
+    105|         expect(data.value).toBe(80);
+    106|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/32]⎯
+
+ FAIL  tests/visualTrendReview.test.ts > B1 — «Periodo actual» explícito conserva la semántica del valor actual > si Periodo actual no coincide con ninguna fila no se elige otra: sin dato actual (página de inicio)
+AssertionError: expected 3 to be undefined
+
+- Expected:
+undefined
+
++ Received:
+3
+
+ ❯ tests/visualTrendReview.test.ts:110:40
+    108|     it("si Periodo actual no coincide con ninguna fila no se elige otr…
+    109|         const data = gaugeDataFor(createVisual(), dataView(shuffled, {…
+    110|         expect(data.trendCurrentIndex).toBeUndefined();
+       |                                        ^
+    111|         expect(data.hasValidData).toBe(false);
+    112|         expect(data.trend).toHaveLength(4);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/32]⎯
+
+ FAIL  tests/visualTrendReview.test.ts > B2 — estado de cada punto con datos de su propio periodo > «Semáforo por periodo» define el semáforo de cada punto; el del medidor sigue saliendo de «semaphore»
+AssertionError: expected [ '#9c9c9c', '#FFC107' ] to deeply equal [ '#D50000', '#158d67' ]
+
+- Expected
++ Received
+
+  [
+-   "#D50000",
+-   "#158d67",
++   "#9c9c9c",
++   "#FFC107",
+  ]
+
+ ❯ tests/visualTrendReview.test.ts:125:61
+    123|             trendSemaphore: ["#D50000", "#158d67"],
+    124|         }));
+    125|         expect(data.trend?.map((point) => point.semaphore)).toEqual(["…
+       |                                                             ^
+    126|         expect(data.semaphore).toBe("#FFC107");
+    127|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/32]⎯
+
+ FAIL  tests/visualTrendReview.test.ts > B2 — estado de cada punto con datos de su propio periodo > sin valor de «Semáforo por periodo» en un mes, ese punto usa el semáforo del medidor evaluado en su mes
+AssertionError: expected [ 'Rojo', 'Verde' ] to deeply equal [ 'Rojo', 'Amarillo' ]
+
+- Expected
++ Received
+
+  [
+    "Rojo",
+-   "Amarillo",
++   "Verde",
+  ]
+
+ ❯ tests/visualTrendReview.test.ts:135:61
+    133|             trendSemaphore: [null, "Amarillo"],
+    134|         }));
+    135|         expect(data.trend?.map((point) => point.semaphore)).toEqual(["…
+       |                                                             ^
+    136|     });
+    137|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/32]⎯
+
+ FAIL  tests/visualTrendReview.test.ts > B2 — estado de cada punto con datos de su propio periodo > cada punto lleva los umbrales de su propio periodo (no los del mes actual)
+AssertionError: expected [ undefined, undefined ] to deeply equal [ { lowThreshold: 20, …(1) }, …(1) ]
+
+- Expected
++ Received
+
+  [
+-   {
+-     "lowThreshold": 20,
+-     "midThreshold": 40,
+-   },
+-   {
+-     "lowThreshold": 70,
+-     "midThreshold": 90,
+-   },
++   undefined,
++   undefined,
+  ]
+
+ ❯ tests/visualTrendReview.test.ts:146:62
+    144|             midThreshold: [40, 90],
+    145|         }));
+    146|         expect(data.trend?.map((point) => point.thresholds)).toEqual([
+       |                                                              ^
+    147|             { lowThreshold: 20, midThreshold: 40 },
+    148|             { lowThreshold: 70, midThreshold: 90 },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/32]⎯
+
+ FAIL  tests/visualTrendReview.test.ts > B2 — estado de cada punto con datos de su propio periodo > sin umbrales enlazados, cada periodo usa los tercios de su propio rango
+AssertionError: expected [ undefined, undefined ] to deeply equal [ { lowThreshold: 30, …(1) }, …(1) ]
+
+- Expected
++ Received
+
+  [
+-   {
+-     "lowThreshold": 30,
+-     "midThreshold": 60,
+-   },
+-   {
+-     "lowThreshold": 100,
+-     "midThreshold": 200,
+-   },
++   undefined,
++   undefined,
+  ]
+
+ ❯ tests/visualTrendReview.test.ts:155:62
+    153|     it("sin umbrales enlazados, cada periodo usa los tercios de su pro…
+    154|         const data = gaugeDataFor(createVisual(), dataView(months, { m…
+    155|         expect(data.trend?.map((point) => point.thresholds)).toEqual([
+       |                                                              ^
+    156|             { lowThreshold: 30, midThreshold: 60 },
+    157|             { lowThreshold: 100, midThreshold: 200 },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/32]⎯
+
+
+ Test Files  6 failed (6)
+      Tests  32 failed | 20 passed (52)
+   Start at  13:00:19
+   Duration  311ms (transform 45%, import 45%, tests 9%, worker 2%)
+
+exit=1
+
+Nota: 'sin «Orden del periodo» no se infiere desde las abreviaturas: se respeta el orden del host' pasó ya en RED (prueba de caracterización/guarda: el código previo no infería orden; se conserva).
+
+=== GREEN revisión 2 (B1, B2) — 2026-11-22T13:01:22-06:00
+$ npx vitest run tests/periodOrder.test.ts tests/visualTrendReview.test.ts tests/visualTrend.test.ts tests/trendSparkline.test.ts tests/gaugeTrend.test.ts tests/capabilities.test.ts
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+
+
+ Test Files  6 passed (6)
+      Tests  52 passed (52)
+   Start at  13:01:23
+   Duration  213ms (import 66%, transform 16%, tests 14%, worker 4%)
+
+exit=0
+
+=== RED B3 (texto de depuración gaugeData visible en tarjetas del arnés; s9 inexistente) — 2026-11-22T13:02:24-06:00
+Arnés dist/ previo (sin reconstruir) servido estático en 127.0.0.1:5178; verify-dom.mjs ya actualizado
+$ node scripts/verify-dom.mjs
+FAIL [debugTextVisible] {"id":"s1-normal","text":"65","targetDeg":24,"markerDeg":-3,"gaugeTranslate":"translate(150, 150)","ranges":["#C00000","#FFC000","#007F38"],"perfArcFill":null,"bg":true,"trendFills":[],"trendLabels":[],"trendRealLine":null,"trendCurrent":-1,"programmedLine":false,"footerProgrammed":null,"footerDif":null,"footerDifFill":null,"footerDescriptor":null,"debugTextVisible":true,"info":""} esperado: {"text":"65","targetDeg":24,"markerDeg":-3,"gaugeTranslate":"translate(150, 150)","trendFills":[],"trendRealLine":null,"footerProgrammed":null,"footerDescriptor":null,"debugTextVisible":false}
+FAIL [debugTextVisible] {"id":"s2a-clamp-high","text":"100","targetDeg":24,"markerDeg":60,"gaugeTranslate":"translate(150, 150)","ranges":["#C00000","#FFC000","#007F38"],"perfArcFill":null,"bg":true,"trendFills":[],"trendLabels":[],"trendRealLine":null,"trendCurrent":-1,"programmedLine":false,"footerProgrammed":null,"footerDif":null,"footerDifFill":null,"footerDescriptor":null,"debugTextVisible":true,"info":""} esperado: {"text":"100","targetDeg":24,"markerDeg":60,"gaugeTranslate":"translate(150, 150)","trendFills":[],"trendRealLine":null,"footerProgrammed":null,"footerDescriptor":null,"debugTextVisible":false}
+FAIL [debugTextVisible] {"id":"s2b-clamp-low","text":"0","targetDeg":24,"markerDeg":-120,"gaugeTranslate":"translate(150, 150)","ranges":["#C00000","#FFC000","#007F38"],"perfArcFill":null,"bg":true,"trendFills":[],"trendLabels":[],"trendRealLine":null,"trendCurrent":-1,"programmedLine":false,"footerProgrammed":null,"footerDif":null,"footerDifFill":null,"footerDescriptor":null,"debugTextVisible":true,"info":""} esperado: {"text":"0","targetDeg":24,"markerDeg":-120,"gaugeTranslate":"translate(150, 150)","trendFills":[],"trendRealLine":null,"footerProgrammed":null,"footerDescriptor":null,"debugTextVisible":false}
+FAIL [debugTextVisible] {"id":"s3-thirds","text":"50","targetDeg":30,"markerDeg":-20,"gaugeTranslate":"translate(150, 150)","ranges":["#C00000","#FFC000","#007F38"],"perfArcFill":null,"bg":true,"trendFills":[],"trendLabels":[],"trendRealLine":null,"trendCurrent":-1,"programmedLine":false,"footerProgrammed":null,"footerDif":null,"footerDifFill":null,"footerDescriptor":null,"debugTextVisible":true,"info":""} esperado: {"text":"50","targetDeg":30,"markerDeg":-20,"gaugeTranslate":"translate(150, 150)","trendFills":[],"trendRealLine":null,"footerProgrammed":null,"footerDescriptor":null,"debugTextVisible":false}
+FAIL [debugTextVisible] {"id":"s4-range","text":"700","targetDeg":24,"markerDeg":-30,"gaugeTranslate":"translate(150, 150)","ranges":["#C00000","#FFC000","#007F38"],"perfArcFill":null,"bg":true,"trendFills":[],"trendLabels":[],"trendRealLine":null,"trendCurrent":-1,"programmedLine":false,"footerProgrammed":null,"footerDif":null,"footerDifFill":null,"footerDescriptor":null,"debugTextVisible":true,"info":""} esperado: {"text":"700","targetDeg":24,"markerDeg":-30,"gaugeTranslate":"translate(150, 150)","trendFills":[],"trendRealLine":null,"footerProgrammed":null,"footerDescriptor":null,"debugTextVisible":false}
+FAIL [debugTextVisible] {"id":"s5a-anim-ranges","text":"20","targetDeg":24,"markerDeg":-84,"gaugeTranslate":"translate(150, 150)","ranges":["#C00000","#FFC000","#007F38"],"perfArcFill":null,"bg":true,"trendFills":[],"trendLabels":[],"trendRealLine":null,"trendCurrent":-1,"programmedLine":false,"footerProgrammed":null,"footerDif":null,"footerDifFill":null,"footerDescriptor":null,"debugTextVisible":true,"info":""} esperado: {"text":"20","targetDeg":24,"markerDeg":-84,"gaugeTranslate":"translate(150, 150)","trendFills":[],"trendRealLine":null,"footerProgrammed":null,"footerDescriptor":null,"debugTextVisible":false}
+FAIL [debugTextVisible] {"id":"s5b-anim-arc","text":"20","targetDeg":24,"markerDeg":-84,"gaugeTranslate":"translate(150, 150)","ranges":[],"perfArcFill":"#C00000","bg":true,"trendFills":[],"trendLabels":[],"trendRealLine":null,"trendCurrent":-1,"programmedLine":false,"footerProgrammed":null,"footerDif":null,"footerDifFill":null,"footerDescriptor":null,"debugTextVisible":true,"info":""} esperado: {"text":"20","targetDeg":24,"markerDeg":-84,"gaugeTranslate":"translate(150, 150)","trendFills":[],"trendRealLine":null,"footerProgrammed":null,"footerDescriptor":null,"debugTextVisible":false}
+FAIL [debugTextVisible] {"id":"s6-trend-footer","text":"91.47","targetDeg":22.5,"markerDeg":17.21,"gaugeTranslate":"translate(150, 100)","ranges":["#C00000","#FFC000","#007F38"],"perfArcFill":null,"bg":true,"trendFills":["#C00000","#C00000","#FFC000","#C00000","#FFC000","#007F38","#FFC000","#FFC000","#007F38","#FFC000"],"trendLabels":["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct"],"trendRealLine":"#D1D5DB","trendCurrent":9,"programmedLine":true,"footerProgrammed":"95.00","footerDif":"-3.53","footerDifFill":"#FFC000","footerDescriptor":"Real / Prog. Mensual","debugTextVisible":true,"info":""} esperado: {"text":"91.47","targetDeg":22.5,"markerDeg":17.2,"gaugeTranslate":"translate(150, 100)","trendFills":["#C00000","#C00000","#FFC000","#C00000","#FFC000","#007F38","#FFC000","#FFC000","#007F38","#FFC000"],"trendLabels":["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct"],"trendRealLine":"#D1D5DB","trendCurrent":9,"programmedLine":true,"footerProgrammed":"95.00","footerDif":"-3.53","footerDifFill":"#FFC000","footerDescriptor":"Real / Prog. Mensual","debugTextVisible":false}
+FAIL [debugTextVisible] {"id":"s7-programmed-no-period","text":"91.47","targetDeg":22.5,"markerDeg":17.2,"gaugeTranslate":"translate(150, 150)","ranges":["#C00000","#FFC000","#007F38"],"perfArcFill":null,"bg":true,"trendFills":[],"trendLabels":[],"trendRealLine":null,"trendCurrent":-1,"programmedLine":false,"footerProgrammed":null,"footerDif":null,"footerDifFill":null,"footerDescriptor":null,"debugTextVisible":true,"info":""} esperado: {"text":"91.47","targetDeg":22.5,"markerDeg":17.2,"gaugeTranslate":"translate(150, 150)","trendFills":[],"trendRealLine":null,"footerProgrammed":null,"footerDescriptor":null,"debugTextVisible":false,"footerDif":null}
+FAIL [debugTextVisible] {"id":"s8-trend-hc","text":"91.47","targetDeg":22.5,"markerDeg":17.21,"gaugeTranslate":"translate(150, 100)","ranges":["#000000","#000000","#000000"],"perfArcFill":null,"bg":true,"trendFills":["#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00"],"trendLabels":["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct"],"trendRealLine":"#FFFF00","trendCurrent":9,"programmedLine":true,"footerProgrammed":"95.00","footerDif":"-3.53","footerDifFill":"#FFFF00","footerDescriptor":"Real / Prog. Mensual","debugTextVisible":true,"info":""} esperado: {"text":"91.47","targetDeg":22.5,"markerDeg":17.2,"gaugeTranslate":"translate(150, 100)","trendFills":["#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00"],"trendRealLine":"#FFFF00","trendCurrent":9,"footerProgrammed":"95.00","footerDif":"-3.53","footerDifFill":"#FFFF00","footerDescriptor":"Real / Prog. Mensual","debugTextVisible":false}
+escenarios: 10, fallos: 10
+exit=1
+
+=== GREEN B1/B2/B3 en el arnés (dist reconstruido con node build.mjs; s6 con Orden/Periodo actual/Semáforo por periodo, s9 nuevo) — 2026-11-22T13:02:33-06:00
+$ node scripts/verify-dom.mjs
+OK   {"id":"s1-normal","text":"65","targetDeg":24,"markerDeg":-3,"gaugeTranslate":"translate(150, 150)","ranges":["#C00000","#FFC000","#007F38"],"perfArcFill":null,"bg":true,"trendFills":[],"trendLabels":[],"trendRealLine":null,"trendCurrent":-1,"programmedLine":false,"footerProgrammed":null,"footerDif":null,"footerDifFill":null,"footerDescriptor":null,"debugTextVisible":false,"info":"gaugeData={\"value\":65,\"actualValue\":65,\"min\":0,\"max\":100,\"lowThreshold\":40,\"midT"} esperado: {"text":"65","targetDeg":24,"markerDeg":-3,"gaugeTranslate":"translate(150, 150)","trendFills":[],"trendRealLine":null,"footerProgrammed":null,"footerDescriptor":null,"debugTextVisible":false}
+OK   {"id":"s2a-clamp-high","text":"100","targetDeg":24,"markerDeg":60,"gaugeTranslate":"translate(150, 150)","ranges":["#C00000","#FFC000","#007F38"],"perfArcFill":null,"bg":true,"trendFills":[],"trendLabels":[],"trendRealLine":null,"trendCurrent":-1,"programmedLine":false,"footerProgrammed":null,"footerDif":null,"footerDifFill":null,"footerDescriptor":null,"debugTextVisible":false,"info":"gaugeData={\"value\":100,\"actualValue\":150,\"min\":0,\"max\":100,\"lowThreshold\":40,\"mi"} esperado: {"text":"100","targetDeg":24,"markerDeg":60,"gaugeTranslate":"translate(150, 150)","trendFills":[],"trendRealLine":null,"footerProgrammed":null,"footerDescriptor":null,"debugTextVisible":false}
+OK   {"id":"s2b-clamp-low","text":"0","targetDeg":24,"markerDeg":-120,"gaugeTranslate":"translate(150, 150)","ranges":["#C00000","#FFC000","#007F38"],"perfArcFill":null,"bg":true,"trendFills":[],"trendLabels":[],"trendRealLine":null,"trendCurrent":-1,"programmedLine":false,"footerProgrammed":null,"footerDif":null,"footerDifFill":null,"footerDescriptor":null,"debugTextVisible":false,"info":"gaugeData={\"value\":0,\"actualValue\":-20,\"min\":0,\"max\":100,\"lowThreshold\":40,\"midT"} esperado: {"text":"0","targetDeg":24,"markerDeg":-120,"gaugeTranslate":"translate(150, 150)","trendFills":[],"trendRealLine":null,"footerProgrammed":null,"footerDescriptor":null,"debugTextVisible":false}
+OK   {"id":"s3-thirds","text":"50","targetDeg":30,"markerDeg":-20,"gaugeTranslate":"translate(150, 150)","ranges":["#C00000","#FFC000","#007F38"],"perfArcFill":null,"bg":true,"trendFills":[],"trendLabels":[],"trendRealLine":null,"trendCurrent":-1,"programmedLine":false,"footerProgrammed":null,"footerDif":null,"footerDifFill":null,"footerDescriptor":null,"debugTextVisible":false,"info":"gaugeData={\"value\":50,\"actualValue\":50,\"min\":0,\"max\":90,\"lowThreshold\":30,\"midTh"} esperado: {"text":"50","targetDeg":30,"markerDeg":-20,"gaugeTranslate":"translate(150, 150)","trendFills":[],"trendRealLine":null,"footerProgrammed":null,"footerDescriptor":null,"debugTextVisible":false}
+OK   {"id":"s4-range","text":"700","targetDeg":24,"markerDeg":-30,"gaugeTranslate":"translate(150, 150)","ranges":["#C00000","#FFC000","#007F38"],"perfArcFill":null,"bg":true,"trendFills":[],"trendLabels":[],"trendRealLine":null,"trendCurrent":-1,"programmedLine":false,"footerProgrammed":null,"footerDif":null,"footerDifFill":null,"footerDescriptor":null,"debugTextVisible":false,"info":"gaugeData={\"value\":700,\"actualValue\":700,\"min\":200,\"max\":1200,\"lowThreshold\":500"} esperado: {"text":"700","targetDeg":24,"markerDeg":-30,"gaugeTranslate":"translate(150, 150)","trendFills":[],"trendRealLine":null,"footerProgrammed":null,"footerDescriptor":null,"debugTextVisible":false}
+OK   {"id":"s5a-anim-ranges","text":"20","targetDeg":24,"markerDeg":-84,"gaugeTranslate":"translate(150, 150)","ranges":["#C00000","#FFC000","#007F38"],"perfArcFill":null,"bg":true,"trendFills":[],"trendLabels":[],"trendRealLine":null,"trendCurrent":-1,"programmedLine":false,"footerProgrammed":null,"footerDif":null,"footerDifFill":null,"footerDescriptor":null,"debugTextVisible":false,"info":"gaugeData={\"value\":20,\"actualValue\":20,\"min\":0,\"max\":100,\"lowThreshold\":40,\"midT"} esperado: {"text":"20","targetDeg":24,"markerDeg":-84,"gaugeTranslate":"translate(150, 150)","trendFills":[],"trendRealLine":null,"footerProgrammed":null,"footerDescriptor":null,"debugTextVisible":false}
+OK   {"id":"s5b-anim-arc","text":"20","targetDeg":24,"markerDeg":-84,"gaugeTranslate":"translate(150, 150)","ranges":[],"perfArcFill":"#C00000","bg":true,"trendFills":[],"trendLabels":[],"trendRealLine":null,"trendCurrent":-1,"programmedLine":false,"footerProgrammed":null,"footerDif":null,"footerDifFill":null,"footerDescriptor":null,"debugTextVisible":false,"info":"gaugeData={\"value\":20,\"actualValue\":20,\"min\":0,\"max\":100,\"lowThreshold\":40,\"midT"} esperado: {"text":"20","targetDeg":24,"markerDeg":-84,"gaugeTranslate":"translate(150, 150)","trendFills":[],"trendRealLine":null,"footerProgrammed":null,"footerDescriptor":null,"debugTextVisible":false}
+OK   {"id":"s6-trend-footer","text":"91.47","targetDeg":22.5,"markerDeg":17.21,"gaugeTranslate":"translate(150, 100)","ranges":["#C00000","#FFC000","#007F38"],"perfArcFill":null,"bg":true,"trendFills":["#C00000","#C00000","#FFC000","#C00000","#FFC000","#007F38","#FFC000","#FFC000","#007F38","#FFC000"],"trendLabels":["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct"],"trendRealLine":"#D1D5DB","trendCurrent":9,"programmedLine":true,"footerProgrammed":"95.00","footerDif":"-3.53","footerDifFill":"#FFC000","footerDescriptor":"Real / Prog. Mensual","debugTextVisible":false,"info":"gaugeData={\"value\":91.47,\"actualValue\":91.47,\"min\":0,\"max\":120,\"lowThreshold\":80"} esperado: {"text":"91.47","targetDeg":22.5,"markerDeg":17.2,"gaugeTranslate":"translate(150, 100)","trendFills":["#C00000","#C00000","#FFC000","#C00000","#FFC000","#007F38","#FFC000","#FFC000","#007F38","#FFC000"],"trendLabels":["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct"],"trendRealLine":"#D1D5DB","trendCurrent":9,"programmedLine":true,"footerProgrammed":"95.00","footerDif":"-3.53","footerDifFill":"#FFC000","footerDescriptor":"Real / Prog. Mensual","debugTextVisible":false}
+OK   {"id":"s7-programmed-no-period","text":"91.47","targetDeg":22.5,"markerDeg":17.2,"gaugeTranslate":"translate(150, 150)","ranges":["#C00000","#FFC000","#007F38"],"perfArcFill":null,"bg":true,"trendFills":[],"trendLabels":[],"trendRealLine":null,"trendCurrent":-1,"programmedLine":false,"footerProgrammed":null,"footerDif":null,"footerDifFill":null,"footerDescriptor":null,"debugTextVisible":false,"info":"gaugeData={\"value\":91.47,\"actualValue\":91.47,\"min\":0,\"max\":120,\"lowThreshold\":80"} esperado: {"text":"91.47","targetDeg":22.5,"markerDeg":17.2,"gaugeTranslate":"translate(150, 150)","trendFills":[],"trendRealLine":null,"footerProgrammed":null,"footerDescriptor":null,"debugTextVisible":false,"footerDif":null}
+OK   {"id":"s8-trend-hc","text":"91.47","targetDeg":22.5,"markerDeg":17.21,"gaugeTranslate":"translate(150, 100)","ranges":["#000000","#000000","#000000"],"perfArcFill":null,"bg":true,"trendFills":["#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00"],"trendLabels":["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct"],"trendRealLine":"#FFFF00","trendCurrent":9,"programmedLine":true,"footerProgrammed":"95.00","footerDif":"-3.53","footerDifFill":"#FFFF00","footerDescriptor":"Real / Prog. Mensual","debugTextVisible":false,"info":"gaugeData={\"value\":91.47,\"actualValue\":91.47,\"min\":0,\"max\":120,\"lowThreshold\":80"} esperado: {"text":"91.47","targetDeg":22.5,"markerDeg":17.2,"gaugeTranslate":"translate(150, 100)","trendFills":["#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00","#FFFF00"],"trendRealLine":"#FFFF00","trendCurrent":9,"footerProgrammed":"95.00","footerDif":"-3.53","footerDifFill":"#FFFF00","footerDescriptor":"Real / Prog. Mensual","debugTextVisible":false}
+OK   {"id":"s9-trend-host-order","text":"88.90","targetDeg":22.5,"markerDeg":13.35,"gaugeTranslate":"translate(150, 100)","ranges":["#C00000","#FFC000","#007F38"],"perfArcFill":null,"bg":true,"trendFills":["#C00000","#C00000","#FFC000","#C00000","#FFC000","#007F38","#FFC000","#FFC000","#007F38","#FFC000"],"trendLabels":["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct"],"trendRealLine":"#D1D5DB","trendCurrent":5,"programmedLine":true,"footerProgrammed":"87.00","footerDif":"+1.90","footerDifFill":"#007F38","footerDescriptor":"Real / Prog. Mensual","debugTextVisible":false,"info":"gaugeData={\"value\":88.9,\"actualValue\":88.9,\"min\":0,\"max\":120,\"lowThreshold\":80,\""} esperado: {"text":"88.90","targetDeg":22.5,"markerDeg":13.35,"gaugeTranslate":"translate(150, 100)","trendFills":["#C00000","#C00000","#FFC000","#C00000","#FFC000","#007F38","#FFC000","#FFC000","#007F38","#FFC000"],"trendLabels":["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct"],"trendRealLine":"#D1D5DB","trendCurrent":5,"programmedLine":true,"footerProgrammed":"87.00","footerDif":"+1.90","footerDifFill":"#007F38","footerDescriptor":"Real / Prog. Mensual","debugTextVisible":false}
+escenarios: 11, fallos: 0
+exit=0
+
+=== Suite completa tras B1–B4 — ver reports/final-0.3.0.0-2026-11-22/ (typecheck exit=0, lint exit=0, test:coverage 20 archivos / 194 pruebas exit=0, verify-dom 11 escenarios 0 fallos, package exit=0)
+sha256 final (calculado tras el último npm run package): c46436741735ccc79665a1fec63cf63e963bd8a40d7d1e7a31b6132cb986d2ab  dist/PBI_CV_TACOMETRO_GAUGE.0.3.0.0.pbiviz

@@ -1,0 +1,5 @@
+
+> visual@0.3.1.0 lint
+> npx eslint .
+
+exit=0

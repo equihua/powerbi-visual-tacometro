@@ -1,0 +1,35 @@
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+
+ ❯ tests/layout.test.ts (15 tests | 1 failed) 10ms
+   ❯ computeGaugeFrame — 0.3.2.0: medidor pegado al pie (menos hueco vertical) (7)
+     × número central más alto que el espacio disponible: el encuadre sigue siendo finito y positivo 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/layout.test.ts > computeGaugeFrame — 0.3.2.0: medidor pegado al pie (menos hueco vertical) > número central más alto que el espacio disponible: el encuadre sigue siendo finito y positivo
+AssertionError: -90..90: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/layout.test.ts:157:85
+    155|         for (const [s, e] of [[-90, 90], [90, 270], [-120, 60]]) {
+    156|             const frame = computeGaugeFrame(300, 40, T, s, e, true, 60…
+    157|             expect(Number.isFinite(frame.radius) && frame.radius > 0, …
+       |                                                                                     ^
+    158|             expect(Number.isFinite(frame.cy), `${s}..${e}`).toBe(true);
+    159|         }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 14 passed (15)
+   Start at  15:36:55
+   Duration  172ms (transform 45%, import 38%, tests 11%, worker 6%)
+
+exit=1

@@ -1,0 +1,9 @@
+Corrección de revisión 0.3.2.0 — «Real & Mes anterior» — 2026-11-22, Developer (Hermes)
+Defectos: (1) delta usaba Real recortado (gaugeData.value) en vez de actualValue; (2) color = color de zona del medidor.
+RED  red-1-previous-month-delta.txt: tests/previousMonthDelta.test.ts 9 fallidas / 1 pasada (alto contraste = guardia).
+GREEN green-1-previous-month-delta.txt: 10/10 tras comparisonColor (scales.ts), props actualReal/previousMonthDifColor
+  (GaugeFooter.tsx) y Gauge.tsx pasando actualValue y color por favorabilidad (HC → foreground).
+Pruebas previas que codificaban el comportamiento rechazado, actualizadas: gaugeFooter (2), gaugeTrend (2).
+Final: npm-run-test-coverage.txt 230/230 en 21 archivos, 99.74/95.84/99.01/99.71; lint 0; typecheck:test 0;
+harness-verify-dom.txt 17 escenarios 0 fallos; harness-screenshots.txt exit 0; npm-run-package.txt exit 0;
+artifact-sha256.txt.

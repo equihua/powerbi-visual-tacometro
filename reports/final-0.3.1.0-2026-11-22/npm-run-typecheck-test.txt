@@ -1,0 +1,5 @@
+
+> visual@0.3.1.0 typecheck:test
+> tsc -p tsconfig.test.json
+
+exit=0

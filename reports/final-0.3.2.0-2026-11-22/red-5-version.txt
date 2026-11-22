@@ -1,0 +1,32 @@
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+
+ ❯ tests/version.test.ts (1 test | 1 failed) 5ms
+   ❯ versión 0.3.2.0 (valor Real & Mes anterior + pie más pegado al medidor) (1)
+     × pbiviz.json, package.json y package-lock.json están sincronizados en 0.3.2.0 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/version.test.ts > versión 0.3.2.0 (valor Real & Mes anterior + pie más pegado al medidor) > pbiviz.json, package.json y package-lock.json están sincronizados en 0.3.2.0
+AssertionError: expected '0.3.1.0' to be '0.3.2.0' // Object.is equality
+
+Expected: "0.3.2.0"
+Received: "0.3.1.0"
+
+ ❯ tests/version.test.ts:8:39
+      6| describe("versión 0.3.2.0 (valor Real & Mes anterior + pie más pegado …
+      7|     it("pbiviz.json, package.json y package-lock.json están sincroniza…
+      8|         expect(pbiviz.visual.version).toBe("0.3.2.0");
+       |                                       ^
+      9|         expect(pkg.version).toBe("0.3.2.0");
+     10|         expect(lock.version).toBe("0.3.2.0");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  15:33:53
+   Duration  116ms (transform 46%, import 38%, tests 11%, worker 5%)
+
+exit=1

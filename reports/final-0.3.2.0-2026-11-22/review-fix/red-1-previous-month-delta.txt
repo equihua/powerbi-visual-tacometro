@@ -1,0 +1,170 @@
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+
+stderr | tests/previousMonthDelta.test.ts > GaugeFooter — 'Real & Mes anterior' con Real sin recortar y color propio > usa actualReal (no el Real recortado) y el color que resuelve previousMonthDifColor(delta)
+Your app (or one of its dependencies) is using an outdated JSX transform. Update to the modern JSX transform for faster performance: https://react.dev/link/new-jsx-transform
+
+ ❯ tests/previousMonthDelta.test.ts (10 tests | 9 failed) 25ms
+   ❯ comparisonColor — color semántico de una diferencia (2)
+     × mayor es mejor: subir es favorable (verde), bajar desfavorable (rojo), 0 neutral 3ms
+     × menor es mejor: bajar es favorable (verde), subir desfavorable (rojo), 0 neutral 0ms
+   ❯ GaugeFooter — 'Real & Mes anterior' con Real sin recortar y color propio (2)
+     × usa actualReal (no el Real recortado) y el color que resuelve previousMonthDifColor(delta) 6ms
+     × no hereda difColor: Real 110 vs 118 se pinta desfavorable aunque difColor sea verde 1ms
+   ❯ Gauge — 'Real & Mes anterior' (revisión de requisito 0.3.2.0) (6)
+     × mayor es mejor, Real 110 < mes anterior 118 (zona verde): -8.00 en rojo, no en verde 6ms
+     × mayor es mejor, Real 40 > mes anterior 20 (zona roja): +20.00 en verde, no en rojo 2ms
+     × menor es mejor: bajar (110 vs 118) es favorable (verde) y subir (40 vs 20) desfavorable (rojo) 2ms
+     × sin cambio frente al mes anterior: 0.00 en color neutro del pie 2ms
+     × Real fuera de rango (150 con máximo 120): usa el Real sin recortar → +50.00; Dif. Real & Prog. no cambia 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/previousMonthDelta.test.ts > comparisonColor — color semántico de una diferencia > mayor es mejor: subir es favorable (verde), bajar desfavorable (rojo), 0 neutral
+TypeError: comparisonColor is not a function
+ ❯ tests/previousMonthDelta.test.ts:22:16
+     20| describe("comparisonColor — color semántico de una diferencia", () => {
+     21|     it("mayor es mejor: subir es favorable (verde), bajar desfavorable…
+     22|         expect(comparisonColor(8, colors, false, NEUTRAL)).toBe(GREEN);
+       |                ^
+     23|         expect(comparisonColor(-8, colors, false, NEUTRAL)).toBe(RED);
+     24|         expect(comparisonColor(0, colors, false, NEUTRAL)).toBe(NEUTRA…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  tests/previousMonthDelta.test.ts > comparisonColor — color semántico de una diferencia > menor es mejor: bajar es favorable (verde), subir desfavorable (rojo), 0 neutral
+TypeError: comparisonColor is not a function
+ ❯ tests/previousMonthDelta.test.ts:28:16
+     26|
+     27|     it("menor es mejor: bajar es favorable (verde), subir desfavorable…
+     28|         expect(comparisonColor(-8, colors, true, NEUTRAL)).toBe(GREEN);
+       |                ^
+     29|         expect(comparisonColor(8, colors, true, NEUTRAL)).toBe(RED);
+     30|         expect(comparisonColor(0, colors, true, NEUTRAL)).toBe(NEUTRAL…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  tests/previousMonthDelta.test.ts > GaugeFooter — 'Real & Mes anterior' con Real sin recortar y color propio > usa actualReal (no el Real recortado) y el color que resuelve previousMonthDifColor(delta)
+AssertionError: expected 'class="footer-item footer-descriptor"…' to match /class="footer-value"[^>]*fill="#007F3…/
+
+- Expected:
+/class="footer-value"[^>]*fill="#007F38"[^>]*>\+50.00</
+
++ Received:
+"class=\"footer-item footer-descriptor\" transform=\"translate(250, 0)\" text-anchor=\"middle\"><text class=\"footer-value\" y=\"16.8\" font-size=\"13\" font-weight=\"600\" fill=\"#FFC000\">+20.00</text><text class=\"footer-label\" y=\"32.8\" font-size=\"9\" fill=\"#605E5C\">Real &amp; Mes anterior</text>"
+
+ ❯ tests/previousMonthDelta.test.ts:59:28
+     57|     it("usa actualReal (no el Real recortado) y el color que resuelve …
+     58|         const descriptor = footerDescriptor({ real: 120, actualReal: 1…
+     59|         expect(descriptor).toMatch(new RegExp(`class="footer-value"[^>…
+       |                            ^
+     60|     });
+     61|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  tests/previousMonthDelta.test.ts > GaugeFooter — 'Real & Mes anterior' con Real sin recortar y color propio > no hereda difColor: Real 110 vs 118 se pinta desfavorable aunque difColor sea verde
+AssertionError: expected 'class="footer-item footer-descriptor"…' to match /class="footer-value"[^>]*fill="#C0000…/
+
+- Expected:
+/class="footer-value"[^>]*fill="#C00000"[^>]*>-8.00</
+
++ Received:
+"class=\"footer-item footer-descriptor\" transform=\"translate(250, 0)\" text-anchor=\"middle\"><text class=\"footer-value\" y=\"16.8\" font-size=\"13\" font-weight=\"600\" fill=\"#007F38\">-8.00</text><text class=\"footer-label\" y=\"32.8\" font-size=\"9\" fill=\"#605E5C\">Real &amp; Mes anterior</text>"
+
+ ❯ tests/previousMonthDelta.test.ts:64:28
+     62|     it("no hereda difColor: Real 110 vs 118 se pinta desfavorable aunq…
+     63|         const descriptor = footerDescriptor({ real: 110, actualReal: 1…
+     64|         expect(descriptor).toMatch(new RegExp(`class="footer-value"[^>…
+       |                            ^
+     65|     });
+     66| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  tests/previousMonthDelta.test.ts > Gauge — 'Real & Mes anterior' (revisión de requisito 0.3.2.0) > mayor es mejor, Real 110 < mes anterior 118 (zona verde): -8.00 en rojo, no en verde
+AssertionError: expected '<text class="footer-value" y="16.8" f…' to contain 'fill="#C00000"'
+
+Expected: "fill="#C00000""
+Received: "<text class="footer-value" y="16.8" font-size="13" font-weight="600" fill="#007F38">-8.00<"
+
+ ❯ tests/previousMonthDelta.test.ts:92:23
+     90|     it("mayor es mejor, Real 110 < mes anterior 118 (zona verde): -8.0…
+     91|         const value = previousMonthValue(renderGauge({ value: 110, act…
+     92|         expect(value).toContain(`fill="${RED}"`);
+       |                       ^
+     93|         expect(value).toContain(">-8.00<");
+     94|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  tests/previousMonthDelta.test.ts > Gauge — 'Real & Mes anterior' (revisión de requisito 0.3.2.0) > mayor es mejor, Real 40 > mes anterior 20 (zona roja): +20.00 en verde, no en rojo
+AssertionError: expected '<text class="footer-value" y="16.8" f…' to contain 'fill="#007F38"'
+
+Expected: "fill="#007F38""
+Received: "<text class="footer-value" y="16.8" font-size="13" font-weight="600" fill="#C00000">+20.00<"
+
+ ❯ tests/previousMonthDelta.test.ts:98:23
+     96|     it("mayor es mejor, Real 40 > mes anterior 20 (zona roja): +20.00 …
+     97|         const value = previousMonthValue(renderGauge({ value: 40, actu…
+     98|         expect(value).toContain(`fill="${GREEN}"`);
+       |                       ^
+     99|         expect(value).toContain(">+20.00<");
+    100|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  tests/previousMonthDelta.test.ts > Gauge — 'Real & Mes anterior' (revisión de requisito 0.3.2.0) > menor es mejor: bajar (110 vs 118) es favorable (verde) y subir (40 vs 20) desfavorable (rojo)
+AssertionError: expected '<text class="footer-value" y="16.8" f…' to contain 'fill="#007F38"'
+
+Expected: "fill="#007F38""
+Received: "<text class="footer-value" y="16.8" font-size="13" font-weight="600" fill="#C00000">-8.00<"
+
+ ❯ tests/previousMonthDelta.test.ts:104:110
+    102|     it("menor es mejor: bajar (110 vs 118) es favorable (verde) y subi…
+    103|         const lower = { ...settings, lowerIsBetter: true };
+    104|         expect(previousMonthValue(renderGauge({ value: 110, actualValu…
+       |                                                                                                              ^
+    105|         expect(previousMonthValue(renderGauge({ value: 40, actualValue…
+    106|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  tests/previousMonthDelta.test.ts > Gauge — 'Real & Mes anterior' (revisión de requisito 0.3.2.0) > sin cambio frente al mes anterior: 0.00 en color neutro del pie
+AssertionError: expected '<text class="footer-value" y="16.8" f…' to contain 'fill="#252423"'
+
+Expected: "fill="#252423""
+Received: "<text class="footer-value" y="16.8" font-size="13" font-weight="600" fill="#FFC000">0.00<"
+
+ ❯ tests/previousMonthDelta.test.ts:110:23
+    108|     it("sin cambio frente al mes anterior: 0.00 en color neutro del pi…
+    109|         const value = previousMonthValue(renderGauge({ value: 90, actu…
+    110|         expect(value).toContain(`fill="${NEUTRAL}"`);
+       |                       ^
+    111|         expect(value).toContain(">0.00<");
+    112|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+ FAIL  tests/previousMonthDelta.test.ts > Gauge — 'Real & Mes anterior' (revisión de requisito 0.3.2.0) > Real fuera de rango (150 con máximo 120): usa el Real sin recortar → +50.00; Dif. Real & Prog. no cambia
+AssertionError: expected '<text class="footer-value" y="16.8" f…' to contain '>+50.00<'
+
+Expected: ">+50.00<"
+Received: "<text class="footer-value" y="16.8" font-size="13" font-weight="600" fill="#007F38">+20.00<"
+
+ ❯ tests/previousMonthDelta.test.ts:116:44
+    114|     it("Real fuera de rango (150 con máximo 120): usa el Real sin reco…
+    115|         const markup = renderGauge({ value: 120, actualValue: 150, pre…
+    116|         expect(previousMonthValue(markup)).toContain(">+50.00<");
+       |                                            ^
+    117|         expect(previousMonthValue(markup)).toContain(`fill="${GREEN}"`…
+    118|         // Sin cambios: Dif. Real & Prog. sigue usando el Real del cen…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  9 failed | 1 passed (10)
+   Start at  15:49:23
+   Duration  260ms (import 49%, transform 33%, tests 14%, worker 3%)
+

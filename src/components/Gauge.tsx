@@ -8,10 +8,20 @@ import { GaugeMarker } from "./GaugeMarker";
 import { CenterText, formatGaugeValue } from "./CenterText";
 import { buildMarkers } from "./markers";
 import { BAND_RADIUS_FACTOR, bandRadii, degreesToRadians } from "./arcUtils";
-import { createAngleScale, createPerformanceColorScale, rangeBandColors } from "./scales";
+import { comparisonColor, createAngleScale, createPerformanceColorScale, rangeBandColors } from "./scales";
 import { resolveSemaphoreColor } from "./semaphore";
 import { GaugeData, GaugeSettings } from "./types";
 import { buildAriaLabel } from "../tooltips";
+import { computeGaugeFrame, computeGaugeLayout, computeInnerTrendBox } from "./layout";
+import { TrendSparkline } from "./TrendSparkline";
+import { GaugeFooter } from "./GaugeFooter";
+
+/** Colores del pie (texto oscuro / gris secundario, como los títulos de Power BI). */
+const FOOTER_VALUE_COLOR = "#252423";
+const FOOTER_LABEL_COLOR = "#605E5C";
+
+/** Redondeo a centésimas para coordenadas estables en el markup. */
+const round2 = (value: number) => Math.round(value * 100) / 100;
 
 interface Props {
   viewport: IViewport;
@@ -59,14 +69,34 @@ export default class Gauge extends React.Component<Props> {
     }
 
     const width = viewport.width;
-    const height = viewport.height;
+    const viewportHeight = viewport.height;
 
-    if (width <= 0 || height <= 0) {
+    if (width <= 0 || viewportHeight <= 0) {
       return null;
     }
 
-    const size = Math.min(width, height);
-    const radius = size / 2 / 0.95 - settings.thickness / 2;
+    // 0.3.0.0: sparkline mensual y pie sólo con serie mensual (>= 2 meses). Sin ella el
+    // medidor conserva todo el alto, igual que 0.2.0.0 (aunque haya Programado).
+    // 0.3.1.0: sólo el pie reserva alto (anclado abajo); la sparkline va dentro del semicírculo.
+    // 0.3.2.0: el medidor se encuadra pegado al pie (computeGaugeFrame) en lugar de centrarse en su caja.
+    const trend = gaugeData.trend && gaugeData.trend.length >= 2 ? gaugeData.trend : null;
+    const layout = computeGaugeLayout(width, viewportHeight, { footer: trend !== null });
+    const height = layout.gaugeHeight;
+
+    // 0.3.2.0: con pie el medidor se agranda/baja hasta quedar a FOOTER_GAP del pie (mismo dibujo).
+    // Sin pie el encuadre es el de 0.2.0.0 (radio por el lado menor, centrado).
+    const frame = computeGaugeFrame(
+      width,
+      height,
+      settings.thickness,
+      settings.startAngle,
+      settings.endAngle,
+      layout.footer !== null,
+      settings.showValueLabel ? settings.fontSize : 0
+    );
+    const radius = frame.radius;
+    const centerX = round2(frame.cx);
+    const centerY = round2(frame.cy);
     const startAngleRad = degreesToRadians(settings.startAngle);
     const endAngleRad = degreesToRadians(settings.endAngle);
 
@@ -99,18 +129,20 @@ export default class Gauge extends React.Component<Props> {
       bandRadii(radius, settings.thickness).innerRadius - 2 - indicatorThickness / 2
     );
     const indicatorRadius = indicatorCenter / BAND_RADIUS_FACTOR;
+    const format = (value: number) => formatGaugeValue(value, gaugeData.dataFormat);
+    const trendBox = trend && layout.footer ? computeInnerTrendBox(radius, settings.thickness) : null;
 
     return (
       // A3 Keyboard Navigation: el SVG recibe el foco (supportsKeyboardFocus) y se anuncia como imagen.
       <svg
         className="gauge-svg"
         width={width}
-        height={height}
+        height={viewportHeight}
         tabIndex={0}
         role="img"
         aria-label={buildAriaLabel(gaugeData)}
       >
-        <g transform={`translate(${width / 2}, ${height / 2})`}>
+        <g transform={`translate(${centerX}, ${centerY})`}>
           <GaugeBackground
             radius={radius}
             startAngle={startAngleRad}
@@ -192,6 +224,46 @@ export default class Gauge extends React.Component<Props> {
             />
           )}
         </g>
+
+        {trend && trendBox && (
+          <g
+            className="gauge-trend-slot"
+            transform={`translate(${round2(centerX + trendBox.x)}, ${round2(centerY + trendBox.y)})`}
+          >
+            <TrendSparkline
+              points={trend}
+              width={trendBox.width}
+              height={trendBox.height}
+              currentIndex={gaugeData.trendCurrentIndex ?? -1}
+              colors={settings}
+              programmedColor={settings.programmedColor}
+              format={format}
+            />
+          </g>
+        )}
+
+        {layout.footer && (
+          <g className="gauge-footer-slot" transform={`translate(0, ${layout.footer.y})`}>
+            <GaugeFooter
+              width={width}
+              height={layout.footer.height}
+              real={gaugeData.value}
+              actualReal={gaugeData.actualValue ?? gaugeData.value}
+              programmed={gaugeData.programmed}
+              previousMonth={gaugeData.previousMonth}
+              difColor={performanceColor}
+              previousMonthDifColor={(delta) =>
+                highContrast?.foreground ??
+                comparisonColor(delta, settings, settings.lowerIsBetter, FOOTER_VALUE_COLOR)
+              }
+              showDescriptor={trendBox !== null}
+              format={format}
+              fontFamily={settings.fontFamily}
+              valueColor={highContrast?.foreground ?? FOOTER_VALUE_COLOR}
+              labelColor={highContrast?.foreground ?? FOOTER_LABEL_COLOR}
+            />
+          </g>
+        )}
       </svg>
     );
   }

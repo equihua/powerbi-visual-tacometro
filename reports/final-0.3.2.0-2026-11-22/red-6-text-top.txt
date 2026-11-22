@@ -1,0 +1,43 @@
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+
+ ❯ tests/layout.test.ts (14 tests | 1 failed) 9ms
+   ❯ computeGaugeFrame — 0.3.2.0: medidor pegado al pie (menos hueco vertical) (6)
+     × arco sin 0° (p. ej. invertido 90°..270°): el número central (alto = fontSize) no se sale por arriba 2ms
+ ❯ tests/gaugeTrend.test.ts (17 tests | 1 failed) 31ms
+   ❯ Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor (13)
+     × 0.3.2.0: con arco invertido (90°..270°) el centro deja sitio al número central (fontSize) arriba en tarjeta ancha 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor > 0.3.2.0: con arco invertido (90°..270°) el centro deja sitio al número central (fontSize) arriba en tarjeta ancha
+AssertionError: expected 0 to be greater than or equal to 20
+ ❯ tests/gaugeTrend.test.ts:103:20
+    101|         const markup = render(withTrend, { ...settings, startAngle: 90…
+    102|         const cy = Number(/<g transform="translate\([-\d.]+, ([-\d.]+)…
+    103|         expect(cy).toBeGreaterThanOrEqual(settings.fontSize);
+       |                    ^
+    104|     });
+    105|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/layout.test.ts > computeGaugeFrame — 0.3.2.0: medidor pegado al pie (menos hueco vertical) > arco sin 0° (p. ej. invertido 90°..270°): el número central (alto = fontSize) no se sale por arriba
+AssertionError: 90..270: expected 0 to be greater than or equal to 19.999999999
+ ❯ tests/layout.test.ts:147:44
+    145|         for (const [s, e] of [[90, 270], [100, 200], [-200, -100]]) {
+    146|             const frame = computeGaugeFrame(600, 260, T, s, e, true, 2…
+    147|             expect(frame.cy, `${s}..${e}`).toBeGreaterThanOrEqual(20 -…
+       |                                            ^
+    148|             expect(frame.cy + contentBottom(frame.radius, T, s, e), `$…
+    149|         }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  2 failed | 29 passed (31)
+   Start at  15:36:27
+   Duration  271ms (import 43%, transform 39%, tests 15%, worker 4%)
+
+exit=1

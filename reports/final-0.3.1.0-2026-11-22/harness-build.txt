@@ -1,0 +1,5 @@
+
+  dist/main.js      1.4mb ⚠️
+  dist/main.js.map  2.1mb
+
+⚡ Done in 87ms

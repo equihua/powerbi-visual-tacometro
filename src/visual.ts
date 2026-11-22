@@ -18,6 +18,7 @@ import ISelectionId = powerbi.visuals.ISelectionId;
 import { VisualFormattingSettingsModel } from "./settings";
 import Gauge from "./components/Gauge";
 import { GaugeSettings, GaugeData, DataFormat } from "./components/types";
+import { findCurrentPosition, lastIndexWithReal, orderPeriodRows, periodSortKey, TrendPoint } from "./components/trend";
 import { isFiniteNumber, resolveRange, resolveThresholds } from "./components/scales";
 import { formatGaugeValue } from "./components/CenterText";
 import { applyHighContrast } from "./highContrast";
@@ -33,6 +34,8 @@ export class Visual implements IVisual {
   /** Último GaugeData con datos válidos (para tooltips); null si no hay. */
   private currentData: GaugeData | null = null;
   private tooltipExtras: TooltipItem[] = [];
+  /** Fila del DataView que muestra el medidor (0 sin periodo; -1 si el periodo actual no existe). */
+  private currentRow = 0;
 
   constructor(options: VisualConstructorOptions) {
     this.formattingSettingsService = new FormattingSettingsService();
@@ -72,7 +75,7 @@ export class Visual implements IVisual {
     const settings: GaugeSettings = applyHighContrast(this.extractSettings(), this.host.colorPalette);
     const gaugeData: GaugeData = this.extractGaugeData(dataView);
     this.currentData = gaugeData.hasValidData ? gaugeData : null;
-    this.tooltipExtras = this.extractTooltipExtras(dataView);
+    this.tooltipExtras = this.extractTooltipExtras(dataView, this.currentRow);
 
     this.reactRoot.render(
       React.createElement(Gauge, {
@@ -140,12 +143,12 @@ export class Visual implements IVisual {
   }
 
   /** Campos del rol "tooltips": se muestran tal cual (texto) o con el formato del measure (número). */
-  private extractTooltipExtras(dataView: DataView): TooltipItem[] {
+  private extractTooltipExtras(dataView: DataView, index: number): TooltipItem[] {
     const columns = dataView.categorical?.values ?? [];
     return columns
-      .filter((column) => column.source.roles?.["tooltips"] && column.values[0] != null)
+      .filter((column) => column.source.roles?.["tooltips"] && column.values[index] != null)
       .map((column) => {
-        const raw = column.values[0];
+        const raw = column.values[index];
         const value =
           typeof raw === "number"
             ? formatGaugeValue(raw, this.parseFormat(column.source.format))
@@ -178,15 +181,16 @@ export class Visual implements IVisual {
     };
   }
 
-  private extractValue(categorical: any, roleName: string): number | null {
+  /** `index`: fila del periodo (0 sin rol «period», que es el único valor agregado). */
+  private extractValue(categorical: any, roleName: string, index = 0): number | null {
     if (categorical.values) {
       const valueItem = categorical.values.filter(
         (v: any) => v.source.roles[roleName]
       )[0];
-      if (valueItem && valueItem.values[0] != null) {
-        const val = typeof valueItem.values[0] === "number"
-          ? valueItem.values[0]
-          : parseFloat(valueItem.values[0].toString());
+      if (valueItem && valueItem.values[index] != null) {
+        const val = typeof valueItem.values[index] === "number"
+          ? valueItem.values[index]
+          : parseFloat(valueItem.values[index].toString());
         return isFiniteNumber(val) ? val : null;
       }
     }
@@ -206,10 +210,10 @@ export class Visual implements IVisual {
   }
 
   /** Primer valor de texto del rol (p. ej. semáforo); null si no hay o no es texto. */
-  private extractText(categorical: any, roleName: string): string | null {
+  private extractText(categorical: any, roleName: string, index = 0): string | null {
     const columns = [...(categorical.values ?? []), ...(categorical.categories ?? [])];
     const column = columns.filter((c: any) => c.source.roles[roleName])[0];
-    const raw = column ? column.values[0] : null;
+    const raw = column ? column.values[index] : null;
     return typeof raw === "string" ? raw : null;
   }
 
@@ -259,31 +263,45 @@ export class Visual implements IVisual {
     let programmed: number | undefined;
     let previousMonth: number | undefined;
     let hasValidData = false;
+    let trend: TrendPoint[] | undefined;
+    let trendCurrentIndex: number | undefined;
+    this.currentRow = 0;
 
     if (dataView.categorical) {
       const categorical = dataView.categorical;
+      // 0.3.0.0: con «Periodo (mes)» / «Orden del periodo» cada medida trae una fila por periodo y
+      // el medidor lee la fila del periodo actual (ver selectTrend). Sin categorías sólo hay la fila 0
+      // (comportamiento 0.2.0.0).
+      let i = 0;
+      const selection = this.selectTrend(categorical);
+      if (selection) {
+        trend = selection.trend;
+        trendCurrentIndex = selection.currentPosition >= 0 ? selection.currentPosition : undefined;
+        i = selection.currentRow;
+      }
 
-      const measureVal = this.extractValue(categorical, "measure");
+      const measureVal = this.extractValue(categorical, "measure", i);
       if (measureVal !== null) {
         value = measureVal;
         hasValidData = true;
       }
 
-      const minVal = this.extractValue(categorical, "min");
+      const minVal = this.extractValue(categorical, "min", i);
       if (minVal !== null) min = minVal;
 
-      const maxVal = this.extractValue(categorical, "max");
+      const maxVal = this.extractValue(categorical, "max", i);
       if (maxVal !== null) max = maxVal;
 
-      const targetVal = this.extractValue(categorical, "target");
+      const targetVal = this.extractValue(categorical, "target", i);
       if (targetVal !== null) target = targetVal;
 
-      lowThreshold = this.extractValue(categorical, "lowThreshold");
-      midThreshold = this.extractValue(categorical, "midThreshold");
-      semaphore = this.extractText(categorical, "semaphore");
-      targetWithMargin = this.extractValue(categorical, "targetWithMargin") ?? undefined;
-      programmed = this.extractValue(categorical, "programmed") ?? undefined;
-      previousMonth = this.extractValue(categorical, "previousMonth") ?? undefined;
+      this.currentRow = i;
+      lowThreshold = this.extractValue(categorical, "lowThreshold", i);
+      midThreshold = this.extractValue(categorical, "midThreshold", i);
+      semaphore = this.extractText(categorical, "semaphore", i);
+      targetWithMargin = this.extractValue(categorical, "targetWithMargin", i) ?? undefined;
+      programmed = this.extractValue(categorical, "programmed", i) ?? undefined;
+      previousMonth = this.extractValue(categorical, "previousMonth", i) ?? undefined;
     } else if (dataView.single && dataView.single.value != null) {
       value =
         typeof dataView.single.value === "number"
@@ -320,7 +338,74 @@ export class Visual implements IVisual {
       hasValidData,
       dataFormat,
       semaphore,
+      ...(trend ? { trend, trendCurrentIndex } : {}),
     };
+  }
+
+  /**
+   * Serie por periodo en orden cronológico determinista y fila del periodo actual.
+   * - Orden: con «Orden del periodo» (número/fecha) se ordena por esa clave; sin ella se respeta el orden
+   *   del host, que capabilities fija con `sorting.implicit` ascendente por «Periodo (mes)» (y Power BI
+   *   aplica la columna «Ordenar por columna» del modelo, p. ej. POA_Mes[Abrev] → POA_Mes[Mes]).
+   *   Nunca se infiere el orden de los nombres de mes.
+   * - Periodo actual: con «Periodo actual» es el periodo cuya clave (o etiqueta, sin clave) coincide; si
+   *   ninguno coincide no hay fila actual (-1). Sin ese rol, el último periodo con Real (o el último).
+   */
+  private selectTrend(categorical: any): { trend: TrendPoint[]; currentPosition: number; currentRow: number } | null {
+    const categories: any[] = categorical.categories ?? [];
+    const period = categories.filter((c: any) => c.source.roles?.["period"])[0];
+    const order = categories.filter((c: any) => c.source.roles?.["periodOrder"])[0];
+    const labels = period ?? order;
+    if (!labels || labels.values.length === 0) {
+      return null;
+    }
+
+    const rowCount: number = labels.values.length;
+    const keys = order ? order.values.map((value: unknown) => periodSortKey(value)) : null;
+    const rows = keys ? orderPeriodRows(keys) : Array.from({ length: rowCount }, (_, row) => row);
+    const trend = rows.map((row) => this.extractTrendPoint(categorical, labels.values[row], row));
+
+    const current = this.firstValue(categorical, "currentPeriod");
+    let currentPosition: number;
+    if (current !== null) {
+      const periods = rows.map((row, position) => ({ key: keys ? keys[row] : null, label: trend[position].label }));
+      currentPosition = findCurrentPosition(current, periods, keys !== null);
+    } else {
+      const lastWithReal = lastIndexWithReal(trend);
+      currentPosition = lastWithReal >= 0 ? lastWithReal : trend.length - 1;
+    }
+    return { trend, currentPosition, currentRow: currentPosition >= 0 ? rows[currentPosition] : -1 };
+  }
+
+  /**
+   * Punto de un periodo con datos de SU fila: Real, Programado, semáforo («Semáforo por periodo»; si
+   * está vacío, el semáforo del medidor en ese periodo) y umbrales resueltos con el rango de esa fila.
+   */
+  private extractTrendPoint(categorical: any, label: powerbi.PrimitiveValue, row: number): TrendPoint {
+    const gaugeCard = this.formattingSettings.gaugeCard;
+    const range = resolveRange(
+      this.extractValue(categorical, "min", row) ?? (isFiniteNumber(gaugeCard.min.value) ? gaugeCard.min.value : 0),
+      this.extractValue(categorical, "max", row) ?? (isFiniteNumber(gaugeCard.max.value) ? gaugeCard.max.value : 100)
+    );
+    const thresholds = resolveThresholds(
+      range,
+      this.extractValue(categorical, "lowThreshold", row),
+      this.extractValue(categorical, "midThreshold", row)
+    );
+    return {
+      label: label == null ? "" : String(label),
+      real: this.extractValue(categorical, "measure", row),
+      programmed: this.extractValue(categorical, "programmed", row),
+      semaphore: this.extractText(categorical, "trendSemaphore", row) ?? this.extractText(categorical, "semaphore", row),
+      thresholds: { lowThreshold: thresholds.lowThreshold, midThreshold: thresholds.midThreshold },
+    };
+  }
+
+  /** Primer valor no vacío de una columna de valores del rol (p. ej. «Periodo actual», constante por fila). */
+  private firstValue(categorical: any, roleName: string): powerbi.PrimitiveValue | null {
+    const column = (categorical.values ?? []).filter((v: any) => v.source.roles?.[roleName])[0];
+    const value = column ? column.values.find((cell: powerbi.PrimitiveValue) => cell != null && cell !== "") : undefined;
+    return value ?? null;
   }
 
   public getFormattingModel(): powerbi.visuals.FormattingModel {

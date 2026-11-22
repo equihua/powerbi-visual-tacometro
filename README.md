@@ -1,7 +1,7 @@
 # powerbi-visual-tacometro
 Medidor de tacómetro con marge y objetivo
 
-Versión actual del visual: **0.2.0.0** (`pbiviz.json`). Cambios y estado de los puntos A1–A4 / B1–B4
+Versión actual del visual: **0.3.2.0** (`pbiviz.json`). Cambios, compatibilidad y estado de los puntos A1–A4 / B1–B4
 en [CHANGELOG.md](CHANGELOG.md).
 
 > **Estado:** compila, pasa lint y pruebas unitarias, y se empaqueta localmente. **No se ha validado dentro de
@@ -41,7 +41,11 @@ npm run package          # pbiviz package → dist/PBI_CV_TACOMETRO_GAUGE.<versi
 | Valor Mínimo / Máximo | `min` / `max` | Escala del medidor. |
 | Umbral Bajo / Medio | `lowThreshold` / `midThreshold` | Cortes de las bandas. |
 | Valor Objetivo | `target` | Marcador original. |
-| Meta con margen / Programado / Real mes anterior | `targetWithMargin` / `programmed` / `previousMonth` | Marcadores adicionales, cada uno con su propio color (tarjeta «Marcadores»). |
+| Meta con margen / Programado / Real mes anterior | `targetWithMargin` / `programmed` / `previousMonth` | Marcadores adicionales, cada uno con su propio color (tarjeta «Marcadores»). Con serie mensual, Programado alimenta «Programado» / «Dif. Real & Prog.» del pie y Real mes anterior el valor de «Real & Mes anterior» (Real − Real mes anterior); si falta el rol, esa columna queda sólo con la etiqueta. |
+| Periodo (mes) | `period` | Agrupación opcional (p. ej. `POA_Mes[Abrev]`) para la sparkline Real/Programado y el pie. El visual **no** deduce el orden de nombres de mes: usa «Orden del periodo» o, sin él, el orden del host (orden implícito ascendente por este campo, que respeta «Ordenar por columna»: `POA_Mes[Abrev]` → `POA_Mes[Mes]`). Un año y un indicador en contexto. Sin este campo se conserva el comportamiento de un único valor. |
+| Orden del periodo | `periodOrder` | Agrupación opcional numérica o de fecha (p. ej. `POA_Mes[Mes]`) que fija el orden cronológico de la serie. |
+| Periodo actual | `currentPeriod` | Medida opcional (p. ej. `POA Mes sel`): periodo que muestran el medidor, el pie y el tooltip. Se compara con «Orden del periodo» (o con la etiqueta). Si no coincide con ningún periodo, no hay valor actual. Sin ella: último periodo con Real en orden cronológico. |
+| Semáforo por periodo | `trendSemaphore` | Medida opcional (p. ej. `POA Semáforo mes color`) para el color de cada punto de la sparkline. Si está vacía en un periodo se usa «Semáforo» evaluado en ese periodo; si el valor resultante falta o no se reconoce, los umbrales (y mín./máx.) de ese mismo periodo, nunca los del mes actual. |
 | Semáforo (color de la fuente) | `semaphore` | Texto `Verde`/`Amarillo`/`Rojo`, `Green`/`Yellow`/`Red`, clase `text-success`/`text-warning`/`text-danger`/`text-yellow-custom`, neutro (`Sin semaforizar`, `Gris`, `text-muted`, `text-secondary` → gris `#ADB5BD`) o `#hex`. Si se reconoce, sustituye el color calculado (ver nota abajo). |
 | Información sobre herramientas | `tooltips` | Campos extra en el tooltip. |
 

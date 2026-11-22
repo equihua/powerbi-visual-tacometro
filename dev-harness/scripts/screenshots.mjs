@@ -30,7 +30,15 @@ const shot = async (name, selector) => {
 };
 
 await shot("00-all-initial.png");
-for (const id of ["s1-normal", "s2a-clamp-high", "s2b-clamp-low", "s3-thirds", "s4-range"]) {
+for (const id of ["s1-normal", "s2a-clamp-high", "s2b-clamp-low", "s3-thirds", "s4-range",
+    // 0.3.0.0: sparkline mensual + pie, Programado sin periodo (sin pie) y alto contraste.
+    "s6-trend-footer", "s7-programmed-no-period", "s8-trend-hc",
+    // Revisión: filas del host desordenadas + Orden del periodo + Periodo actual.
+    "s9-trend-host-order",
+    // 0.3.1.0: layout responsivo (tarjeta ancha y compacta).
+    "s10-trend-wide", "s11-trend-compact",
+    // Revisión 0.3.2.0: «Real & Mes anterior» con Real sin recortar y color por favorabilidad.
+    "s12-prev-unfavorable", "s13-prev-favorable", "s14-prev-lower-better", "s15-prev-out-of-range"]) {
     await shot(`${id}.png`, `#${id}`);
 }
 await shot("s5a-anim-0-before.png", "#s5a-anim-ranges");

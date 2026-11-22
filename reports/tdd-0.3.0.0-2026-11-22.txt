@@ -1,0 +1,353 @@
+=== TDD 0.3.0.0 — 2026-11-22T10:24:49-06:00 — base e3aceaf
+
+=== C1 RED layout — 2026-11-22T10:24:49-06:00
+$ npx vitest run tests/layout.test.ts
+Error: Cannot find module '../src/components/layout' imported from /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/tests/layout.test.ts
+ ❯ tests/layout.test.ts:2:1
+      1| import { describe, expect, it } from "vitest";
+      2| import { computeGaugeLayout, FOOTER_HEIGHT } from "../src/components/l…
+       | ^
+      3|
+      4| describe("computeGaugeLayout — espacio debajo del medidor (0.3.0.0)", …
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  10:24:49
+   Duration  106ms (worker 99%, environment 1%)
+
+=== C1 GREEN layout — 2026-11-22T10:25:02-06:00
+$ npx vitest run tests/layout.test.ts
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  10:25:03
+   Duration  81ms (import 40%, transform 28%, tests 17%, worker 14%, environment 1%)
+
+=== C2 RED trend geometry — 2026-11-22T10:25:15-06:00
+$ npx vitest run tests/trend.test.ts
+       | ^
+      3|
+      4| function p(label: string, real: number | null, programmed: number | nu…
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  10:25:16
+   Duration  135ms (worker 98%, environment 2%)
+
+=== C2 GREEN trend geometry — 2026-11-22T10:25:29-06:00
+$ npx vitest run tests/trend.test.ts
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  10:25:29
+   Duration  130ms (import 58%, transform 32%, tests 5%, worker 4%)
+
+=== C3 RED statusColor — 2026-11-22T10:25:37-06:00
+$ npx vitest run tests/trend.test.ts
+     70|         const hc = { ...colors, highContrast: { foreground: "#FFFF00",…
+     71|         expect(statusColor(90, "Rojo", thresholds, hc)).toBe("#FFFF00"…
+       |                ^
+     72|     });
+     73| });
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+ Test Files  1 failed (1)
+      Tests  4 failed | 6 passed (10)
+   Start at  10:25:37
+   Duration  131ms (import 53%, transform 33%, tests 10%, worker 4%)
+
+=== C3 GREEN statusColor — 2026-11-22T10:25:46-06:00
+$ npx vitest run tests/trend.test.ts
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  10:25:47
+   Duration  132ms (import 55%, transform 34%, tests 7%, worker 4%)
+
+=== C4 RED TrendSparkline — 2026-11-22T10:26:03-06:00
+$ npx vitest run tests/trendSparkline.test.ts
+       | ^
+      5| import { TrendPoint } from "../src/components/trend";
+      6|
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  10:26:03
+   Duration  100ms (worker 96%, environment 4%)
+
+=== C4 GREEN TrendSparkline — 2026-11-22T10:26:14-06:00
+$ npx vitest run tests/trendSparkline.test.ts
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  10:26:14
+   Duration  143ms (import 52%, transform 32%, tests 13%, worker 3%)
+
+=== C5 RED GaugeFooter — 2026-11-22T10:26:30-06:00
+$ npx vitest run tests/gaugeFooter.test.ts
+      6| function render(overrides: Partial<GaugeFooterProps> = {}): string {
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  10:26:31
+   Duration  110ms (worker 96%, environment 4%)
+
+=== C5 GREEN GaugeFooter — 2026-11-22T10:26:43-06:00
+$ npx vitest run tests/gaugeFooter.test.ts
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  10:26:43
+   Duration  152ms (import 60%, transform 27%, tests 11%, worker 3%)
+
+=== C6 RED Gauge integración — 2026-11-22T10:27:08-06:00
+$ npx vitest run tests/gaugeTrend.test.ts
++ Received:
+"<svg class=\"gauge-svg\" width=\"300\" height=\"300\" tabindex=\"0\" role=\"img\" aria-label=\"Tacómetro. Valor: 91.47; Mínimo: 0.00; Máximo: 120.00; Objetivo: 95.00; Meta con margen: 95.00; Programado: 95.00; Semáforo: Amarillo\"><g transform=\"translate(150, 150)\"><path class=\"gauge-background\" d=\"M-150.5,0A150.5,150.5,0,1,1,150.5,0L130.5,0A130.5,130.5,0,1,0,-130.5,0Z\" fill=\"#e0e0e0\" stroke=\"none\"></path><g class=\"gauge-ranges\"><path class=\"range-low\" d=\"M-150.5,0A150.5,150.5,0,0,1,75.25,-130.337L65.25,-113.016A130.5,130.5,0,0,0,-130.5,0Z\" fill=\"#C00000\" stroke=\"none\"></path><path class=\"range-medium\" d=\"M75.25,-130.337A150.5,150.5,0,0,1,119.4,-91.619L103.533,-79.443A130.5,130.5,0,0,0,65.25,-113.016Z\" fill=\"#FFC000\" stroke=\"none\"></path><path class=\"range-high\" d=\"M119.4,-91.619A150.5,150.5,0,0,1,150.5,0L130.5,0A130.5,130.5,0,0,0,103.533,-79.443Z\" fill=\"#007F38\" stroke=\"none\"></path></g><path class=\"semaphore-indicator\" fill=\"#FFC000\" stroke=\"none\"></path><g class=\"gauge-marker marker-target\" transform=\"rotate(52.49999999999999)\"><title>Objetivo: 95.00</title><line x1=\"0\" y1=\"-156.5\" x2=\"0\" y2=\"-124.5\" stroke=\"#252423\" stroke-width=\"3\" stroke-linecap=\"butt\"></line></g><g class=\"gauge-marker marker-targetWithMargin\" transform=\"rotate(52.49999999999999)\"><title>Meta con margen: 95.00</title><line x1=\"0\" y1=\"-156.5\" x2=\"0\" y2=\"-124.5\" stroke=\"#605E5C\" stroke-width=\"3\" stroke-linecap=\"butt\" stroke-dasharray=\"4 3\"></line></g><g class=\"gauge-marker marker-programmed\" transform=\"rotate(52.49999999999999)\"><title>Programado: 95.00</title><polygon points=\"0,-151.5 -6,-161.5 6,-161.5\" fill=\"#0078D4\"></polygon></g><g class=\"value-marker\"><g><path d=\"M 0,-6 L -5,3 L 5,3 Z\" fill=\"#333333\" stroke=\"#333333\" stroke-width=\"1\"></path></g></g><text class=\"center-text\" text-anchor=\"middle\" dominant-baseline=\"middle\" y=\"-10\" font-size=\"20\" font-family=\"Arial\" fill=\"#777777\">91.47</text></g></svg>"
+ ❯ tests/gaugeTrend.test.ts:68:24
+     66|     it("el pie muestra Programado, la diferencia con el color de estad…
+     67|         const markup = render(withTrend);
+     68|         expect(markup).toMatch(/footer-programmed[^]*?>95.00</);
+       |                        ^
+     69|         expect(markup).toMatch(/footer-difference[^]*?fill="#FFC000"[^…
+     70|         expect(markup).toContain(">Real / Prog. Mensual<");
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+ FAIL  tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor > con un solo mes no hay sparkline ni descriptor (pie sólo con Programado y diferencia)
+AssertionError: expected '<svg class="gauge-svg" width="300" he…' to contain 'footer-difference'
+Expected: "footer-difference"
+Received: "<svg class="gauge-svg" width="300" height="300" tabindex="0" role="img" aria-label="Tacómetro. Valor: 91.47; Mínimo: 0.00; Máximo: 120.00; Objetivo: 95.00; Meta con margen: 95.00; Programado: 95.00; Semáforo: Amarillo"><g transform="translate(150, 150)"><path class="gauge-background" d="M-150.5,0A150.5,150.5,0,1,1,150.5,0L130.5,0A130.5,130.5,0,1,0,-130.5,0Z" fill="#e0e0e0" stroke="none"></path><g class="gauge-ranges"><path class="range-low" d="M-150.5,0A150.5,150.5,0,0,1,75.25,-130.337L65.25,-113.016A130.5,130.5,0,0,0,-130.5,0Z" fill="#C00000" stroke="none"></path><path class="range-medium" d="M75.25,-130.337A150.5,150.5,0,0,1,119.4,-91.619L103.533,-79.443A130.5,130.5,0,0,0,65.25,-113.016Z" fill="#FFC000" stroke="none"></path><path class="range-high" d="M119.4,-91.619A150.5,150.5,0,0,1,150.5,0L130.5,0A130.5,130.5,0,0,0,103.533,-79.443Z" fill="#007F38" stroke="none"></path></g><path class="semaphore-indicator" fill="#FFC000" stroke="none"></path><g class="gauge-marker marker-target" transform="rotate(52.49999999999999)"><title>Objetivo: 95.00</title><line x1="0" y1="-156.5" x2="0" y2="-124.5" stroke="#252423" stroke-width="3" stroke-linecap="butt"></line></g><g class="gauge-marker marker-targetWithMargin" transform="rotate(52.49999999999999)"><title>Meta con margen: 95.00</title><line x1="0" y1="-156.5" x2="0" y2="-124.5" stroke="#605E5C" stroke-width="3" stroke-linecap="butt" stroke-dasharray="4 3"></line></g><g class="gauge-marker marker-programmed" transform="rotate(52.49999999999999)"><title>Programado: 95.00</title><polygon points="0,-151.5 -6,-161.5 6,-161.5" fill="#0078D4"></polygon></g><g class="value-marker"><g><path d="M 0,-6 L -5,3 L 5,3 Z" fill="#333333" stroke="#333333" stroke-width="1"></path></g></g><text class="center-text" text-anchor="middle" dominant-baseline="middle" y="-10" font-size="20" font-family="Arial" fill="#777777">91.47</text></g></svg>"
+ ❯ tests/gaugeTrend.test.ts:77:24
+     75|         expect(markup).not.toContain("trend-sparkline");
+     76|         expect(markup).not.toContain("footer-descriptor");
+     77|         expect(markup).toContain("footer-difference");
+       |                        ^
+     78|     });
+     79|
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+ FAIL  tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor > alto contraste: el pie usa el foreground
+AssertionError: expected '<svg class="gauge-svg" width="300" he…' to match /footer-difference[^]*?class="footer-v…/
+- Expected:
+/footer-difference[^]*?class="footer-value"[^>]*fill="#FFFF00"/
++ Received:
+"<svg class=\"gauge-svg\" width=\"300\" height=\"300\" tabindex=\"0\" role=\"img\" aria-label=\"Tacómetro. Valor: 91.47; Mínimo: 0.00; Máximo: 120.00; Objetivo: 95.00; Meta con margen: 95.00; Programado: 95.00; Semáforo: Amarillo\"><g transform=\"translate(150, 150)\"><path class=\"gauge-background\" d=\"M-150.5,0A150.5,150.5,0,1,1,150.5,0L130.5,0A130.5,130.5,0,1,0,-130.5,0Z\" fill=\"#000000\" stroke=\"#FFFF00\"></path><g class=\"gauge-ranges\"><path class=\"range-low\" d=\"M-150.5,0A150.5,150.5,0,0,1,75.25,-130.337L65.25,-113.016A130.5,130.5,0,0,0,-130.5,0Z\" fill=\"#C00000\" stroke=\"#FFFF00\"></path><path class=\"range-medium\" d=\"M75.25,-130.337A150.5,150.5,0,0,1,119.4,-91.619L103.533,-79.443A130.5,130.5,0,0,0,65.25,-113.016Z\" fill=\"#FFC000\" stroke=\"#FFFF00\"></path><path class=\"range-high\" d=\"M119.4,-91.619A150.5,150.5,0,0,1,150.5,0L130.5,0A130.5,130.5,0,0,0,103.533,-79.443Z\" fill=\"#007F38\" stroke=\"#FFFF00\"></path></g><path class=\"semaphore-indicator\" fill=\"#FFFF00\" stroke=\"none\"></path><g class=\"gauge-marker marker-target\" transform=\"rotate(52.49999999999999)\"><title>Objetivo: 95.00</title><line x1=\"0\" y1=\"-156.5\" x2=\"0\" y2=\"-124.5\" stroke=\"#FFFF00\" stroke-width=\"3\" stroke-linecap=\"butt\"></line></g><g class=\"gauge-marker marker-targetWithMargin\" transform=\"rotate(52.49999999999999)\"><title>Meta con margen: 95.00</title><line x1=\"0\" y1=\"-156.5\" x2=\"0\" y2=\"-124.5\" stroke=\"#FFFF00\" stroke-width=\"3\" stroke-linecap=\"butt\" stroke-dasharray=\"4 3\"></line></g><g class=\"gauge-marker marker-programmed\" transform=\"rotate(52.49999999999999)\"><title>Programado: 95.00</title><polygon points=\"0,-151.5 -6,-161.5 6,-161.5\" fill=\"#FFFF00\"></polygon></g><g class=\"value-marker\"><g><path d=\"M 0,-6 L -5,3 L 5,3 Z\" fill=\"#333333\" stroke=\"#333333\" stroke-width=\"1\"></path></g></g><text class=\"center-text\" text-anchor=\"middle\" dominant-baseline=\"middle\" y=\"-10\" font-size=\"20\" font-family=\"Arial\" fill=\"#777777\">91.47</text></g></svg>"
+ ❯ tests/gaugeTrend.test.ts:83:24
+     81|         const hc = { ...settings, highContrast: { foreground: "#FFFF00…
+     82|         const markup = render(withTrend, hc);
+     83|         expect(markup).toMatch(/footer-difference[^]*?class="footer-va…
+       |                        ^
+     84|         expect(markup).toMatch(/footer-programmed[^]*?class="footer-la…
+     85|     });
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+ Test Files  1 failed (1)
+      Tests  7 failed | 1 passed (8)
+   Start at  10:27:08
+   Duration  215ms (import 53%, transform 26%, tests 19%, worker 2%)
+
+=== C6 GREEN Gauge integración — 2026-11-22T10:27:37-06:00
+$ npx vitest run tests/gaugeTrend.test.ts
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  10:27:38
+   Duration  235ms (import 47%, transform 42%, tests 9%, worker 1%)
+
+=== C7 RED visual extracción por periodo — 2026-11-22T10:28:14-06:00
+$ npx vitest run tests/visualTrend.test.ts
+     84|         const data = gaugeDataFor(createVisual(), monthlyDataView(mont…
+     85|         expect(data.trendCurrentIndex).toBe(2);
+       |                                        ^
+     86|         expect(data).toMatchObject({ value: 91.47, programmed: 95, sem…
+     87|     });
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+ FAIL  tests/visualTrend.test.ts > 0.3.0.0 — rol «Periodo (mes)»: serie mensual > los campos de tooltip también se toman del mes actual
+AssertionError: expected [ { displayName: 'tooltips', …(1) } ] to deeply equal [ { displayName: 'tooltips', …(1) } ]
+- Expected
++ Received
+  [
+    {
+      "displayName": "tooltips",
+-     "value": "3",
++     "value": "1",
+    },
+  ]
+ ❯ tests/visualTrend.test.ts:93:24
+     91|         gaugeDataFor(visual, monthlyDataView(months, columns));
+     92|         const extras = (visual as unknown as { tooltipExtras: TooltipI…
+     93|         expect(extras).toEqual([{ displayName: "tooltips", value: "3" …
+       |                        ^
+     94|     });
+     95|
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+ FAIL  tests/visualTrend.test.ts > 0.3.0.0 — rol «Periodo (mes)»: serie mensual > sin ningún Real usa el último mes y no hay datos válidos (página de inicio)
+AssertionError: expected undefined to be 3 // Object.is equality
+- Expected:
+3
++ Received:
+undefined
+ ❯ tests/visualTrend.test.ts:98:40
+     96|     it("sin ningún Real usa el último mes y no hay datos válidos (pági…
+     97|         const data = gaugeDataFor(createVisual(), monthlyDataView(mont…
+     98|         expect(data.trendCurrentIndex).toBe(3);
+       |                                        ^
+     99|         expect(data.hasValidData).toBe(false);
+    100|     });
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+ FAIL  tests/visualTrend.test.ts > 0.3.0.0 — rol «Periodo (mes)»: serie mensual > etiquetas numéricas o vacías del periodo se convierten a texto
+AssertionError: expected undefined to deeply equal [ '1', '' ]
+- Expected:
+[
+  "1",
+  "",
+]
++ Received:
+undefined
+ ❯ tests/visualTrend.test.ts:104:57
+    102|     it("etiquetas numéricas o vacías del periodo se convierten a texto…
+    103|         const data = gaugeDataFor(createVisual(), monthlyDataView([1, …
+    104|         expect(data.trend?.map((point) => point.label)).toEqual(["1", …
+       |                                                         ^
+    105|         expect(data.trend?.[0]).toMatchObject({ programmed: null, sema…
+    106|     });
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+ Test Files  1 failed (1)
+      Tests  5 failed | 1 passed (6)
+   Start at  10:28:14
+   Duration  224ms (import 55%, transform 37%, tests 7%, worker 2%)
+
+=== C7 GREEN visual extracción por periodo — 2026-11-22T10:28:48-06:00
+$ npx vitest run tests/visualTrend.test.ts
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  10:28:48
+   Duration  207ms (import 49%, transform 39%, tests 10%, worker 2%)
+
+=== C8 RED periodo vacío — 2026-11-22T10:28:49-06:00
+$ npx vitest run tests/visualTrend.test.ts
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+ ❯ tests/visualTrend.test.ts (7 tests | 1 failed) 9ms
+   ❯ 0.3.0.0 — rol «Periodo (mes)»: serie mensual (7)
+     × periodo enlazado sin filas no produce serie ni índice inválido 3ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/visualTrend.test.ts > 0.3.0.0 — rol «Periodo (mes)»: serie mensual > periodo enlazado sin filas no produce serie ni índice inválido
+AssertionError: expected [] to be undefined
+- Expected:
+undefined
++ Received:
+[]
+ ❯ tests/visualTrend.test.ts:110:28
+    108|     it("periodo enlazado sin filas no produce serie ni índice inválido…
+    109|         const data = gaugeDataFor(createVisual(), monthlyDataView([], …
+    110|         expect(data.trend).toBeUndefined();
+       |                            ^
+    111|         expect(data.trendCurrentIndex).toBeUndefined();
+    112|     });
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+ Test Files  1 failed (1)
+      Tests  1 failed | 6 passed (7)
+   Start at  10:28:49
+   Duration  187ms (import 52%, transform 39%, tests 7%, worker 2%)
+
+=== C8 GREEN periodo vacío — 2026-11-22T10:28:53-06:00
+$ npx vitest run tests/visualTrend.test.ts
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  10:28:53
+   Duration  197ms (import 51%, transform 37%, tests 10%, worker 2%)
+
+=== C9 RED capabilities period — 2026-11-22T10:29:06-06:00
+$ npx vitest run tests/capabilities.test.ts
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+ ❯ tests/capabilities.test.ts (4 tests | 3 failed) 7ms
+   ❯ capabilities.json — rol «Periodo (mes)» (0.3.0.0) (4)
+     × declara el rol de agrupación period 5ms
+     × el periodo es opcional y admite como máximo un campo 1ms
+     × el mapeo categórico agrupa por periodo con reducción de datos suficiente para 12+ meses 0ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/capabilities.test.ts > capabilities.json — rol «Periodo (mes)» (0.3.0.0) > declara el rol de agrupación period
+AssertionError: expected undefined to match object { kind: 'Grouping', …(1) }
+- Expected:
+{
+  "displayName": "Periodo (mes)",
+  "kind": "Grouping",
+}
++ Received:
+undefined
+ ❯ tests/capabilities.test.ts:9:62
+      7| describe("capabilities.json — rol «Periodo (mes)» (0.3.0.0)", () => {
+      8|     it("declara el rol de agrupación period", () => {
+      9|         expect(roles.find((role) => role.name === "period")).toMatchOb…
+       |                                                              ^
+     10|     });
+     11|
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+ FAIL  tests/capabilities.test.ts > capabilities.json — rol «Periodo (mes)» (0.3.0.0) > el periodo es opcional y admite como máximo un campo
+AssertionError: expected undefined to deeply equal { max: 1 }
+- Expected:
+{
+  "max": 1,
+}
++ Received:
+undefined
+ ❯ tests/capabilities.test.ts:13:46
+     11|
+     12|     it("el periodo es opcional y admite como máximo un campo", () => {
+     13|         expect(mapping.conditions[0].period).toEqual({ max: 1 });
+       |                                              ^
+     14|     });
+     15|
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+ FAIL  tests/capabilities.test.ts > capabilities.json — rol «Periodo (mes)» (0.3.0.0) > el mapeo categórico agrupa por periodo con reducción de datos suficiente para 12+ meses
+TypeError: Cannot read properties of undefined (reading 'for')
+ ❯ tests/capabilities.test.ts:17:47
+     15|
+     16|     it("el mapeo categórico agrupa por periodo con reducción de datos …
+     17|         expect(mapping.categorical.categories.for).toEqual({ in: "peri…
+       |                                               ^
+     18|         expect(mapping.categorical.categories.dataReductionAlgorithm.t…
+     19|     });
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+ Test Files  1 failed (1)
+      Tests  3 failed | 1 passed (4)
+   Start at  10:29:07
+   Duration  113ms (transform 54%, import 21%, tests 19%, worker 6%)
+
+=== C9 GREEN capabilities period — 2026-11-22T10:29:14-06:00
+$ npx vitest run tests/capabilities.test.ts
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  10:29:15
+   Duration  119ms (transform 53%, import 27%, tests 14%, worker 5%)
+
+=== C10 RED versión — 2026-11-22T10:29:20-06:00
+$ npx vitest run tests/version.test.ts
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+ ❯ tests/version.test.ts (1 test | 1 failed) 5ms
+   ❯ versión 0.3.0.0 (sparkline mensual + pie) (1)
+     × pbiviz.json, package.json y package-lock.json están sincronizados en 0.3.0.0 4ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/version.test.ts > versión 0.3.0.0 (sparkline mensual + pie) > pbiviz.json, package.json y package-lock.json están sincronizados en 0.3.0.0
+AssertionError: expected '0.2.0.0' to be '0.3.0.0' // Object.is equality
+Expected: "0.3.0.0"
+Received: "0.2.0.0"
+ ❯ tests/version.test.ts:8:39
+      6| describe("versión 0.3.0.0 (sparkline mensual + pie)", () => {
+      7|     it("pbiviz.json, package.json y package-lock.json están sincroniza…
+      8|         expect(pbiviz.visual.version).toBe("0.3.0.0");
+       |                                       ^
+      9|         expect(pkg.version).toBe("0.3.0.0");
+     10|         expect(lock.version).toBe("0.3.0.0");
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  10:29:20
+   Duration  205ms (transform 66%, import 28%, tests 4%, worker 2%)
+
+=== C10 GREEN versión — 2026-11-22T10:29:23-06:00
+$ npx vitest run tests/version.test.ts
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  10:29:24
+   Duration  131ms (transform 64%, import 28%, worker 4%, tests 3%)

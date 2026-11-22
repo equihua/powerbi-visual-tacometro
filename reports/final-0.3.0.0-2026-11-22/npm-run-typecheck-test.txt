@@ -1,0 +1,6 @@
+# 2026-11-22T13:03:08-06:00
+
+> visual@0.3.0.0 typecheck:test
+> tsc -p tsconfig.test.json
+
+exit=0

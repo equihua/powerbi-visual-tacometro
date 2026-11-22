@@ -1,0 +1,39 @@
+TDD 0.3.2.0 — valor «Real & Mes anterior» + pie más pegado al medidor — 2026-11-22, Developer (Hermes)
+
+Baseline 0.3.1.0: 20 archivos, 204 pruebas; cobertura 99.72 / 95.52 / 98.97 / 99.69
+  (final-0.3.2.0-2026-11-22/baseline-coverage-0.3.1.0.txt).
+
+Ciclo 1 (GaugeFooter: valor 3.ª columna)
+  Pruebas: tests/gaugeFooter.test.ts (+5). RED red-1-footer.txt: 4 fallidas / 9 pasadas
+  (descriptor sin footer-value; valueYs [16.8, 16.8] en vez de 3). La de «sin Real mes anterior → sólo etiqueta»
+  pasó desde el inicio: es guardia de regresión del comportamiento 0.3.1.0 que debe conservarse.
+  GREEN green-1-footer.txt: 13/13 tras prop `previousMonth` y valor signed(real − previousMonth, format) con difColor.
+
+Ciclo 2 (Gauge pasa previousMonth)
+  Pruebas: tests/gaugeTrend.test.ts (+2). RED red-2-gauge.txt: 2 fallidas. GREEN green-2-gauge.txt: 15/15.
+
+Ciclo 3 (computeGaugeFrame en layout.ts)
+  Pruebas: tests/layout.test.ts (+5). RED red-3-layout.txt: «computeGaugeFrame is not a function». GREEN green-3-layout.txt: 13/13.
+
+Ciclo 4 (Gauge usa computeGaugeFrame)
+  Pruebas: tests/gaugeTrend.test.ts: 3 pruebas de coordenadas 0.3.1.0 reescritas + 1 nueva de hueco/solape.
+  RED red-4-gauge-layout.txt: 5 fallidas (centro aún en (150, 130)). GREEN green-4-gauge-layout.txt: 16/16.
+
+Ciclo 5 (versión)
+  Incidencia de proceso: el primer intento corrió el bump antes de que se escribiera la prueba (escritura rechazada);
+  se revirtió el bump, se escribió tests/version.test.ts y se repitió.
+  RED red-5-version.txt: expected '0.3.1.0' to be '0.3.2.0'. GREEN green-5-version.txt.
+
+Ciclo 6 (número central con arcos sin 0°) — defecto hallado al revisar la rama sin cubrir de layout.ts:104
+  Pruebas: layout (+1), gaugeTrend (+1), tarjeta ancha 600 px con 90°..270°.
+  RED red-6-text-top.txt: cy 0 < 20. GREEN green-6-text-top.txt tras parámetro centerTextHeight (= fontSize si
+  showValueLabel). Se quitaron dos ternarios defensivos (división entre 0 ya da Infinity).
+
+Ciclo 7 (número más alto que el espacio)
+  Prueba layout (+1). RED red-7-text-overflow.txt: radio no finito (-Infinity). GREEN green-7-text-overflow.txt.
+
+Final: 20 archivos, 220 pruebas; cobertura 99.73 / 95.72 / 99.00 / 99.71 (npm-run-test-coverage.txt).
+lint exit 0, typecheck:test exit 0, package exit 0; arnés verify-dom 13 escenarios 0 fallos; screenshots exit 0.
+Artefacto: dist/PBI_CV_TACOMETRO_GAUGE.0.3.2.0.pbiviz, SHA-256 en artifact-sha256.txt.
+
+Bitácora Obsidian: en modo delegado no había MCP `bitacora_developer` disponible; esta nota queda en reports/.

@@ -1,3 +1,5 @@
+import type { TrendPoint } from "./trend";
+
 export interface DataFormat {
   decimalPlaces: number | null;
   isPercentage: boolean;
@@ -26,6 +28,10 @@ export interface GaugeData {
   dataFormat: DataFormat;
   /** Semáforo de la fuente (Verde/Amarillo/Rojo, clase text-* o #hex); null si no hay. */
   semaphore: string | null;
+  /** 0.3.0.0: historial mensual (rol «Periodo (mes)»); undefined sin periodo enlazado. */
+  trend?: TrendPoint[];
+  /** Índice en `trend` del mes que muestra el medidor. */
+  trendCurrentIndex?: number;
 }
 
 export interface GaugeSettings {

@@ -24,6 +24,11 @@ export default defineConfig({
                 "src/components/semaphore.ts",
                 "src/components/markers.ts",
                 "src/components/GaugeMarker.tsx",
+                // 0.3.0.0: sparkline mensual y pie (renderizables sin DOM).
+                "src/components/layout.ts",
+                "src/components/trend.ts",
+                "src/components/TrendSparkline.tsx",
+                "src/components/GaugeFooter.tsx",
                 "src/highContrast.ts",
                 "src/tooltips.ts",
                 "src/visual.ts",

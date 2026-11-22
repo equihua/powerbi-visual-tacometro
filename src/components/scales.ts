@@ -54,6 +54,22 @@ export function rangeBandColors(colors: PerformanceColors, lowerIsBetter: boolea
         : [colors.lowColor, colors.mediumColor, colors.highColor];
 }
 
+/**
+ * Color semántico de una diferencia (p. ej. Real − Real mes anterior): favorable → highColor,
+ * desfavorable → lowColor, sin cambio → neutralColor. Con "menor es mejor" bajar es lo favorable.
+ */
+export function comparisonColor(
+    delta: number,
+    colors: PerformanceColors,
+    lowerIsBetter: boolean,
+    neutralColor: string
+): string {
+    if (delta === 0) {
+        return neutralColor;
+    }
+    return (delta < 0) === lowerIsBetter ? colors.highColor : colors.lowColor;
+}
+
 export interface GaugeRange {
     min: number;
     max: number;

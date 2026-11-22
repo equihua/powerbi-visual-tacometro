@@ -1,0 +1,10 @@
+
+> tacometro-dev-harness@0.0.0 build
+> node build.mjs
+
+
+  dist/main.js      1.4mb ⚠️
+  dist/main.js.map  2.1mb
+
+⚡ Done in 88ms
+exit=0

@@ -1,0 +1,19 @@
+TDD 0.3.1.0 — corrección de etiqueta estática del pie (3.ª columna) — 2026-11-22, Developer (Hermes)
+
+Hallazgo de Reviewer/QA: la 3.ª columna decía «Real / Prog. Mensual»; el boceto pide «Real & Mes anterior».
+Alcance: sólo texto estático. Sin cambios en datos, cálculos, roles, valores ni en cuándo aparece (sólo con sparkline, sin valor).
+
+Ciclo 1 (etiqueta)
+  Pruebas: tests/gaugeFooter.test.ts (TREND_DESCRIPTOR === "Real & Mes anterior"; label renderizado
+  "Real &amp; Mes anterior"; sin footer-value; sin "Prog. Mensual"), tests/gaugeTrend.test.ts (markup del Gauge),
+  dev-harness/scripts/verify-dom.mjs (footerLabels / footerDescriptor esperados).
+  RED: npx vitest run tests/gaugeFooter.test.ts tests/gaugeTrend.test.ts → 2 fallidas / 19 pasadas
+       (expected 'Real / Prog. Mensual' to be 'Real & Mes anterior'; markup sin '>Real &amp; Mes anterior<').
+  GREEN parcial tras src/components/GaugeFooter.tsx (TREND_DESCRIPTOR): 1 fallida / 20 pasadas.
+
+Ciclo 2 (ajuste de fuente expuesto por la nueva etiqueta)
+  RED: prueba existente "0.3.1.0 responsivo ..." a 220 px → expected 69.35 to be <= 69.333
+       (19 car.: fitting 7.298 se redondeaba a 7.3 y desbordaba la columna 0.02 px).
+  GREEN tras fitLabelFontSize: Math.round → Math.floor (a 0.1 px). 21/21.
+
+Suite final: 20 archivos, 204 pruebas, exit 0 (final-0.3.1.0-label-2026-11-22/npm-run-test-coverage.txt).
