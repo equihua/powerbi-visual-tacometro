@@ -23,6 +23,40 @@ const data = await page.evaluate(() => [...document.querySelectorAll(".card")].m
     return {
         id: card.id,
         text: q("text.center-text")?.textContent ?? null,
+        // 0.3.3.1: color del número central = color del arco indicador del semáforo (o del arco de desempeño).
+        centerFill: q("text.center-text")?.getAttribute("fill") ?? null,
+        semaphoreArcFill: q("path.semaphore-indicator")?.getAttribute("fill") ?? null,
+        centerMatchesArc: (() => {
+            const arc = q("path.semaphore-indicator") ?? q("path.performance-arc");
+            return arc ? q("text.center-text")?.getAttribute("fill") === arc.getAttribute("fill") : null;
+        })(),
+        // 0.3.3.1: ancho de la serie (extremos de los puntos) vs. el de 0.3.3.0 (cuerda en 0.6·inner × 0.995 − 2·6).
+        trendWidthRatio: (() => {
+            if (points.length < 2) return null;
+            const inner = Math.min(...[...(q("path.gauge-background").getAttribute("d") ?? "").matchAll(/A([\d.]+),/g)].map((m) => +m[1]));
+            // Extremos horizontales de la serie: la línea de Programado cubre los 12 periodos; los puntos, los de Real.
+            const xs = [...card.querySelectorAll(".trend-sparkline path")].flatMap((p) => { const r = p.getBoundingClientRect(); return [r.left, r.right]; })
+                .concat(points.map((p) => { const r = p.getBoundingClientRect(); return r.left + r.width / 2; }));
+            return +((Math.max(...xs) - Math.min(...xs)) / (1.6 * inner * 0.995 - 12)).toFixed(4);
+        })(),
+        // 0.3.3.1: holgura mínima (px) de los puntos (radio incluido) al círculo interior y al anillo del semáforo
+        // (sólo puntos dentro del barrido del arco). Debe ser >= 0.5 (TREND_EDGE_CLEARANCE).
+        trendClearancePx: (() => {
+            const ring = q("path.semaphore-indicator");
+            if (!points.length) return null;
+            const c = /translate\(([-\d.e]+),\s*([-\d.e]+)\)/.exec(q("svg.gauge-svg > g").getAttribute("transform"));
+            const inner = Math.min(...[...(q("path.gauge-background").getAttribute("d") ?? "").matchAll(/A([\d.]+),/g)].map((m) => +m[1]));
+            const ringInner = ring ? Math.min(...[...(ring.getAttribute("d") ?? "").matchAll(/A([\d.]+),/g)].map((m) => +m[1])) : Infinity;
+            const [lo, hi] = (/angles=([-\d.]+)\.\.([-\d.]+)/.exec(card.dataset.debug ?? "") ?? [0, -90, 90]).slice(1).map(Number);
+            const s = q("svg.gauge-svg").getBoundingClientRect();
+            return +Math.min(...points.map((p) => {
+                const r = p.getBoundingClientRect();
+                const x = r.left + r.width / 2 - s.left - +c[1], y = r.top + r.height / 2 - s.top - +c[2];
+                const rho = Math.hypot(x, y) + +p.getAttribute("r");
+                const deg = Math.atan2(x, -y) * 180 / Math.PI;
+                return Math.min(inner - rho, deg >= lo && deg <= hi ? ringInner - rho : Infinity);
+            })).toFixed(3);
+        })(),
         // GaugeMarker (B3) reemplazó a TargetMarker: la clase es "gauge-marker marker-target".
         targetDeg: rot(".marker-target"),
         markerDeg,
@@ -93,6 +127,8 @@ const noExtras = { gaugeTranslate: "translate(150, 150)", trendFills: [], trendR
 const tenMonths = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct"];
 const R = "#C00000", A = "#FFC000", V = "#007F38", HC = "#FFFF00";
 const poaFills = [R, R, A, R, A, V, A, A, V, A];
+// 0.3.3.1: semáforo por cumplimiento Real/Programado de los meses Ene–Sep de zoneSeries + el de Oct.
+const zoneFills = (oct) => [R, A, V, R, V, V, A, V, V, oct];
 // 0.3.1.0: SVG a todo el tamaño de la tarjeta, sparkline dentro del semicírculo bajo el número,
 // pie anclado al borde inferior con etiquetas del boceto alineadas en un renglón.
 // 0.3.2.0: hueco medidor→texto del pie entre 0 (sin solape) y 16 px (antes ~40-70 px); ver `gapOk`.
@@ -110,11 +146,11 @@ const expected = {
     "s5b-anim-arc": { text: "20", targetDeg: ang(80, 0, 100), markerDeg: ang(20, 0, 100), ...noExtras },
     // 0.3.1.0: 300x300 con pie (40 px) abajo y sparkline DENTRO del semicírculo: medidor en 300x260 → centro (150, 130).
     "s6-trend-footer": { text: "91.47", targetDeg: ang(95, 0, 120), markerDeg: ang(91.47, 0, 120),
-        gaugeTranslate: "translate(150, 175.25)", ...layout031(300, 300), trendSlot: "translate(52.13, 188.3)", trendFills: poaFills, trendLabels: tenMonths, trendRealLine: "#D1D5DB", trendCurrent: 9, programmedLine: true,
+        gaugeTranslate: "translate(150, 175.25)", ...layout031(300, 300), trendSlot: "translate(42.41, 188.3)" /* 0.3.3.0 x 46.12 → 0.3.3.1 42.41 (anillo del semáforo en -120°), y igual */, trendWidthRatio: ">1", trendClearancePx: ">=0.5", trendFills: poaFills, trendLabels: tenMonths, trendRealLine: "#D1D5DB", trendCurrent: 9, programmedLine: true,
         footerProgrammed: "95.00", footerDif: "-3.53", footerDifFill: A, footerDescriptor: "Real & Mes anterior", footerPrev: "-1.93", footerPrevFill: R, debugTextVisible: false },
-    "s10-trend-wide": { text: "91.47", gaugeTranslate: "translate(240, 167)", ...layout031(480, 300), trendFills: poaFills, trendCurrent: 9,
+    "s10-trend-wide": { text: "91.47", centerFill: A, centerMatchesArc: true, gaugeTranslate: "translate(240, 167)", ...layout031(480, 300), trendWidthRatio: ">1", trendClearancePx: ">=0.5", trendFills: poaFills, trendCurrent: 9,
         footerProgrammed: "95.00", footerDif: "-3.53", footerDifFill: A, footerPrev: "-1.93", footerPrevFill: R, debugTextVisible: false },
-    "s11-trend-compact": { text: "91.47", gaugeTranslate: "translate(110, 100.33)", ...layout031(220, 200), trendFills: poaFills, trendCurrent: 9,
+    "s11-trend-compact": { text: "91.47", centerFill: A, centerMatchesArc: true, gaugeTranslate: "translate(110, 100.33)", ...layout031(220, 200), trendWidthRatio: ">1", trendClearancePx: ">=0.5", trendFills: poaFills, trendCurrent: 9,
         footerProgrammed: "95.00", footerDif: "-3.53", footerDifFill: A, footerPrev: "-1.93", footerPrevFill: R, debugTextVisible: false },
     // Programado sin periodo: sin serie mensual no hay pie ni sparkline; el medidor conserva 300x300 (0.2.0.0).
     "s7-programmed-no-period": { text: "91.47", targetDeg: ang(95, 0, 120), markerDeg: ang(91.47, 0, 120),
@@ -132,13 +168,30 @@ const expected = {
     "s13-prev-favorable": { text: "40.00", footerDif: "-55.00", footerDifFill: R, footerPrev: "+20.00", footerPrevFill: V },
     "s14-prev-lower-better": { text: "110.00", footerPrev: "-8.00", footerPrevFill: V },
     "s15-prev-out-of-range": { text: "120.00", footerDif: "+25.00", footerPrev: "+50.00", footerPrevFill: V },
+    // 0.3.3.1: número central = semáforo de la fuente = arco indicador; semáforo derivado de Real/Programado (datos
+    // realistas, sin contradicción artificial). s18: 72.89 en la banda alta (70..100) pero Rojo (91.1% de 80).
+    "s16-sem-red": { text: "35.40", centerFill: R, semaphoreArcFill: R, centerMatchesArc: true, ranges: [R, A, V], trendFills: zoneFills(R),
+        trendInside: true, trendWidthRatio: ">1", trendClearancePx: ">=0.5" },
+    "s17-sem-yellow": { text: "69.80", centerFill: A, semaphoreArcFill: A, centerMatchesArc: true, ranges: [R, A, V], trendFills: zoneFills(A),
+        trendInside: true, trendWidthRatio: ">1", trendClearancePx: ">=0.5" },
+    "s18-sem-red-high-band": { text: "72.89", centerFill: R, semaphoreArcFill: R, centerMatchesArc: true, ranges: [R, A, V], trendFills: zoneFills(R),
+        trendInside: true, trendWidthRatio: ">1", trendClearancePx: ">=0.5" },
+    "s19-sem-green": { text: "74.50", centerFill: V, semaphoreArcFill: V, centerMatchesArc: true, trendFills: zoneFills(V),
+        trendInside: true, trendWidthRatio: ">1", trendClearancePx: ">=0.5" },
+    "s20-sem-red-wide": { text: "72.89", centerFill: R, semaphoreArcFill: R, centerMatchesArc: true, ...layout031(480, 300),
+        trendWidthRatio: ">1", trendClearancePx: ">=0.5" },
+    "s21-sem-red-compact": { text: "72.89", centerFill: R, semaphoreArcFill: R, centerMatchesArc: true, ...layout031(220, 200),
+        trendWidthRatio: ">1", trendClearancePx: ">=0.5" },
+    // Arco -135°..135°: el anillo del semáforo baja más; la serie se estrecha lo justo para no tocarlo.
+    "s22-sem-red-wide-sweep": { text: "72.89", centerFill: R, semaphoreArcFill: R, centerMatchesArc: true, trendInside: true,
+        trendClearancePx: ">=0.5" },
 };
 const close = (a, b) => a !== null && Math.abs(a - b) < 0.05;
 let fails = 0;
 for (const d of data) {
     const e = expected[d.id];
     const mismatches = !e ? ["sin esperado"] : Object.keys(e).filter((key) =>
-        key.endsWith("Deg") ? !close(d[key], e[key]) : key === "footerGapPx" ? !gapOk(d[key]) : JSON.stringify(d[key]) !== JSON.stringify(e[key]));
+        key.endsWith("Deg") ? !close(d[key], e[key]) : key === "footerGapPx" ? !gapOk(d[key]) : key === "trendWidthRatio" ? !(d[key] > 1) : key === "trendClearancePx" ? !(d[key] >= 0.5 - 0.01) : JSON.stringify(d[key]) !== JSON.stringify(e[key]));
     if (mismatches.length) fails++;
     console.log(mismatches.length ? `FAIL [${mismatches.join(",")}]` : "OK  ", JSON.stringify(d), "esperado:", JSON.stringify(e));
 }

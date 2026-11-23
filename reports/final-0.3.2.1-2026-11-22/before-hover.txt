@@ -1,0 +1,6 @@
+s6-trend-footer punto 0 (Ene: Real 72.10 · Prog. 70.00) → tooltip: Valor: 91.47 | Mínimo: 0.00 | Máximo: 120.00 | Objetivo: 95.00 | Meta con margen: 95.00 | Programado: 95.00 | Real mes anterior: 93.40 | Semáforo: Amarillo
+s6-trend-footer punto 5 (Jun: Real 88.90 · Prog. 87.00) → tooltip: Valor: 91.47 | Mínimo: 0.00 | Máximo: 120.00 | Objetivo: 95.00 | Meta con margen: 95.00 | Programado: 95.00 | Real mes anterior: 93.40 | Semáforo: Amarillo
+s6-trend-footer punto 9 (Oct: Real 91.47 · Prog. 95.00) → tooltip: Valor: 91.47 | Mínimo: 0.00 | Máximo: 120.00 | Objetivo: 95.00 | Meta con margen: 95.00 | Programado: 95.00 | Real mes anterior: 93.40 | Semáforo: Amarillo
+s9-trend-host-order punto 1 (Feb: Real 78.40 · Prog. 75.00) → tooltip: Valor: 88.90 | Mínimo: 0.00 | Máximo: 120.00 | Objetivo: 95.00 | Meta con margen: 95.00 | Programado: 87.00 | Real mes anterior: 85.20 | Semáforo: Verde
+s9-trend-host-order punto 8 (Sep: Real 93.40 · Prog. 93.00) → tooltip: Valor: 88.90 | Mínimo: 0.00 | Máximo: 120.00 | Objetivo: 95.00 | Meta con margen: 95.00 | Programado: 87.00 | Real mes anterior: 85.20 | Semáforo: Verde
+errores de página: 0

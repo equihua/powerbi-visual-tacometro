@@ -1,0 +1,45 @@
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/00-all-initial.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s1-normal.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s2a-clamp-high.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s2b-clamp-low.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s3-thirds.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s4-range.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s6-trend-footer.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s7-programmed-no-period.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s8-trend-hc.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s9-trend-host-order.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s10-trend-wide.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s11-trend-compact.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s12-prev-unfavorable.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s13-prev-favorable.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s14-prev-lower-better.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s15-prev-out-of-range.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s16-sem-red.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s17-sem-yellow.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s18-sem-red-high-band.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s19-sem-green.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s20-sem-red-wide.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s21-sem-red-compact.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s22-sem-red-wide-sweep.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s5a-anim-0-before.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s5b-anim-0-before.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s5a-anim-1-mid.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s5b-anim-1-mid.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s5a-anim-2-after.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/s5b-anim-2-after.png
+captura: /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/dev-harness/screenshots/99-all-after-animation.png
+muestras transform/d: {
+ "before": {
+  "arcD": "M-130.337,75.25A150.5,150.5,0,0,1,-149.676,-15.732L-129.785,",
+  "markerA": "translate(-129.43440751929822, -13.60410441938179) rotate(-83.99999999999999)"
+ },
+ "mid": {
+  "arcD": "M-130.337,75.25A150.5,150.5,0,0,1,20.412,-149.109L17.7,-129.",
+  "markerA": "translate(17.651724507419015, -128.9447716227354) rotate(7.7949788437500205)"
+ },
+ "after": {
+  "arcD": "M-130.337,75.25A150.5,150.5,0,0,1,100.704,-111.843L87.322,-9",
+  "markerA": "translate(87.08558754758866, -96.71834339160527) rotate(42)"
+ }
+}
+consola navegador: [info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold

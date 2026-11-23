@@ -1,0 +1,105 @@
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+
+ ❯ tests/version.test.ts (1 test | 1 failed) 5ms
+   ❯ versión 0.3.2.1 (tooltip por punto de la sparkline mensual) (1)
+     × pbiviz.json, package.json y package-lock.json están sincronizados en 0.3.2.1 4ms
+stderr | tests/trendTooltip.test.ts > 0.3.2.1 — tooltip por punto de la sparkline mensual > cada punto de la sparkline se identifica con el índice de su periodo (data-trend-index)
+Your app (or one of its dependencies) is using an outdated JSX transform. Update to the modern JSX transform for faster performance: https://react.dev/link/new-jsx-transform
+
+ ❯ tests/trendTooltip.test.ts (3 tests | 2 failed) 16ms
+   ❯ 0.3.2.1 — tooltip por punto de la sparkline mensual (3)
+     × cada punto de la sparkline se identifica con el índice de su periodo (data-trend-index) 10ms
+     × al pasar por dos puntos distintos, el tooltip muestra el periodo y los valores de cada uno 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/trendTooltip.test.ts > 0.3.2.1 — tooltip por punto de la sparkline mensual > cada punto de la sparkline se identifica con el índice de su periodo (data-trend-index)
+AssertionError: expected [] to deeply equal [ '0', '2' ]
+
+- Expected
++ Received
+
+- [
+-   "0",
+-   "2",
+- ]
++ []
+
+ ❯ tests/trendTooltip.test.ts:104:25
+    102|         );
+    103|         const indices = [...markup.matchAll(/<circle[^>]*data-trend-in…
+    104|         expect(indices).toEqual(["0", "2"]); // Feb no tiene Real → no…
+       |                         ^
+    105|     });
+    106|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  tests/trendTooltip.test.ts > 0.3.2.1 — tooltip por punto de la sparkline mensual > al pasar por dos puntos distintos, el tooltip muestra el periodo y los valores de cada uno
+AssertionError: expected [ Array(5) ] to deeply equal [ …(4) ]
+
+- Expected
++ Received
+
+  [
+    {
+-     "displayName": "Periodo",
+-     "value": "Ene",
++     "displayName": "Valor",
++     "value": "91",
+    },
+    {
+-     "displayName": "Real",
+-     "value": "80",
++     "displayName": "Mínimo",
++     "value": "0",
++   },
++   {
++     "displayName": "Máximo",
++     "value": "120",
+    },
+    {
+      "displayName": "Programado",
+-     "value": "85",
++     "value": "95",
+    },
+    {
+      "displayName": "Semáforo",
+-     "value": "Rojo",
++     "value": "Verde",
+    },
+  ]
+
+ ❯ tests/trendTooltip.test.ts:119:64
+    117|
+    118|         expect(tooltipService.show).toHaveBeenCalledTimes(2);
+    119|         expect(tooltipService.show.mock.calls[0][0].dataItems).toEqual…
+       |                                                                ^
+    120|             { displayName: "Periodo", value: "Ene" },
+    121|             { displayName: "Real", value: "80" },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  tests/version.test.ts > versión 0.3.2.1 (tooltip por punto de la sparkline mensual) > pbiviz.json, package.json y package-lock.json están sincronizados en 0.3.2.1
+AssertionError: expected '0.3.2.0' to be '0.3.2.1' // Object.is equality
+
+Expected: "0.3.2.1"
+Received: "0.3.2.0"
+
+ ❯ tests/version.test.ts:8:39
+      6| describe("versión 0.3.2.1 (tooltip por punto de la sparkline mensual)"…
+      7|     it("pbiviz.json, package.json y package-lock.json están sincroniza…
+      8|         expect(pbiviz.visual.version).toBe("0.3.2.1");
+       |                                       ^
+      9|         expect(pkg.version).toBe("0.3.2.1");
+     10|         expect(lock.version).toBe("0.3.2.1");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  3 failed | 1 passed (4)
+   Start at  19:25:10
+   Duration  256ms (import 49%, transform 40%, tests 8%, worker 3%)
+

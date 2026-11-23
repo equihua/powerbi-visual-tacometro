@@ -48,16 +48,39 @@ function buildMonthlyDataView(period: string[], series: Series, objects: Objects
  * Host mínimo: servicios que usan update() e interacciones (A3) como funciones vacías.
  * Con `host: {}` (versión previa del harness) update() fallaba desde 0.2.0.0 por eventService.
  */
-function mockHost(highContrast = false): any {
+function mockHost(highContrast = false, tooltipHost?: HTMLElement): any {
     const noop = () => undefined;
     return {
         createSelectionManager: () => ({ showContextMenu: noop }),
         eventService: { renderingStarted: noop, renderingFinished: noop, renderingFailed: noop },
-        tooltipService: { enabled: () => false, show: noop, hide: noop },
+        // 0.3.2.1: tooltipService simulado que pinta los dataItems recibidos (como el tooltip del host de
+        // Power BI) en un div .harness-tooltip, para evidenciar qué datos muestra el visual al hover.
+        tooltipService: tooltipHost ? mockTooltipService(tooltipHost) : { enabled: () => false, show: noop, hide: noop },
         hostCapabilities: { allowInteractions: true },
         colorPalette: highContrast
             ? { isHighContrast: true, foreground: { value: "#FFFF00" }, background: { value: "#000000" } }
             : { isHighContrast: false },
+    };
+}
+
+/** Tooltip del host simulado: muestra `displayName: value` en las coordenadas que pide el visual. */
+function mockTooltipService(card: HTMLElement): any {
+    const box = document.createElement("div");
+    box.className = "harness-tooltip";
+    box.style.cssText = "position:absolute;display:none;pointer-events:none;background:#fff;border:1px solid #888;" +
+        "box-shadow:0 2px 6px rgba(0,0,0,.25);padding:4px 6px;font-size:11px;line-height:1.35;z-index:10;white-space:nowrap";
+    card.style.position = "relative";
+    card.appendChild(box);
+    return {
+        enabled: () => true,
+        show: (options: { dataItems: Array<{ displayName: string; value: string }>; coordinates: number[] }) => {
+            const visual = card.querySelector(".visual") as HTMLElement;
+            box.innerHTML = options.dataItems.map((item) => `<div><b>${item.displayName}</b>: ${item.value}</div>`).join("");
+            box.style.left = `${visual.offsetLeft + options.coordinates[0] + 12}px`;
+            box.style.top = `${visual.offsetTop + options.coordinates[1] + 12}px`;
+            box.style.display = "block";
+        },
+        hide: () => { box.style.display = "none"; },
     };
 }
 
@@ -101,6 +124,23 @@ const prevSeries = (sep: number, oct: number): Series => ({
     measure: [sep, oct], previousMonth: [null, sep], programmed: [95, 95], min: [0, 0], max: [120, 120],
     target: [95, 95], lowThreshold: [80, 80], midThreshold: [95, 95], currentPeriod: [10, 10],
 });
+// 0.3.3.1: número central = color del semáforo de la fuente (el mismo que consume el arco). Datos realistas: el
+// semáforo NO contradice a propósito los datos; se deriva como lo haría el modelo, por cumplimiento Real / Programado
+// de cada mes (>= 100% Verde, >= 95% Amarillo, < 95% Rojo), y alimenta «Semáforo» y «Semáforo por periodo».
+// Las bandas 50/70 del arco son la referencia geométrica: 72.89 cae en la banda alta pero, con Programado 80
+// (91.1%), el semáforo de la fuente es Rojo y el número y el arco indicador se pintan rojos.
+const ZONE_REAL = [41.2, 48.5, 55.3, 52.1, 60.4, 66.8, 63.2, 69.5, 71.4];
+const ZONE_PROG = [45, 50, 55, 58, 60, 63, 65, 68, 70];
+const compliance = (real: number, prog: number): string => (real >= prog ? "Verde" : real >= 0.95 * prog ? "Amarillo" : "Rojo");
+const zoneSeries = (oct: number, octProg: number): Series => {
+    const semaphore: Cell[] = [...ZONE_REAL.map((real, i) => compliance(real, ZONE_PROG[i])), compliance(oct, octProg), null, null];
+    return {
+        measure: [...ZONE_REAL, oct, null, null],
+        programmed: [...ZONE_PROG, octProg, 82, 84],
+        min: constant(0), max: constant(100), target: constant(75), lowThreshold: constant(50), midThreshold: constant(70),
+        semaphore, trendSemaphore: semaphore, currentPeriod: constant(10),
+    };
+};
 // Orden de filas del host deliberadamente NO cronológico (para s9).
 const SHUFFLED_ROWS = [9, 2, 11, 0, 5, 7, 1, 10, 4, 3, 8, 6];
 
@@ -146,6 +186,22 @@ const scenarios: Scenario[] = [
         objects: { ranges: { lowerIsBetter: true } } },
     { id: "s15-prev-out-of-range", title: "15) Revisión: Real 150 (máx. 120, centro 120) vs 100 → +50.00 verde; Dif. Prog. +25.00",
         period: ["Sep", "Oct"], order: [9, 10], series: prevSeries(100, 150), format: "#,0.00" },
+    // 0.3.3.1: número central con el color del semáforo de la fuente (= arco indicador) y sparkline al ancho máximo seguro.
+    { id: "s16-sem-red", title: "16) 0.3.3.1 Semáforo Rojo: Oct 35.40 vs Prog. 72 (49%) → número y arco rojos",
+        period: MONTHS, order: MONTH_KEYS, series: zoneSeries(35.4, 72), format: "#,0.00" },
+    { id: "s17-sem-yellow", title: "17) 0.3.3.1 Semáforo Amarillo: Oct 69.80 vs Prog. 72 (96.9%) → número y arco amarillos",
+        period: MONTHS, order: MONTH_KEYS, series: zoneSeries(69.8, 72), format: "#,0.00" },
+    { id: "s18-sem-red-high-band", title: "18) 0.3.3.1 Semáforo Rojo con valor en banda alta: Oct 72.89 vs Prog. 80 (91.1%) → número ROJO",
+        period: MONTHS, order: MONTH_KEYS, series: zoneSeries(72.89, 80), format: "#,0.00" },
+    { id: "s19-sem-green", title: "19) 0.3.3.1 Semáforo Verde: Oct 74.50 vs Prog. 72 (103.5%) → número y arco verdes",
+        period: MONTHS, order: MONTH_KEYS, series: zoneSeries(74.5, 72), format: "#,0.00" },
+    { id: "s20-sem-red-wide", title: "20) 0.3.3.1 Tarjeta ancha 480x300: 72.89 Rojo + sparkline al ancho máximo seguro",
+        period: MONTHS, order: MONTH_KEYS, series: zoneSeries(72.89, 80), format: "#,0.00", viewport: { width: 480, height: 300 } },
+    { id: "s21-sem-red-compact", title: "21) 0.3.3.1 Tarjeta compacta 220x200: 72.89 Rojo + sparkline",
+        period: MONTHS, order: MONTH_KEYS, series: zoneSeries(72.89, 80), format: "#,0.00", viewport: { width: 220, height: 200 } },
+    { id: "s22-sem-red-wide-sweep", title: "22) 0.3.3.1 Arco -135°..135°: el anillo del semáforo acota el ancho (sin tocarlo)",
+        period: MONTHS, order: MONTH_KEYS, series: zoneSeries(72.89, 80), format: "#,0.00",
+        objects: { gauge: { startAngle: -135, endAngle: 135 } } },
 ];
 
 const grid = document.getElementById("grid")!;
@@ -168,7 +224,7 @@ for (const sc of scenarios) {
     card.appendChild(host);
     grid.appendChild(card);
 
-    const visual = new Visual({ element: host, host: mockHost(sc.highContrast) } as any);
+    const visual = new Visual({ element: host, host: mockHost(sc.highContrast, sc.period ? card : undefined) } as any);
     const render = (roles: Roles | undefined) => {
         const dataView = sc.period
             ? buildMonthlyDataView(sc.period, sc.series ?? {}, sc.objects, sc.format, sc.order, sc.hostRows)

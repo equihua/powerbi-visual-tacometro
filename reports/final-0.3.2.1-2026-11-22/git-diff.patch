@@ -1,0 +1,296 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index afc0c45..2d88b2b 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -3,6 +3,47 @@
+ Formato basado en *Keep a Changelog*. La versión del visual la define `pbiviz.json`
+ (`visual.version`, 4 partes exigidas por `powerbi-visuals-tools` 7.2.1).
+ 
++## [0.3.2.1] — 2026-11-22 (corrección: tooltip por punto de la sparkline mensual, pre-1.0, sin validación en Power BI)
++
++### Versión
++
++- `pbiviz.json`, `package.json` y la raíz de `package-lock.json`: `0.3.2.0` → **`0.3.2.1`** (`tests/version.test.ts`).
++  Sin cambios en `capabilities.json` ni en el diseño/layout (arco, sparkline, pie y posiciones idénticos; `verify-dom.mjs`
++  17 escenarios, 0 fallos).
++- Artefacto local: `dist/PBI_CV_TACOMETRO_GAUGE.0.3.2.1.pbiviz` (SHA-256 en
++  `reports/final-0.3.2.1-2026-11-22/artifact-sha256.txt`; no publicado).
++
++### Corregido
++
++- **Al pasar el mouse por cualquier punto de la sparkline mensual, el tooltip mostraba siempre los datos del mes actual
++  del medidor** (p. ej. en el arnés, Ene/Jun/Oct mostraban todos «Valor 91.47 · Programado 95.00 · Semáforo Amarillo»).
++- **Causa raíz exacta:** `src/visual.ts` (`registerInteractions`, líneas 97–100 de 0.3.2.0) registra un único
++  `mousemove` en el elemento raíz del visual que llamaba a `showTooltip(coordenadas)` sin mirar `event.target`; y
++  `showTooltip` (líneas 120–131 de 0.3.2.0) siempre enviaba al `tooltipService` del host
++  `buildTooltipItems(this.currentData, this.tooltipExtras)`, es decir, el `GaugeData` del periodo actual. Los círculos de
++  `TrendSparkline.tsx` sólo tenían un `<title>` SVG nativo con su periodo, que el tooltip del host tapa; ningún dato
++  ligaba el círculo bajo el cursor con su `TrendPoint`.
++- **Corrección:** `TrendSparkline.tsx` marca cada círculo con `data-trend-index` (índice del periodo en
++  `GaugeData.trend`); `visual.ts` (`trendPointTooltip`) busca `event.target.closest("[data-trend-index]")` y, si el
++  índice existe en la serie, muestra `buildTrendPointTooltipItems` (`src/tooltips.ts`): **Periodo, Real, Programado
++  (si hay) y Semáforo (si hay) de ESE periodo**, con el formato del medidor. Fuera de los puntos, con foco de teclado,
++  sin serie mensual o con un índice inexistente se mantiene el tooltip del medidor de siempre. Los campos del rol
++  «Información sobre herramientas» siguen siendo los del mes actual y no se añaden al tooltip de un punto.
++
++### Verificación
++
++- TDD (`reports/final-0.3.2.1-2026-11-22/`): `red-trend-tooltip.txt` (3 fallos: sin `data-trend-index`, el hover de
++  Ene mostraba «Valor 91» del mes actual, versión 0.3.2.0) → `green-trend-tooltip.txt`; `red-cycle2-…` (destinos sin
++  `closest()`) → `green-cycle2-full.txt`; `red-cycle3-opcionales-indice.txt` → GREEN.
++- `npm run lint` (exit 0), `npm run typecheck:test` (exit 0), `npm run test:coverage`: **235 pruebas** en 22 archivos
++  (antes 230 en 21), cobertura Stmts 99.75 % · Branch 95.98 % · Funcs 99.04 % · Lines 99.72 % (0.3.2.0: 99.74 / 95.84 /
++  99.01 / 99.71). `npm run package` (exit 0).
++- Arnés: el `tooltipService` simulado de los escenarios mensuales pinta los `dataItems` (`.harness-tooltip`);
++  `dev-harness/scripts/hover-tooltip.mjs` pasa el mouse por puntos reales en Chromium. Antes (`before-hover.txt` /
++  `before-hover-*.png`): todos los puntos mostraban el mes actual. Después (`after-hover.txt` / `after-hover-*.png`):
++  s6 Ene 72.10/70.00 Rojo, Jun 88.90/87.00 Verde, Oct 91.47/95.00 Amarillo; s9 Feb 78.40/75.00 Rojo, Sep 93.40/93.00
++  Verde.
++
+ ## [0.3.2.0] — 2026-11-22 (valor «Real & Mes anterior» + pie más pegado al medidor, pre-1.0, sin validación en Power BI)
+ 
+ ### Versión
+diff --git a/README.md b/README.md
+index 4f1e9cb..4dabc0b 100644
+--- a/README.md
++++ b/README.md
+@@ -1,7 +1,7 @@
+ # powerbi-visual-tacometro
+ Medidor de tacómetro con marge y objetivo
+ 
+-Versión actual del visual: **0.3.2.0** (`pbiviz.json`). Cambios, compatibilidad y estado de los puntos A1–A4 / B1–B4
++Versión actual del visual: **0.3.2.1** (`pbiviz.json`). Cambios, compatibilidad y estado de los puntos A1–A4 / B1–B4
+ en [CHANGELOG.md](CHANGELOG.md).
+ 
+ > **Estado:** compila, pasa lint y pruebas unitarias, y se empaqueta localmente. **No se ha validado dentro de
+diff --git a/dev-harness/src/main.ts b/dev-harness/src/main.ts
+index cf51c45..5b63bfe 100644
+--- a/dev-harness/src/main.ts
++++ b/dev-harness/src/main.ts
+@@ -48,12 +48,14 @@ function buildMonthlyDataView(period: string[], series: Series, objects: Objects
+  * Host mínimo: servicios que usan update() e interacciones (A3) como funciones vacías.
+  * Con `host: {}` (versión previa del harness) update() fallaba desde 0.2.0.0 por eventService.
+  */
+-function mockHost(highContrast = false): any {
++function mockHost(highContrast = false, tooltipHost?: HTMLElement): any {
+     const noop = () => undefined;
+     return {
+         createSelectionManager: () => ({ showContextMenu: noop }),
+         eventService: { renderingStarted: noop, renderingFinished: noop, renderingFailed: noop },
+-        tooltipService: { enabled: () => false, show: noop, hide: noop },
++        // 0.3.2.1: tooltipService simulado que pinta los dataItems recibidos (como el tooltip del host de
++        // Power BI) en un div .harness-tooltip, para evidenciar qué datos muestra el visual al hover.
++        tooltipService: tooltipHost ? mockTooltipService(tooltipHost) : { enabled: () => false, show: noop, hide: noop },
+         hostCapabilities: { allowInteractions: true },
+         colorPalette: highContrast
+             ? { isHighContrast: true, foreground: { value: "#FFFF00" }, background: { value: "#000000" } }
+@@ -61,6 +63,27 @@ function mockHost(highContrast = false): any {
+     };
+ }
+ 
++/** Tooltip del host simulado: muestra `displayName: value` en las coordenadas que pide el visual. */
++function mockTooltipService(card: HTMLElement): any {
++    const box = document.createElement("div");
++    box.className = "harness-tooltip";
++    box.style.cssText = "position:absolute;display:none;pointer-events:none;background:#fff;border:1px solid #888;" +
++        "box-shadow:0 2px 6px rgba(0,0,0,.25);padding:4px 6px;font-size:11px;line-height:1.35;z-index:10;white-space:nowrap";
++    card.style.position = "relative";
++    card.appendChild(box);
++    return {
++        enabled: () => true,
++        show: (options: { dataItems: Array<{ displayName: string; value: string }>; coordinates: number[] }) => {
++            const visual = card.querySelector(".visual") as HTMLElement;
++            box.innerHTML = options.dataItems.map((item) => `<div><b>${item.displayName}</b>: ${item.value}</div>`).join("");
++            box.style.left = `${visual.offsetLeft + options.coordinates[0] + 12}px`;
++            box.style.top = `${visual.offsetTop + options.coordinates[1] + 12}px`;
++            box.style.display = "block";
++        },
++        hide: () => { box.style.display = "none"; },
++    };
++}
++
+ interface Scenario {
+     id: string;
+     title: string;
+@@ -168,7 +191,7 @@ for (const sc of scenarios) {
+     card.appendChild(host);
+     grid.appendChild(card);
+ 
+-    const visual = new Visual({ element: host, host: mockHost(sc.highContrast) } as any);
++    const visual = new Visual({ element: host, host: mockHost(sc.highContrast, sc.period ? card : undefined) } as any);
+     const render = (roles: Roles | undefined) => {
+         const dataView = sc.period
+             ? buildMonthlyDataView(sc.period, sc.series ?? {}, sc.objects, sc.format, sc.order, sc.hostRows)
+diff --git a/package-lock.json b/package-lock.json
+index 805161d..edcfb31 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "visual",
+-  "version": "0.3.2.0",
++  "version": "0.3.2.1",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "visual",
+-      "version": "0.3.2.0",
++      "version": "0.3.2.1",
+       "license": "MIT",
+       "dependencies": {
+         "@types/d3": "7.4.3",
+diff --git a/package.json b/package.json
+index 98029e9..d189999 100644
+--- a/package.json
++++ b/package.json
+@@ -1,7 +1,7 @@
+ {
+   "name": "visual",
+   "description": "default_template_value",
+-  "version": "0.3.2.0",
++  "version": "0.3.2.1",
+   "repository": {
+     "type": "default_template_value",
+     "url": "default_template_value"
+diff --git a/pbiviz.json b/pbiviz.json
+index 86a1fef..db12e3e 100644
+--- a/pbiviz.json
++++ b/pbiviz.json
+@@ -4,7 +4,7 @@
+     "displayName": "Tacometro Gauge",
+     "guid": "PBI_CV_TACOMETRO_GAUGE",
+     "visualClassName": "Visual",
+-    "version": "0.3.2.0",
++    "version": "0.3.2.1",
+     "description": "A radial gauge visual that replicates the Power BI Radial Gauge visual functionality",
+     "supportUrl": "https://github.com",
+     "gitHubUrl": ""
+diff --git a/src/components/TrendSparkline.tsx b/src/components/TrendSparkline.tsx
+index 78de3b9..d0f00b2 100644
+--- a/src/components/TrendSparkline.tsx
++++ b/src/components/TrendSparkline.tsx
+@@ -62,6 +62,8 @@ export const TrendSparkline: React.FC<TrendSparklineProps> = ({
+                     <circle
+                         key={vertex.index}
+                         className={current ? "trend-point trend-point-current" : "trend-point"}
++                        // 0.3.2.1: visual.ts lo lee al hover para mostrar el tooltip de ESTE periodo.
++                        data-trend-index={vertex.index}
+                         cx={vertex.x}
+                         cy={vertex.y}
+                         r={current ? CURRENT_POINT_RADIUS : POINT_RADIUS}
+diff --git a/src/tooltips.ts b/src/tooltips.ts
+index 781ae0e..9b494db 100644
+--- a/src/tooltips.ts
++++ b/src/tooltips.ts
+@@ -1,6 +1,7 @@
+ import { formatGaugeValue } from "./components/CenterText";
+ import { buildMarkers } from "./components/markers";
+ import { GaugeData } from "./components/types";
++import { TrendPoint } from "./components/trend";
+ 
+ /** Estructura compatible con powerbi.extensibility.VisualTooltipDataItem. */
+ export interface TooltipItem {
+@@ -27,6 +28,22 @@ export function buildTooltipItems(gaugeData: GaugeData, extras: TooltipItem[] =
+     return items.concat(extras);
+ }
+ 
++/** 0.3.2.1: tooltip de un punto de la sparkline mensual, con el periodo y los valores de ESE punto. */
++export function buildTrendPointTooltipItems(point: TrendPoint, format: (value: number) => string): TooltipItem[] {
++    const items: TooltipItem[] = [
++        { displayName: "Periodo", value: point.label },
++        // Sólo hay punto (círculo) en los periodos con Real.
++        { displayName: "Real", value: format(point.real as number) },
++    ];
++    if (point.programmed !== null) {
++        items.push({ displayName: "Programado", value: format(point.programmed) });
++    }
++    if (point.semaphore) {
++        items.push({ displayName: "Semáforo", value: point.semaphore });
++    }
++    return items;
++}
++
+ /** Etiqueta accesible (lectores de pantalla / navegación por teclado). */
+ export function buildAriaLabel(gaugeData: GaugeData): string {
+     const parts = buildTooltipItems(gaugeData).map((item) => `${item.displayName}: ${item.value}`);
+diff --git a/src/visual.ts b/src/visual.ts
+index 4eb4aee..3a8c1c8 100644
+--- a/src/visual.ts
++++ b/src/visual.ts
+@@ -22,7 +22,7 @@ import { findCurrentPosition, lastIndexWithReal, orderPeriodRows, periodSortKey,
+ import { isFiniteNumber, resolveRange, resolveThresholds } from "./components/scales";
+ import { formatGaugeValue } from "./components/CenterText";
+ import { applyHighContrast } from "./highContrast";
+-import { buildTooltipItems, TooltipItem } from "./tooltips";
++import { buildTooltipItems, buildTrendPointTooltipItems, TooltipItem } from "./tooltips";
+ 
+ export class Visual implements IVisual {
+   private target: HTMLElement;
+@@ -96,7 +96,7 @@ export class Visual implements IVisual {
+     const element = this.target;
+     element.addEventListener("mousemove", (event: MouseEvent) => {
+       const rect = element.getBoundingClientRect();
+-      this.showTooltip([event.clientX - rect.left, event.clientY - rect.top]);
++      this.showTooltip([event.clientX - rect.left, event.clientY - rect.top], event.target);
+     });
+     element.addEventListener("mouseleave", () => this.hideTooltip());
+     // A3 Keyboard Navigation: foco → tooltip en el centro; Shift+F10 / ContextMenu → menú.
+@@ -117,19 +117,33 @@ export class Visual implements IVisual {
+     });
+   }
+ 
+-  private showTooltip(coordinates: number[]) {
++  private showTooltip(coordinates: number[], target?: EventTarget | null) {
+     const tooltipService = this.host.tooltipService;
+     if (!this.currentData || !this.interactionsAllowed() || !tooltipService.enabled()) {
+       return;
+     }
+     tooltipService.show({
+-      dataItems: buildTooltipItems(this.currentData, this.tooltipExtras),
++      dataItems: this.trendPointTooltip(target) ?? buildTooltipItems(this.currentData, this.tooltipExtras),
+       identities: [],
+       coordinates,
+       isTouchEvent: false,
+     });
+   }
+ 
++  /**
++   * 0.3.2.1: sobre un punto de la sparkline (atributo data-trend-index de TrendSparkline) el tooltip es el
++   * de ESE periodo; antes todo mousemove mostraba el del mes actual del medidor. null fuera de los puntos.
++   */
++  private trendPointTooltip(target?: EventTarget | null): TooltipItem[] | null {
++    // Destinos sin DOM (foco, nodos de texto) no tienen closest(): tooltip del medidor.
++    const node = (target as Element | undefined)?.closest?.("[data-trend-index]");
++    const point = node ? this.currentData!.trend?.[Number(node.getAttribute("data-trend-index"))] : undefined;
++    if (!point) {
++      return null;
++    }
++    return buildTrendPointTooltipItems(point, (value) => formatGaugeValue(value, this.currentData!.dataFormat));
++  }
++
+   private hideTooltip() {
+     this.host.tooltipService.hide({ immediately: true, isTouchEvent: false });
+   }
+diff --git a/tests/version.test.ts b/tests/version.test.ts
+index 15c477e..d08cdae 100644
+--- a/tests/version.test.ts
++++ b/tests/version.test.ts
+@@ -3,11 +3,11 @@ import * as pbiviz from "../pbiviz.json";
+ import * as pkg from "../package.json";
+ import * as lock from "../package-lock.json";
+ 
+-describe("versión 0.3.2.0 (valor Real & Mes anterior + pie más pegado al medidor)", () => {
+-    it("pbiviz.json, package.json y package-lock.json están sincronizados en 0.3.2.0", () => {
+-        expect(pbiviz.visual.version).toBe("0.3.2.0");
+-        expect(pkg.version).toBe("0.3.2.0");
+-        expect(lock.version).toBe("0.3.2.0");
+-        expect((lock.packages as Record<string, { version?: string }>)[""].version).toBe("0.3.2.0");
++describe("versión 0.3.2.1 (tooltip por punto de la sparkline mensual)", () => {
++    it("pbiviz.json, package.json y package-lock.json están sincronizados en 0.3.2.1", () => {
++        expect(pbiviz.visual.version).toBe("0.3.2.1");
++        expect(pkg.version).toBe("0.3.2.1");
++        expect(lock.version).toBe("0.3.2.1");
++        expect((lock.packages as Record<string, { version?: string }>)[""].version).toBe("0.3.2.1");
+     });
+ });

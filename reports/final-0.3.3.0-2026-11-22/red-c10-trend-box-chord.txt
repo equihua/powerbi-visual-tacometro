@@ -1,0 +1,27 @@
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+
+ ❯ tests/layout.test.ts (16 tests | 1 failed) 13ms
+   ❯ computeInnerTrendBox 0.3.3.0 — sparkline al ancho completo de la abertura interior (1)
+     × el ancho aprovecha >= 99% de la cuerda del círculo interior a la altura del borde inferior de la caja 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/layout.test.ts > computeInnerTrendBox 0.3.3.0 — sparkline al ancho completo de la abertura interior > el ancho aprovecha >= 99% de la cuerda del círculo interior a la altura del borde inferior de la caja
+AssertionError: expected 165.747 to be greater than or equal to 175.02883200000002
+ ❯ tests/layout.test.ts:83:31
+     81|             const bottom = box.y + box.height;
+     82|             const chord = 2 * Math.sqrt(inner * inner - bottom * botto…
+     83|             expect(box.width).toBeGreaterThanOrEqual(chord * 0.99);
+       |                               ^
+     84|             expect(box.width).toBeLessThan(chord);
+     85|         }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 15 passed (16)
+   Start at  20:33:32
+   Duration  127ms (transform 40%, import 32%, tests 23%, worker 5%)
+

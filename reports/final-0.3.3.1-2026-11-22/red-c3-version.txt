@@ -1,0 +1,4 @@
+[31m     [31m×[31m pbiviz.json, package.json y package-lock.json están sincronizados en 0.3.3.1[39m[32m 4[2mms[22m[39m
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+[31m[1mAssertionError[22m: expected '0.3.3.0' to be '0.3.3.1' // Object.is equality[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[90m (1)[39m

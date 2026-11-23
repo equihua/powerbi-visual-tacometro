@@ -1,0 +1,13 @@
+ M CHANGELOG.md
+ M README.md
+ M dev-harness/src/main.ts
+ M package-lock.json
+ M package.json
+ M pbiviz.json
+ M src/components/TrendSparkline.tsx
+ M src/tooltips.ts
+ M src/visual.ts
+ M tests/version.test.ts
+?? dev-harness/scripts/hover-tooltip.mjs
+?? reports/final-0.3.2.1-2026-11-22/
+?? tests/trendTooltip.test.ts

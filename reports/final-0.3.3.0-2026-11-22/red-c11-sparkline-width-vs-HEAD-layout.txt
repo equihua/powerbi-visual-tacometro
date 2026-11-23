@@ -1,0 +1,84 @@
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+
+stderr | tests/sparklineWidth.test.ts > TrendSparkline 0.3.3.0 — ancho maximizado dentro de la abertura interior > 480x300 (-90°..90°): puntos dentro del círculo, >= 99% de la cuerda y sobre el pie
+Your app (or one of its dependencies) is using an outdated JSX transform. Update to the modern JSX transform for faster performance: https://react.dev/link/new-jsx-transform
+
+ ❯ tests/sparklineWidth.test.ts (6 tests | 6 failed) 19ms
+   ❯ TrendSparkline 0.3.3.0 — ancho maximizado dentro de la abertura interior (6)
+     × 480x300 (-90°..90°): puntos dentro del círculo, >= 99% de la cuerda y sobre el pie 10ms
+     × 480x300 (-120°..60°): puntos dentro del círculo, >= 99% de la cuerda y sobre el pie 2ms
+     × 220x200 (-90°..90°): puntos dentro del círculo, >= 99% de la cuerda y sobre el pie 2ms
+     × 220x200 (-120°..60°): puntos dentro del círculo, >= 99% de la cuerda y sobre el pie 1ms
+     × 300x300 (-90°..90°): puntos dentro del círculo, >= 99% de la cuerda y sobre el pie 1ms
+     × 300x300 (-120°..60°): puntos dentro del círculo, >= 99% de la cuerda y sobre el pie 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/sparklineWidth.test.ts > TrendSparkline 0.3.3.0 — ancho maximizado dentro de la abertura interior > 480x300 (-90°..90°): puntos dentro del círculo, >= 99% de la cuerda y sobre el pie
+AssertionError: expected 209.25 to be greater than or equal to 221.76
+ ❯ tests/sparklineWidth.test.ts:53:32
+     51|                 const chord = 2 * Math.sqrt(inner * inner - boxBottom …
+     52|                 const spread = circles[circles.length - 1].x - circles…
+     53|                 expect(spread).toBeGreaterThanOrEqual(0.99 * (chord - …
+       |                                ^
+     54|             });
+     55|         }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  tests/sparklineWidth.test.ts > TrendSparkline 0.3.3.0 — ancho maximizado dentro de la abertura interior > 480x300 (-120°..60°): puntos dentro del círculo, >= 99% de la cuerda y sobre el pie
+AssertionError: expected 208.5 to be greater than or equal to 220.96800000000005
+ ❯ tests/sparklineWidth.test.ts:53:32
+     51|                 const chord = 2 * Math.sqrt(inner * inner - boxBottom …
+     52|                 const spread = circles[circles.length - 1].x - circles…
+     53|                 expect(spread).toBeGreaterThanOrEqual(0.99 * (chord - …
+       |                                ^
+     54|             });
+     55|         }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  tests/sparklineWidth.test.ts > TrendSparkline 0.3.3.0 — ancho maximizado dentro de la abertura interior > 220x200 (-90°..90°): puntos dentro del círculo, >= 99% de la cuerda y sobre el pie
+AssertionError: expected 115.5 to be greater than or equal to 122.76
+ ❯ tests/sparklineWidth.test.ts:53:32
+     51|                 const chord = 2 * Math.sqrt(inner * inner - boxBottom …
+     52|                 const spread = circles[circles.length - 1].x - circles…
+     53|                 expect(spread).toBeGreaterThanOrEqual(0.99 * (chord - …
+       |                                ^
+     54|             });
+     55|         }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  tests/sparklineWidth.test.ts > TrendSparkline 0.3.3.0 — ancho maximizado dentro de la abertura interior > 220x200 (-120°..60°): puntos dentro del círculo, >= 99% de la cuerda y sobre el pie
+AssertionError: expected 108.5 to be greater than or equal to 115.36800000000002
+ ❯ tests/sparklineWidth.test.ts:53:32
+     51|                 const chord = 2 * Math.sqrt(inner * inner - boxBottom …
+     52|                 const spread = circles[circles.length - 1].x - circles…
+     53|                 expect(spread).toBeGreaterThanOrEqual(0.99 * (chord - …
+       |                                ^
+     54|             });
+     55|         }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  tests/sparklineWidth.test.ts > TrendSparkline 0.3.3.0 — ancho maximizado dentro de la abertura interior > 300x300 (-90°..90°): puntos dentro del círculo, >= 99% de la cuerda y sobre el pie
+ FAIL  tests/sparklineWidth.test.ts > TrendSparkline 0.3.3.0 — ancho maximizado dentro de la abertura interior > 300x300 (-120°..60°): puntos dentro del círculo, >= 99% de la cuerda y sobre el pie
+AssertionError: expected 183.75 to be greater than or equal to 194.83200000000002
+ ❯ tests/sparklineWidth.test.ts:53:32
+     51|                 const chord = 2 * Math.sqrt(inner * inner - boxBottom …
+     52|                 const spread = circles[circles.length - 1].x - circles…
+     53|                 expect(spread).toBeGreaterThanOrEqual(0.99 * (chord - …
+       |                                ^
+     54|             });
+     55|         }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed (6)
+   Start at  20:34:37
+   Duration  267ms (import 56%, transform 32%, tests 11%, worker 2%)
+

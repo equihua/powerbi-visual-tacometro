@@ -22,7 +22,7 @@ import { findCurrentPosition, lastIndexWithReal, orderPeriodRows, periodSortKey,
 import { isFiniteNumber, resolveRange, resolveThresholds } from "./components/scales";
 import { formatGaugeValue } from "./components/CenterText";
 import { applyHighContrast } from "./highContrast";
-import { buildTooltipItems, TooltipItem } from "./tooltips";
+import { buildTooltipItems, buildTrendPointTooltipItems, TooltipItem } from "./tooltips";
 
 export class Visual implements IVisual {
   private target: HTMLElement;
@@ -96,7 +96,7 @@ export class Visual implements IVisual {
     const element = this.target;
     element.addEventListener("mousemove", (event: MouseEvent) => {
       const rect = element.getBoundingClientRect();
-      this.showTooltip([event.clientX - rect.left, event.clientY - rect.top]);
+      this.showTooltip([event.clientX - rect.left, event.clientY - rect.top], event.target);
     });
     element.addEventListener("mouseleave", () => this.hideTooltip());
     // A3 Keyboard Navigation: foco → tooltip en el centro; Shift+F10 / ContextMenu → menú.
@@ -117,17 +117,31 @@ export class Visual implements IVisual {
     });
   }
 
-  private showTooltip(coordinates: number[]) {
+  private showTooltip(coordinates: number[], target?: EventTarget | null) {
     const tooltipService = this.host.tooltipService;
     if (!this.currentData || !this.interactionsAllowed() || !tooltipService.enabled()) {
       return;
     }
     tooltipService.show({
-      dataItems: buildTooltipItems(this.currentData, this.tooltipExtras),
+      dataItems: this.trendPointTooltip(target) ?? buildTooltipItems(this.currentData, this.tooltipExtras),
       identities: [],
       coordinates,
       isTouchEvent: false,
     });
+  }
+
+  /**
+   * 0.3.2.1: sobre un punto de la sparkline (atributo data-trend-index de TrendSparkline) el tooltip es el
+   * de ESE periodo; antes todo mousemove mostraba el del mes actual del medidor. null fuera de los puntos.
+   */
+  private trendPointTooltip(target?: EventTarget | null): TooltipItem[] | null {
+    // Destinos sin DOM (foco, nodos de texto) no tienen closest(): tooltip del medidor.
+    const node = (target as Element | undefined)?.closest?.("[data-trend-index]");
+    const point = node ? this.currentData!.trend?.[Number(node.getAttribute("data-trend-index"))] : undefined;
+    if (!point) {
+      return null;
+    }
+    return buildTrendPointTooltipItems(point, (value) => formatGaugeValue(value, this.currentData!.dataFormat));
   }
 
   private hideTooltip() {

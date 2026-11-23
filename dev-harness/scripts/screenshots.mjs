@@ -38,7 +38,10 @@ for (const id of ["s1-normal", "s2a-clamp-high", "s2b-clamp-low", "s3-thirds", "
     // 0.3.1.0: layout responsivo (tarjeta ancha y compacta).
     "s10-trend-wide", "s11-trend-compact",
     // Revisión 0.3.2.0: «Real & Mes anterior» con Real sin recortar y color por favorabilidad.
-    "s12-prev-unfavorable", "s13-prev-favorable", "s14-prev-lower-better", "s15-prev-out-of-range"]) {
+    "s12-prev-unfavorable", "s13-prev-favorable", "s14-prev-lower-better", "s15-prev-out-of-range",
+    // 0.3.3.1: número central = semáforo de la fuente (= arco indicador) y sparkline al ancho máximo seguro.
+    "s16-sem-red", "s17-sem-yellow", "s18-sem-red-high-band", "s19-sem-green", "s20-sem-red-wide", "s21-sem-red-compact",
+    "s22-sem-red-wide-sweep"]) {
     await shot(`${id}.png`, `#${id}`);
 }
 await shot("s5a-anim-0-before.png", "#s5a-anim-ranges");

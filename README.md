@@ -1,7 +1,7 @@
 # powerbi-visual-tacometro
 Medidor de tacómetro con marge y objetivo
 
-Versión actual del visual: **0.3.2.0** (`pbiviz.json`). Cambios, compatibilidad y estado de los puntos A1–A4 / B1–B4
+Versión actual del visual: **0.3.3.1** (`pbiviz.json`). Cambios, compatibilidad y estado de los puntos A1–A4 / B1–B4
 en [CHANGELOG.md](CHANGELOG.md).
 
 > **Estado:** compila, pasa lint y pruebas unitarias, y se empaqueta localmente. **No se ha validado dentro de

@@ -1,0 +1,14 @@
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+
+ ❯ tests/trendTooltip.test.ts (5 tests | 2 failed) 15ms
+   ❯ 0.3.2.1 — tooltip por punto de la sparkline mensual (5)
+     × un punto sin Programado ni semáforo sólo muestra Periodo y Real 5ms
+     × un índice que ya no existe en la serie (DOM desfasado) usa el tooltip del medidor 1ms
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 3 passed (5)
+     Errors  1 error
+   Start at  19:26:11
+   Duration  222ms (import 48%, transform 40%, tests 10%, worker 2%)
+

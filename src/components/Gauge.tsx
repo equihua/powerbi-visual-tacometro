@@ -7,7 +7,7 @@ import { ValueMarker } from "./ValueMarker";
 import { GaugeMarker } from "./GaugeMarker";
 import { CenterText, formatGaugeValue } from "./CenterText";
 import { buildMarkers } from "./markers";
-import { BAND_RADIUS_FACTOR, bandRadii, degreesToRadians } from "./arcUtils";
+import { BAND_RADIUS_FACTOR, bandRadii, degreesToRadians, semaphoreIndicatorRing } from "./arcUtils";
 import { comparisonColor, createAngleScale, createPerformanceColorScale, rangeBandColors } from "./scales";
 import { resolveSemaphoreColor } from "./semaphore";
 import { GaugeData, GaugeSettings } from "./types";
@@ -123,14 +123,12 @@ export default class Gauge extends React.Component<Props> {
     // B1 con rangos visibles: las bandas siguen mostrando los umbrales y, si la fuente trae
     // semáforo, un arco de progreso delgado por dentro de la banda muestra ese color
     // (performanceColor, así que el alto contraste conserva la precedencia).
-    const indicatorThickness = Math.max(3, settings.thickness * 0.3);
-    const indicatorCenter = Math.max(
-      indicatorThickness / 2,
-      bandRadii(radius, settings.thickness).innerRadius - 2 - indicatorThickness / 2
-    );
-    const indicatorRadius = indicatorCenter / BAND_RADIUS_FACTOR;
+    // 0.3.3.1: geometría del anillo compartida con computeInnerTrendBox (la sparkline no lo toca).
+    const indicatorRing = semaphoreIndicatorRing(bandRadii(radius, settings.thickness).innerRadius, settings.thickness);
+    const indicatorThickness = indicatorRing.thickness;
+    const indicatorRadius = (indicatorRing.innerRadius + indicatorRing.outerRadius) / 2 / BAND_RADIUS_FACTOR;
     const format = (value: number) => formatGaugeValue(value, gaugeData.dataFormat);
-    const trendBox = trend && layout.footer ? computeInnerTrendBox(radius, settings.thickness) : null;
+    const trendBox = trend && layout.footer ? computeInnerTrendBox(radius, settings.thickness, settings.startAngle, settings.endAngle) : null;
 
     return (
       // A3 Keyboard Navigation: el SVG recibe el foco (supportsKeyboardFocus) y se anuncia como imagen.
@@ -219,7 +217,9 @@ export default class Gauge extends React.Component<Props> {
               value={gaugeData.value}
               fontSize={settings.fontSize}
               fontFamily={settings.fontFamily}
-              color={settings.labelColor}
+              // 0.3.3.1: exactamente el color que consume el arco (indicador del semáforo o arco de desempeño):
+              // alto contraste > semáforo de la fuente > umbrales. Sin clasificación geométrica aparte.
+              color={performanceColor}
               dataFormat={gaugeData.dataFormat}
             />
           )}

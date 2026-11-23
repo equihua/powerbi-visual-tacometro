@@ -1,0 +1,25 @@
+ M CHANGELOG.md
+ M README.md
+ M dev-harness/src/main.ts
+ M package-lock.json
+ M package.json
+ M pbiviz.json
+ M src/components/TrendSparkline.tsx
+ M src/tooltips.ts
+ M src/visual.ts
+ M tests/version.test.ts
+?? dev-harness/scripts/hover-tooltip.mjs
+?? reports/final-0.3.2.1-2026-11-22/
+?? reports/final-0.3.3.0-2026-11-22/
+?? tests/trendTooltip.test.ts
+ CHANGELOG.md                      | 41 +++++++++++++++++++++++++++++++++++++++
+ README.md                         |  2 +-
+ dev-harness/src/main.ts           | 29 ++++++++++++++++++++++++---
+ package-lock.json                 |  4 ++--
+ package.json                      |  2 +-
+ pbiviz.json                       |  2 +-
+ src/components/TrendSparkline.tsx |  2 ++
+ src/tooltips.ts                   | 17 ++++++++++++++++
+ src/visual.ts                     | 22 +++++++++++++++++----
+ tests/version.test.ts             | 12 ++++++------
+ 10 files changed, 115 insertions(+), 18 deletions(-)

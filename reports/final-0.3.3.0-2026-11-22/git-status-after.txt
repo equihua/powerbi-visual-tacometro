@@ -1,0 +1,42 @@
+ M CHANGELOG.md
+ M README.md
+ M dev-harness/scripts/screenshots.mjs
+ M dev-harness/scripts/verify-dom.mjs
+ M dev-harness/src/main.ts
+ M package-lock.json
+ M package.json
+ M pbiviz.json
+ M src/components/Gauge.tsx
+ M src/components/TrendSparkline.tsx
+ M src/components/layout.ts
+ M src/components/scales.ts
+ M src/tooltips.ts
+ M src/visual.ts
+ M tests/gaugeTrend.test.ts
+ M tests/layout.test.ts
+ M tests/version.test.ts
+?? dev-harness/scripts/hover-tooltip.mjs
+?? reports/final-0.3.2.1-2026-11-22/
+?? reports/final-0.3.3.0-2026-11-22/
+?? tests/centerTextColor.test.ts
+?? tests/rangeBands.test.ts
+?? tests/sparklineWidth.test.ts
+?? tests/trendTooltip.test.ts
+ CHANGELOG.md                        | 91 +++++++++++++++++++++++++++++++++++++
+ README.md                           |  2 +-
+ dev-harness/scripts/screenshots.mjs |  4 +-
+ dev-harness/scripts/verify-dom.mjs  | 27 +++++++++--
+ dev-harness/src/main.ts             | 50 ++++++++++++++++++--
+ package-lock.json                   |  4 +-
+ package.json                        |  2 +-
+ pbiviz.json                         |  2 +-
+ src/components/Gauge.tsx            | 24 ++++++----
+ src/components/TrendSparkline.tsx   |  2 +
+ src/components/layout.ts            | 12 ++++-
+ src/components/scales.ts            | 35 ++++++++++++++
+ src/tooltips.ts                     | 17 +++++++
+ src/visual.ts                       | 22 +++++++--
+ tests/gaugeTrend.test.ts            | 28 ++++++++----
+ tests/layout.test.ts                | 18 +++++++-
+ tests/version.test.ts               | 12 ++---
+ 17 files changed, 309 insertions(+), 43 deletions(-)

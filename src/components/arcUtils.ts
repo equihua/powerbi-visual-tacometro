@@ -32,6 +32,20 @@ export function bandRadii(radius: number, thickness: number): { innerRadius: num
     };
 }
 
+/**
+ * 0.3.3.1: anillo del indicador del semáforo (PerformanceArc "semaphore-indicator"), delgado y por dentro de la
+ * banda: grosor max(3, 0.3·grosor) a 2 px del radio interior. Fuente única para Gauge (lo dibuja) y layout (la
+ * sparkline no debe tocarlo).
+ */
+export function semaphoreIndicatorRing(
+    bandInnerRadius: number,
+    thickness: number
+): { innerRadius: number; outerRadius: number; thickness: number } {
+    const ringThickness = Math.max(3, thickness * 0.3);
+    const center = Math.max(ringThickness / 2, bandInnerRadius - 2 - ringThickness / 2);
+    return { innerRadius: center - ringThickness / 2, outerRadius: center + ringThickness / 2, thickness: ringThickness };
+}
+
 export function degreesToRadians(degrees: number): number {
     return degrees * (Math.PI / 180);
 }

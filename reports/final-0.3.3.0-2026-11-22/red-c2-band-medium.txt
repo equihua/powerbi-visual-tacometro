@@ -1,0 +1,31 @@
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+
+ ❯ tests/rangeBands.test.ts (2 tests | 1 failed) 4ms
+   ❯ rangeBandColorAt — color de la banda que el arco pinta en el valor (2)
+     × valor dentro de la banda media → amarillo 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/rangeBands.test.ts > rangeBandColorAt — color de la banda que el arco pinta en el valor > valor dentro de la banda media → amarillo
+AssertionError: expected '#C00000' to be '#FFC000' // Object.is equality
+
+Expected: "#FFC000"
+Received: "#C00000"
+
+ ❯ tests/rangeBands.test.ts:17:45
+     15|
+     16|     it("valor dentro de la banda media → amarillo", () => {
+     17|         expect(rangeBandColorAt(bands, 60)).toBe("#FFC000");
+       |                                             ^
+     18|     });
+     19| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  20:31:34
+   Duration  147ms (import 55%, transform 34%, tests 7%, worker 4%)
+

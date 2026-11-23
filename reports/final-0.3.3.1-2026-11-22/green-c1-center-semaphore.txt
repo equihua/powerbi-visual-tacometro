@@ -1,0 +1,14 @@
+ ✓ tests/centerTextColor.test.ts > CenterText 0.3.3.1 — color del semáforo real, el mismo que consume el arco > regresión: 72.89 (geométricamente en la banda alta 70..100) con semáforo «Rojo» → número ROJO 6ms
+ ✓ tests/centerTextColor.test.ts > CenterText 0.3.3.1 — color del semáforo real, el mismo que consume el arco > el número coincide con el arco indicador del semáforo (rangos visibles) 1ms
+ ✓ tests/centerTextColor.test.ts > CenterText 0.3.3.1 — color del semáforo real, el mismo que consume el arco > el número coincide con el arco de desempeño (rangos ocultos): 30 con semáforo «Verde» → verde 0ms
+ ✓ tests/centerTextColor.test.ts > CenterText 0.3.3.1 — color del semáforo real, el mismo que consume el arco > semáforo de la fuente «Rojo» → #C00000 (mismo mapeo resolveSemaphoreColor que el arco) 0ms
+ ✓ tests/centerTextColor.test.ts > CenterText 0.3.3.1 — color del semáforo real, el mismo que consume el arco > semáforo de la fuente «Amarillo» → #FFC000 (mismo mapeo resolveSemaphoreColor que el arco) 0ms
+ ✓ tests/centerTextColor.test.ts > CenterText 0.3.3.1 — color del semáforo real, el mismo que consume el arco > semáforo de la fuente «Verde» → #007F38 (mismo mapeo resolveSemaphoreColor que el arco) 0ms
+ ✓ tests/centerTextColor.test.ts > CenterText 0.3.3.1 — color del semáforo real, el mismo que consume el arco > semáforo de la fuente «text-danger» → #C00000 (mismo mapeo resolveSemaphoreColor que el arco) 0ms
+ ✓ tests/centerTextColor.test.ts > CenterText 0.3.3.1 — color del semáforo real, el mismo que consume el arco > semáforo de la fuente «#123456» → #123456 (mismo mapeo resolveSemaphoreColor que el arco) 0ms
+ ✓ tests/centerTextColor.test.ts > CenterText 0.3.3.1 — color del semáforo real, el mismo que consume el arco > semáforo de la fuente «Sin semaforizar» → #ADB5BD (mismo mapeo resolveSemaphoreColor que el arco) 0ms
+ ✓ tests/centerTextColor.test.ts > CenterText 0.3.3.1 — color del semáforo real, el mismo que consume el arco > menor es mejor no reclasifica: semáforo «Verde» → verde aunque 72.89 caiga en la banda alta (roja) 0ms
+ ✓ tests/centerTextColor.test.ts > CenterText 0.3.3.1 — color del semáforo real, el mismo que consume el arco > sin semáforo: mismo respaldo por umbrales que el arco de desempeño (createPerformanceColorScale) 2ms
+ ✓ tests/centerTextColor.test.ts > CenterText 0.3.3.1 — color del semáforo real, el mismo que consume el arco > alto contraste: el número usa foreground (misma precedencia que el arco) 0ms
+ ✓ tests/centerTextColor.test.ts > CenterText 0.3.3.1 — color del semáforo real, el mismo que consume el arco > ya no existe la clasificación geométrica aparte (rangeBandColorAt eliminado) 0ms
+      Tests  13 passed (13)

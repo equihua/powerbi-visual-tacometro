@@ -1,0 +1,4 @@
+
+> visual@0.3.2.1 typecheck:test
+> tsc -p tsconfig.test.json
+

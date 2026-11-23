@@ -1,0 +1,87 @@
+{
+  "url": "http://127.0.0.1:5178/",
+  "phase": "before",
+  "errors": [],
+  "results": [
+    {
+      "scenario": "s6-trend-footer",
+      "point": 0,
+      "svgTitle": "Ene: Real 72.10 · Prog. 70.00",
+      "hostTooltip": [
+        "Valor: 91.47",
+        "Mínimo: 0.00",
+        "Máximo: 120.00",
+        "Objetivo: 95.00",
+        "Meta con margen: 95.00",
+        "Programado: 95.00",
+        "Real mes anterior: 93.40",
+        "Semáforo: Amarillo"
+      ],
+      "screenshot": "/home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/reports/final-0.3.2.1-2026-11-22/before-hover-s6-trend-footer-Ene.png"
+    },
+    {
+      "scenario": "s6-trend-footer",
+      "point": 5,
+      "svgTitle": "Jun: Real 88.90 · Prog. 87.00",
+      "hostTooltip": [
+        "Valor: 91.47",
+        "Mínimo: 0.00",
+        "Máximo: 120.00",
+        "Objetivo: 95.00",
+        "Meta con margen: 95.00",
+        "Programado: 95.00",
+        "Real mes anterior: 93.40",
+        "Semáforo: Amarillo"
+      ],
+      "screenshot": "/home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/reports/final-0.3.2.1-2026-11-22/before-hover-s6-trend-footer-Jun.png"
+    },
+    {
+      "scenario": "s6-trend-footer",
+      "point": 9,
+      "svgTitle": "Oct: Real 91.47 · Prog. 95.00",
+      "hostTooltip": [
+        "Valor: 91.47",
+        "Mínimo: 0.00",
+        "Máximo: 120.00",
+        "Objetivo: 95.00",
+        "Meta con margen: 95.00",
+        "Programado: 95.00",
+        "Real mes anterior: 93.40",
+        "Semáforo: Amarillo"
+      ],
+      "screenshot": "/home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/reports/final-0.3.2.1-2026-11-22/before-hover-s6-trend-footer-Oct.png"
+    },
+    {
+      "scenario": "s9-trend-host-order",
+      "point": 1,
+      "svgTitle": "Feb: Real 78.40 · Prog. 75.00",
+      "hostTooltip": [
+        "Valor: 88.90",
+        "Mínimo: 0.00",
+        "Máximo: 120.00",
+        "Objetivo: 95.00",
+        "Meta con margen: 95.00",
+        "Programado: 87.00",
+        "Real mes anterior: 85.20",
+        "Semáforo: Verde"
+      ],
+      "screenshot": "/home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/reports/final-0.3.2.1-2026-11-22/before-hover-s9-trend-host-order-Feb.png"
+    },
+    {
+      "scenario": "s9-trend-host-order",
+      "point": 8,
+      "svgTitle": "Sep: Real 93.40 · Prog. 93.00",
+      "hostTooltip": [
+        "Valor: 88.90",
+        "Mínimo: 0.00",
+        "Máximo: 120.00",
+        "Objetivo: 95.00",
+        "Meta con margen: 95.00",
+        "Programado: 87.00",
+        "Real mes anterior: 85.20",
+        "Semáforo: Verde"
+      ],
+      "screenshot": "/home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro/reports/final-0.3.2.1-2026-11-22/before-hover-s9-trend-host-order-Sep.png"
+    }
+  ]
+}

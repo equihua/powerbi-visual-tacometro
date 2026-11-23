@@ -1,0 +1,31 @@
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+
+ ❯ tests/centerTextColor.test.ts (2 tests | 1 failed) 13ms
+   ❯ CenterText 0.3.3.0 — color de la banda del arco en el valor actual (2)
+     × alto contraste: las bandas son contorno (relleno background), el número usa foreground 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/centerTextColor.test.ts > CenterText 0.3.3.0 — color de la banda del arco en el valor actual > alto contraste: las bandas son contorno (relleno background), el número usa foreground
+AssertionError: expected '#000000' to be '#FFFF00' // Object.is equality
+
+Expected: "#FFFF00"
+Received: "#000000"
+
+ ❯ tests/centerTextColor.test.ts:67:48
+     65|             highContrast: { foreground: "#FFFF00", background: "#00000…
+     66|         });
+     67|         expect(centerFill(render(hc, data()))).toBe("#FFFF00");
+       |                                                ^
+     68|     });
+     69| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  20:32:52
+   Duration  200ms (import 60%, transform 28%, tests 10%, worker 2%)
+

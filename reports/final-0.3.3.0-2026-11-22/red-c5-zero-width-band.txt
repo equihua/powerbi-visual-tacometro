@@ -1,0 +1,31 @@
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+
+ ❯ tests/rangeBands.test.ts (8 tests | 1 failed) 6ms
+   ❯ rangeBandColorAt — límites exactos (misma regla «<=» que createPerformanceColorScale) (5)
+     × banda de ancho cero no se pinta: umbral bajo = mínimo y valor = mínimo → banda media (la visible) 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/rangeBands.test.ts > rangeBandColorAt — límites exactos (misma regla «<=» que createPerformanceColorScale) > banda de ancho cero no se pinta: umbral bajo = mínimo y valor = mínimo → banda media (la visible)
+AssertionError: expected '#C00000' to be '#FFC000' // Object.is equality
+
+Expected: "#FFC000"
+Received: "#C00000"
+
+ ❯ tests/rangeBands.test.ts:47:46
+     45|     it("banda de ancho cero no se pinta: umbral bajo = mínimo y valor …
+     46|         const flatLow = buildRangeBands(range, { lowThreshold: 0, midT…
+     47|         expect(rangeBandColorAt(flatLow, 0)).toBe("#FFC000");
+       |                                              ^
+     48|     });
+     49| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 passed (8)
+   Start at  20:32:05
+   Duration  133ms (import 54%, transform 31%, tests 11%, worker 4%)
+

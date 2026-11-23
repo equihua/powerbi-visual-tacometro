@@ -1,0 +1,6 @@
+s6-trend-footer punto 0 (Ene: Real 72.10 · Prog. 70.00) → tooltip: Periodo: Ene | Real: 72.10 | Programado: 70.00 | Semáforo: Rojo
+s6-trend-footer punto 5 (Jun: Real 88.90 · Prog. 87.00) → tooltip: Periodo: Jun | Real: 88.90 | Programado: 87.00 | Semáforo: Verde
+s6-trend-footer punto 9 (Oct: Real 91.47 · Prog. 95.00) → tooltip: Periodo: Oct | Real: 91.47 | Programado: 95.00 | Semáforo: Amarillo
+s9-trend-host-order punto 1 (Feb: Real 78.40 · Prog. 75.00) → tooltip: Periodo: Feb | Real: 78.40 | Programado: 75.00 | Semáforo: Rojo
+s9-trend-host-order punto 8 (Sep: Real 93.40 · Prog. 93.00) → tooltip: Periodo: Sep | Real: 93.40 | Programado: 93.00 | Semáforo: Verde
+errores de página: 0

@@ -11,6 +11,16 @@ import { bandRadii } from "../src/components/arcUtils";
 import { baseline } from "./fixtures/gaugeBaseline020";
 const settings = baseline.settings as GaugeSettings;
 
+/**
+ * 0.3.3.0: única diferencia intencional con el markup 0.2.0.0: el número central (91.47 con umbrales 80/95)
+ * ya no usa labelColor (#777777) sino el color de la banda del arco que contiene el valor (media → #FFC000).
+ */
+function baseline033(markup: string): string {
+    const legacy = 'fill="#777777">91.47</text>';
+    expect(markup).toContain(legacy);
+    return markup.replace(legacy, 'fill="#FFC000">91.47</text>');
+}
+
 const thresholds = { lowThreshold: 80, midThreshold: 95 };
 const trend: TrendPoint[] = [
     { label: "Ene", real: 80, programmed: 85, semaphore: "Rojo", thresholds },
@@ -32,17 +42,17 @@ function gaugeGroup(markup: string): string {
 }
 
 describe("Gauge 0.3.0.0 — el medidor aprobado no cambia", () => {
-    it("sin Programado ni tendencia el markup es idéntico byte a byte al de 0.2.0.0", () => {
-        expect(render(baseline.base as GaugeData)).toBe(baseline.noMarkers300x300);
+    it("sin Programado ni tendencia el markup es idéntico byte a byte al de 0.2.0.0 salvo el color del número central (0.3.3.0)", () => {
+        expect(render(baseline.base as GaugeData)).toBe(baseline033(baseline.noMarkers300x300));
     });
 
-    it("con Programado pero sin serie mensual el markup es idéntico byte a byte al de 0.2.0.0 (sin pie)", () => {
-        expect(render(baseline.markers as GaugeData)).toBe(baseline.markers300x300);
+    it("con Programado pero sin serie mensual el markup es idéntico byte a byte al de 0.2.0.0 salvo el color del número central (0.3.3.0) (sin pie)", () => {
+        expect(render(baseline.markers as GaugeData)).toBe(baseline033(baseline.markers300x300));
     });
 
-    it("con un solo mes (serie insuficiente) y Programado el markup es idéntico byte a byte al de 0.2.0.0", () => {
+    it("con un solo mes (serie insuficiente) y Programado el markup es idéntico byte a byte al de 0.2.0.0 salvo el color del número central (0.3.3.0)", () => {
         const oneMonth = { ...baseline.markers, trend: trend.slice(0, 1), trendCurrentIndex: 0 } as GaugeData;
-        expect(render(oneMonth)).toBe(baseline.markers300x300);
+        expect(render(oneMonth)).toBe(baseline033(baseline.markers300x300));
     });
 
     it("0.3.2.0: con tendencia y Programado el medidor es el mismo dibujo de 0.2.0.0 (300x300), sólo desplazado hacia el pie", () => {
@@ -62,9 +72,13 @@ describe("Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor", () => {
     it("0.3.2.0: la sparkline va dentro del semicírculo bajo el número y el pie abajo, sin hueco grande", () => {
         const markup = render(withTrend);
         // Caja 300x260 con pie: radio por el ancho (interior 130.5), contenido inferior = sparkline (0.6·130.5 = 78.3)
-        // terminando a FOOTER_GAP (4) del pie → centro (150, 256 − 78.3 = 177.7); caja: x 150 − 97.875, y 177.7 + 13.05.
+        // terminando a FOOTER_GAP (4) del pie → centro (150, 256 − 78.3 = 177.7); caja: y 177.7 + 13.05.
+        // 0.3.3.0: ancho = cuerda interior a y = 0.6·130.5 → 1.6·130.5·0.995 = 207.76; x = 150 − 103.88 = 46.12
+        // (antes 1.5·130.5 → x 52.13). Centro y pie no cambian.
+        // 0.3.3.1 (-90°..90°, sin anillo bajo la horizontal): punto extremo (radio 4 + holgura 0.5) tangente al
+        // círculo interior en y = 0.6·130.5 − 6: X = √(126² − 72.3²) = 103.19; ancho 2·(103.19 + 6) = 218.39 → x = 40.81.
         expect(markup).toContain('<g transform="translate(150, 177.7)">');
-        expect(markup).toMatch(/<g class="gauge-trend-slot" transform="translate\(52.13, 190.75\)">[^]*class="trend-sparkline"/);
+        expect(markup).toMatch(/<g class="gauge-trend-slot" transform="translate\(40.81, 190.75\)">[^]*class="trend-sparkline"/);
         expect(markup).toMatch(/<g class="gauge-footer-slot" transform="translate\(0, 260\)">[^]*class="gauge-footer"/);
     });
 
@@ -114,7 +128,7 @@ describe("Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor", () => {
             // Más bajo de la banda/marcadores (ángulo -120°) y de la sparkline.
             const arcBottom = cy + 0.5 * (outerRadius + MARKER_OVERHANG);
             const slot = /class="gauge-trend-slot" transform="translate\(([-\d.]+), ([-\d.]+)\)"/.exec(markup)!;
-            const sparkHeight = computeInnerTrendBox(frame.radius, s.thickness)!.height;
+            const sparkHeight = computeInnerTrendBox(frame.radius, s.thickness, -120, 60)!.height;
             const bottom = Math.max(arcBottom, Number(slot[2]) + sparkHeight);
             const footerTop = height - 40;
             expect(bottom, `${width}x${height}`).toBeLessThanOrEqual(footerTop - FOOTER_GAP + 0.01);

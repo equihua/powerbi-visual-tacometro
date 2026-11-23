@@ -1,4 +1,4 @@
-import { BAND_RADIUS_FACTOR as BAND_FACTOR, bandRadii } from "./arcUtils";
+import { BAND_RADIUS_FACTOR as BAND_FACTOR, bandRadii, semaphoreIndicatorRing } from "./arcUtils";
 
 /** Alto fijo del pie (valor + etiqueta en dos renglones). */
 export const FOOTER_HEIGHT = 40;
@@ -8,10 +8,21 @@ export const FOOTER_GAP = 4;
 export const MARKER_OVERHANG = 11;
 /** Alto mínimo útil de la sparkline interior; por debajo no se dibuja. */
 export const TREND_MIN_HEIGHT = 16;
-/** Caja de la sparkline relativa al radio interior de la banda (ancho acotado al círculo interior). */
-const TREND_WIDTH_FACTOR = 1.5;
+/** Caja de la sparkline relativa al radio interior de la banda (alto y posición vertical; el ancho se calcula). */
 const TREND_TOP_FACTOR = 0.1;
 const TREND_HEIGHT_FACTOR = 0.5;
+/** 0.3.3.1: relleno interno de TrendSparkline (centros de los puntos extremos a este margen de la caja). */
+export const TREND_PADDING = 6;
+/** Radios de los puntos de TrendSparkline; el del mes actual es el mayor y define el alcance del contenido. */
+export const TREND_POINT_RADIUS = 2.5;
+export const TREND_CURRENT_POINT_RADIUS = 4;
+/**
+ * 0.3.3.1: holgura mínima (px) entre el borde de un punto de la sparkline y cualquier trazo del arco: medio píxel,
+ * lo que el contorno de 1 px de alto contraste de la banda invade hacia dentro (y medio píxel de antialiasing).
+ */
+export const TREND_EDGE_CLEARANCE = 0.5;
+/** Tolerancia (px) de la bisección del ancho; siempre del lado seguro. */
+const TREND_BISECTION_TOLERANCE = 1e-7;
 
 export interface Band {
     y: number;
@@ -48,19 +59,133 @@ export function computeGaugeLayout(
     return { gaugeHeight, footer: { y: gaugeHeight, height: FOOTER_HEIGHT } };
 }
 
+/** ¿`deg` (grados, 0 = 12 en punto, horario) cae en el barrido [lo, hi] (con vueltas de 360°)? */
+function inSweep(deg: number, lo: number, hi: number): boolean {
+    return hi - lo >= 360 || containsAngle(lo, hi, deg);
+}
+
+type Point = [number, number];
+
+const cross = (a: Point, b: Point) => a[0] * b[1] - a[1] * b[0];
+const sub = (a: Point, b: Point): Point => [a[0] - b[0], a[1] - b[1]];
+
+/** Distancia de p al segmento [a, b]. */
+function pointSegmentDistance(p: Point, a: Point, b: Point): number {
+    const ab = sub(b, a);
+    const length2 = ab[0] * ab[0] + ab[1] * ab[1];
+    // Segmento degenerado (a = b, p. ej. fila de ancho 0): el numerador también es 0 → t = 0, sin dividir entre 0.
+    const t = Math.min(1, Math.max(0, ((p[0] - a[0]) * ab[0] + (p[1] - a[1]) * ab[1]) / Math.max(length2, Number.MIN_VALUE)));
+    return Math.hypot(p[0] - a[0] - t * ab[0], p[1] - a[1] - t * ab[1]);
+}
+
+/** Distancia entre los segmentos [a, b] y [c, d] (0 si se cruzan). */
+function segmentDistance(a: Point, b: Point, c: Point, d: Point): number {
+    const d1 = cross(sub(b, a), sub(c, a));
+    const d2 = cross(sub(b, a), sub(d, a));
+    const d3 = cross(sub(d, c), sub(a, c));
+    const d4 = cross(sub(d, c), sub(b, c));
+    if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) {
+        return 0;
+    }
+    return Math.min(pointSegmentDistance(a, c, d), pointSegmentDistance(b, c, d), pointSegmentDistance(c, a, b), pointSegmentDistance(d, a, b));
+}
+
+/** Dirección unitaria del ángulo `deg` (0 = 12 en punto, horario; y hacia abajo). */
+function direction(deg: number): Point {
+    const a = (deg * Math.PI) / 180;
+    return [Math.sin(a), -Math.cos(a)];
+}
+
 /**
- * Caja de la sparkline dentro del semicírculo, bajo el número central, en coordenadas relativas
- * al centro del medidor. Sus esquinas quedan dentro del círculo interior de la banda, así que no
- * invade el arco con ningún ángulo inicial/final. null si quedaría más baja que TREND_MIN_HEIGHT.
+ * Distancia exacta del segmento [p, q] al sector anular {r0 <= ρ <= r1, ángulo en [lo, hi]} cuando el segmento
+ * está dentro del círculo de radio r1 (el contenido de la sparkline siempre lo está). Dentro del barrido la
+ * distancia es r0 − ρ (mínima donde ρ es máxima: en los extremos de cada tramo, ρ es convexa sobre la recta);
+ * fuera del barrido el punto más cercano del sector está en uno de sus bordes radiales.
  */
-export function computeInnerTrendBox(radius: number, thickness: number): Box | null {
+function segmentToAnnularSector(p: Point, q: Point, r0: number, r1: number, lo: number, hi: number): number {
+    const pq = sub(q, p);
+    const at = (t: number): Point => [p[0] + t * pq[0], p[1] + t * pq[1]];
+    const cuts = [0, 1];
+    for (const deg of [lo, hi]) {
+        const dir = direction(deg);
+        const denominator = cross(dir, pq);
+        if (denominator !== 0) {
+            const t = -cross(dir, p) / denominator;
+            if (t > 0 && t < 1) {
+                cuts.push(t);
+            }
+        }
+    }
+    cuts.sort((x, y) => x - y);
+    let best = Infinity;
+    for (let i = 0; i + 1 < cuts.length; i++) {
+        const middle = at((cuts[i] + cuts[i + 1]) / 2);
+        if (inSweep((Math.atan2(middle[0], -middle[1]) * 180) / Math.PI, lo, hi)) {
+            const rho = Math.max(Math.hypot(...at(cuts[i])), Math.hypot(...at(cuts[i + 1])));
+            best = Math.min(best, Math.max(0, r0 - rho));
+        }
+    }
+    for (const deg of [lo, hi]) {
+        const dir = direction(deg);
+        best = Math.min(best, segmentDistance(p, q, [dir[0] * r0, dir[1] * r0], [dir[0] * r1, dir[1] * r1]));
+    }
+    return best;
+}
+
+/**
+ * Caja de la sparkline dentro del semicírculo, bajo el número central, en coordenadas relativas al centro del
+ * medidor. null si quedaría más baja que TREND_MIN_HEIGHT.
+ *
+ * 0.3.3.1 — ancho máximo técnicamente seguro. Lo que se dibuja no es la caja sino su contenido: centros de los
+ * puntos en [−X, X] × [y0 + TREND_PADDING, y1 − TREND_PADDING] (X = ancho/2 − TREND_PADDING), cada uno con radio
+ * hasta TREND_CURRENT_POINT_RADIUS (las líneas, 0.75 px de medio trazo, quedan dentro). Con alcance
+ * a = TREND_CURRENT_POINT_RADIUS + TREND_EDGE_CLEARANCE, X es el mayor valor tal que:
+ *  1. Banda (cualquier ángulo): √(X² + (y1 − relleno)²) + a <= radio interior.
+ *  2. Anillo del indicador del semáforo (semaphoreIndicatorRing, dentro de la banda sobre [startAngle, endAngle]):
+ *     distancia exacta del rectángulo de centros al sector anular >= a (bisección; basta el perímetro porque el
+ *     anillo no cabe dentro del rectángulo).
+ * Se aplica aunque el mes no traiga semáforo, para que el ancho no salte entre periodos.
+ * Alto y posición vertical no cambian (el encuadre de computeGaugeFrame y el pie tampoco).
+ */
+export function computeInnerTrendBox(radius: number, thickness: number, startAngle: number, endAngle: number): Box | null {
     const inner = bandRadii(radius, thickness).innerRadius;
     const height = inner * TREND_HEIGHT_FACTOR;
     if (height < TREND_MIN_HEIGHT) {
         return null;
     }
-    const width = inner * TREND_WIDTH_FACTOR;
-    return { x: -width / 2, y: inner * TREND_TOP_FACTOR, width, height };
+    const y = inner * TREND_TOP_FACTOR;
+    const top = y + TREND_PADDING;
+    const bottom = y + height - TREND_PADDING;
+    const reach = TREND_CURRENT_POINT_RADIUS + TREND_EDGE_CLEARANCE;
+    const lo = Math.min(startAngle, endAngle);
+    const hi = Math.max(startAngle, endAngle);
+    const ring = semaphoreIndicatorRing(inner, thickness);
+
+    const clearOfRing = (X: number): boolean => {
+        const corners: Point[] = [[-X, top], [X, top], [X, bottom], [-X, bottom]];
+        return corners.every(
+            (corner, i) => segmentToAnnularSector(corner, corners[(i + 1) % 4], ring.innerRadius, ring.outerRadius, lo, hi) >= reach
+        );
+    };
+
+    // 1. Círculo interior (forma cerrada).
+    let halfSpan = Math.sqrt(Math.max(0, (inner - reach) ** 2 - bottom ** 2));
+    // 2. Anillo del semáforo: bisección sólo si el contenido lo alcanzaría.
+    if (!clearOfRing(halfSpan)) {
+        let safe = 0;
+        let unsafe = halfSpan;
+        while (unsafe - safe > TREND_BISECTION_TOLERANCE) {
+            const mid = (safe + unsafe) / 2;
+            if (clearOfRing(mid)) {
+                safe = mid;
+            } else {
+                unsafe = mid;
+            }
+        }
+        halfSpan = safe;
+    }
+    const width = 2 * (halfSpan + TREND_PADDING);
+    return { x: -width / 2, y, width, height };
 }
 
 export interface GaugeFrame {

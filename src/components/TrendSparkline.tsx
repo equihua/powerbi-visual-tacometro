@@ -1,11 +1,9 @@
 import * as React from 'react';
 import { buildTrendGeometry, statusColor, StatusColors, TrendPoint } from './trend';
+import { TREND_CURRENT_POINT_RADIUS as CURRENT_POINT_RADIUS, TREND_PADDING as PADDING, TREND_POINT_RADIUS as POINT_RADIUS } from './layout';
 
 /** Color neutro de la línea de Real: el estado lo expresan los puntos. */
 export const TREND_LINE_COLOR = "#D1D5DB";
-const PADDING = 6;
-const POINT_RADIUS = 2.5;
-const CURRENT_POINT_RADIUS = 4;
 
 export interface TrendSparklineProps {
     points: TrendPoint[];
@@ -62,6 +60,8 @@ export const TrendSparkline: React.FC<TrendSparklineProps> = ({
                     <circle
                         key={vertex.index}
                         className={current ? "trend-point trend-point-current" : "trend-point"}
+                        // 0.3.2.1: visual.ts lo lee al hover para mostrar el tooltip de ESTE periodo.
+                        data-trend-index={vertex.index}
                         cx={vertex.x}
                         cy={vertex.y}
                         r={current ? CURRENT_POINT_RADIUS : POINT_RADIUS}

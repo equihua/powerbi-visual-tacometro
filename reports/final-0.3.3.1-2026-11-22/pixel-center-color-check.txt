@@ -1,0 +1,4 @@
+s18-sem-red-high-band red 855 green 0
+s19-sem-green red 0 green 784
+s20-sem-red-wide red 819 green 0
+s22-sem-red-wide-sweep red 855 green 0

@@ -3,6 +3,174 @@
 Formato basado en *Keep a Changelog*. La versión del visual la define `pbiviz.json`
 (`visual.version`, 4 partes exigidas por `powerbi-visuals-tools` 7.2.1).
 
+## [0.3.3.1] — 2026-11-22 (corrección de 0.3.3.0: número central con el semáforo real + sparkline al ancho máximo seguro, pre-1.0, sin validación en Power BI)
+
+### Versión
+
+- `pbiviz.json`, `package.json` y la raíz de `package-lock.json` (2 apariciones): `0.3.3.0` → **`0.3.3.1`**
+  (`tests/version.test.ts`). Sin cambios en `capabilities.json` ni en la lógica de datos, el encuadre
+  (`computeGaugeFrame`), el pie ni el tooltip por punto de 0.3.2.1.
+- Artefacto local: `dist/PBI_CV_TACOMETRO_GAUGE.0.3.3.1.pbiviz` (SHA-256 en
+  `reports/final-0.3.3.1-2026-11-22/artifact-sha256.txt`; no publicado ni importado en Power BI).
+
+### Revertido (de 0.3.3.0)
+
+- **Clasificación geométrica del número central.** 0.3.3.0 coloreaba el número con la banda del arco que contiene el
+  valor (`buildRangeBands` + `rangeBandColorAt`) e ignoraba a propósito el semáforo de la fuente: con umbrales 50/70,
+  **72.89 con semáforo «Rojo» salía verde** mientras el arco indicador del semáforo se pintaba rojo. Eso contradice la
+  regla TableroMaestro (el semáforo de la fuente manda, no se recalcula) y hacía que número y arco no coincidieran.
+  Se eliminan `buildRangeBands`, `RangeBand` y `rangeBandColorAt` (`src/components/scales.ts`) y su prueba
+  `tests/rangeBands.test.ts` (sin uso); `GaugeRanges` vuelve a recibir umbrales y `rangeBandColors` como en 0.3.2.x.
+- **Escenarios engañosos del arnés.** s16–s21 de 0.3.3.0 usaban semáforos deliberadamente contrarios a los datos
+  (p. ej. `s18-zone-green`: 72.89 «verde» con semáforo «Rojo» ignorado) y s19 demostraba un límite geométrico que ya no
+  rige. Se sustituyen (ver Verificación).
+
+### Corregido
+
+- **Número central = exactamente el color que consume el arco** (`performanceColor` en `Gauge.tsx`, la misma variable
+  que reciben el arco indicador del semáforo — rangos visibles — y el arco de desempeño — rangos ocultos): alto
+  contraste (`foreground`) > semáforo de la fuente (`resolveSemaphoreColor`: Rojo/Amarillo/Verde, clases `text-*`, hex,
+  «Sin semaforizar» gris) > respaldo por umbrales (`createPerformanceColorScale`, sólo si la fuente no trae semáforo, el
+  mismo que ya usaba el arco). No hay ninguna clasificación aparte. «Menor es mejor» no reclasifica un semáforo
+  explícito. Sin semáforo el color coincide con 0.3.3.0 (mismos umbrales `<=`), así que las pruebas de markup 0.2.0.0
+  conservan su única diferencia (`fill="#777777"` → `#FFC000`, `baseline033`). `labelColor` sigue sin aplicarse al número.
+
+### Cambiado
+
+- **Sparkline al ancho máximo técnicamente seguro** (`computeInnerTrendBox(radius, thickness, startAngle, endAngle)`,
+  `src/components/layout.ts`). Razonamiento:
+  - 0.3.3.0 acotaba las *esquinas de la caja* a la cuerda del círculo interior en su borde inferior × 0.995. Pero lo que
+    se dibuja no es la caja: los centros de los puntos van a `TREND_PADDING` (6 px) de sus bordes y cada punto tiene
+    radio ≤ `TREND_CURRENT_POINT_RADIUS` (4 px; las líneas, 0.75 px de medio trazo, quedan dentro). La cota correcta es
+    la del contenido: centros en `[−X, X] × [0.1·rᵢ + 6, 0.6·rᵢ − 6]`, alcance `a = 4 + TREND_EDGE_CLEARANCE (0.5 px)`
+    (medio píxel: lo que el contorno de 1 px de alto contraste invade hacia dentro, y antialiasing).
+  - Cota 1 — banda, con cualquier ángulo: `√(X² + (0.6·rᵢ − 6)²) + a ≤ rᵢ` →
+    `X₁ = √((rᵢ − 4.5)² − (0.6·rᵢ − 6)²)`.
+  - Cota 2 — arco indicador del semáforo (`semaphoreIndicatorRing`, nueva fuente única en `arcUtils.ts` que también usa
+    `Gauge.tsx`): anillo de grosor `max(3, 0.3·grosor)` a 2 px dentro de la banda, dibujado sobre
+    `[startAngle, endAngle]`. Con ángulos que bajan de la horizontal (p. ej. −120°) el anillo entra en la zona de la
+    sparkline, cosa que 0.3.3.0 no consideraba. `X₂` = mayor X cuya distancia exacta (punto–sector anular, evaluada en
+    el perímetro del rectángulo de centros) al anillo es ≥ `a`; se obtiene por bisección (tolerancia 1e-7 px, siempre
+    del lado seguro). Se aplica aunque el mes no traiga semáforo, para que el ancho no salte entre periodos.
+  - **Cota final segura: ancho = 2·(min(X₁, X₂) + 6).** Con el arco por defecto (−120°..60°, grosor 20) manda el
+    anillo en −120°: `X = sin 120°·(rᵢ − 8) − 4.5`; tarjeta 300x300 con pie (rᵢ = 130.5): **215.18 px** (0.3.3.0:
+    207.76; +3.6 %), ranura `x 46.12 → 42.41`. Con −90°..90° manda la banda: 218.39 px. Con −135°..135° el anillo
+    baja más y la cota segura queda en 0.95× del ancho de 0.3.3.0 (que la excedía).
+  - Alto y posición vertical no cambian: radio, centro, `FOOTER_GAP` y pie idénticos.
+  - Las constantes de la sparkline (`TREND_PADDING`, `TREND_POINT_RADIUS`, `TREND_CURRENT_POINT_RADIUS`) viven ahora en
+    `layout.ts` y `TrendSparkline.tsx` las importa (mismos valores).
+
+### Verificación
+
+- TDD (`reports/final-0.3.3.1-2026-11-22/`): `red-c1-center-semaphore.txt` (10 fallos: 72.89 + «Rojo» recibía
+  `#007F38`; `rangeBandColorAt` existía) → `green-c1-…` (13/13); `red-c2-sparkline-safe-width.txt` (37 fallos:
+  `semaphoreIndicatorRing` inexistente, ancho 207.76) → `green-c2-…` (67/67, oráculo independiente por muestreo denso:
+  seguro y a < 0.1 px del máximo en 5 radios × 5 barridos); `red-c3-version.txt` → `green-c3-version.txt`.
+- `npm run lint` (exit 0), `npm run typecheck:test` (exit 0), `npm run test:coverage`: **283 pruebas** en 24 archivos
+  (0.3.3.0: 264 en 25; −1 archivo `rangeBands.test.ts`), cobertura Stmts 99.78 % · Branch 96.28 % · Funcs 99.14 % ·
+  Lines 99.76 % (0.3.3.0: 99.75 / 96.01 / 99.08 / 99.73). `npm run package` (exit 0).
+- Arnés: semáforo derivado como en el modelo (cumplimiento Real/Programado: ≥ 100 % Verde, ≥ 95 % Amarillo, < 95 %
+  Rojo) para «Semáforo» y «Semáforo por periodo»: s16 35.40/72 Rojo, s17 69.80/72 Amarillo, **s18 72.89/80 Rojo con el
+  valor en la banda alta → número rojo = arco**, s19 74.50/72 Verde, s20 480x300 y s21 220x200 (72.89 Rojo), s22
+  arco −135°..135°. `verify-dom.mjs` comprueba `centerFill`, `semaphoreArcFill`, `centerMatchesArc`,
+  `trendWidthRatio` (> 1 vs 0.3.3.0) y `trendClearancePx` (≥ 0.5 a banda y anillo): 24 escenarios, 0 fallos. Capturas
+  `after-0.3.3.1-*.png`, comparativas `compare-0.3.3.0-vs-0.3.3.1-*.png` y comprobación de píxeles del número
+  (`pixel-center-color-check.txt`).
+
+## [0.3.3.0] — 2026-11-22 (UX: número central con color de banda + sparkline al ancho de la abertura, pre-1.0, sin validación en Power BI)
+
+> **Sustituida por 0.3.3.1:** el color geométrico del número central se revirtió y el ancho de la sparkline se
+> recalculó por contenido (ver arriba).
+
+### Versión
+
+- `pbiviz.json`, `package.json` y la raíz de `package-lock.json`: `0.3.2.1` → **`0.3.3.0`** (`tests/version.test.ts`).
+  Tercer dígito: cambio visible y compatible. Sin cambios en `capabilities.json` (roles y objetos intactos), ni en la
+  lógica de datos, el cálculo del pie (`computeGaugeLayout`, `GaugeFooter`) ni el tooltip por punto de 0.3.2.1.
+- Artefacto local: `dist/PBI_CV_TACOMETRO_GAUGE.0.3.3.0.pbiviz` (SHA-256 en
+  `reports/final-0.3.3.0-2026-11-22/artifact-sha256.txt`; no publicado ni importado en Power BI).
+
+### Cambiado
+
+- **Número central en rojo/amarillo/verde según la banda que el arco pinta en el valor actual.**
+  - Fuente única: `buildRangeBands` (`src/components/scales.ts`) produce los tramos min→low, low→mid, mid→max con los
+    colores de `rangeBandColors` (respeta «menor es mejor»). `Gauge.tsx` pasa esos tramos a `GaugeRanges` (que los
+    pinta, mismo markup que antes) y `rangeBandColorAt(bands, valor)` da el color del número. No se usa el rol
+    «Semáforo» ni umbrales nuevos: el color sale exactamente de la geometría de las bandas dibujadas.
+  - Límites: inclusivos por arriba (`<=`), la misma regla que `createPerformanceColorScale` (valor = umbral bajo → banda
+    baja; = umbral medio → banda media). Las bandas de ancho cero no se pintan, así que se omiten (p. ej. umbral bajo =
+    mínimo y valor = mínimo → banda media, la visible). Fuera de rango gana la banda del extremo, igual que el recorte de
+    la escala de ángulo. Ej.: 72.89 con umbrales 50/70 → verde (`#007F38`) aunque el semáforo de la fuente diga «Rojo».
+  - Alto contraste: el número usa `foreground` (las bandas son contorno con relleno `background`, que lo haría invisible).
+  - Consecuencia: el color de «Etiqueta de valor» (`valueLabelCard.color` → `labelColor`) ya no se aplica al número
+    (la propiedad sigue en el panel para no romper informes). Las pruebas de markup 0.2.0.0 aceptan sólo esa diferencia
+    (`fill="#777777"` → `#FFC000` en 91.47 con umbrales 80/95; `baseline033` en `tests/gaugeTrend.test.ts`).
+- **Sparkline mensual al ancho completo de la abertura interior** (`computeInnerTrendBox`, `src/components/layout.ts`).
+  - Justificación: la caja es un rectángulo bajo el número (y de 0.1 a 0.6 radios interiores); su anchura máxima
+    dentro del círculo interior la fija el borde inferior, donde la cuerda mide 2·√(1 − 0.6²) = **1.6 radios
+    interiores**. Antes era 1.5 fijo (≈ 94 % de lo disponible). Ahora el ancho es esa cuerda × 0.995 (holgura para que
+    las esquinas queden estrictamente dentro y nunca toquen la banda con cualquier ángulo).
+  - El alto y la posición vertical no cambian, así que `computeGaugeFrame` (radio y centro), el hueco `FOOTER_GAP` y el
+    pie anclado abajo quedan idénticos (300x300: centro `(150, 177.7)` y pie en `y = 260` sin cambio; sólo la ranura de
+    la sparkline pasa de `x = 52.13` a `46.12`).
+
+### Verificación
+
+- TDD (`reports/final-0.3.3.0-2026-11-22/`), un comportamiento por ciclo, RED → GREEN: `red-c1-band-low` (sin
+  `buildRangeBands`), `red-c2-band-medium`, `red-c3-band-high-72.89`, `red-c5-zero-width-band`,
+  `red-c7-gauge-center-green` (recibía `#777777`), `red-c8-gauge-center-hc` (recibía `#000000`),
+  `red-c10-trend-box-chord` (165.7 < 175.0), `red-c11-sparkline-width-vs-HEAD-layout` (prueba Gauge 480x300/220x200/
+  300x300 contra `layout.ts` de HEAD: 6 fallos de ancho), `red-c12-version`; cada uno con su `green-*`. Casos de límite
+  y «menor es mejor» como caracterización (`c4-…`, `c6-…`, `c9-…`).
+- `npm run lint` (exit 0), `npm run typecheck:test` (exit 0), `npm run test:coverage`: **264 pruebas** en 25 archivos
+  (antes 235 en 22), cobertura Stmts 99.75 % · Branch 96.01 % · Funcs 99.08 % · Lines 99.73 % (0.3.2.1: 99.75 / 95.98 /
+  99.04 / 99.72). `npm run package` (exit 0).
+- Arnés: escenarios nuevos s16 (35.40 rojo), s17 (61.20 amarillo), s18 (72.89 verde), s19 (70.00 = umbral medio →
+  amarillo), s20 (480x300) y s21 (220x200); `verify-dom.mjs` comprueba `centerFill` y `trendWidthRatio` (≥ 0.99 de la
+  cuerda interior): 23 escenarios, 0 fallos. Capturas `after-0.3.3.0-*.png` y comparativas `compare-before-after-*.png`.
+  `hover-tooltip.mjs` confirma el tooltip por punto de 0.3.2.1 (Ene/Jun/Oct y Feb/Sep con los datos de su periodo).
+
+## [0.3.2.1] — 2026-11-22 (corrección: tooltip por punto de la sparkline mensual, pre-1.0, sin validación en Power BI)
+
+### Versión
+
+- `pbiviz.json`, `package.json` y la raíz de `package-lock.json`: `0.3.2.0` → **`0.3.2.1`** (`tests/version.test.ts`).
+  Sin cambios en `capabilities.json` ni en el diseño/layout (arco, sparkline, pie y posiciones idénticos; `verify-dom.mjs`
+  17 escenarios, 0 fallos).
+- Artefacto local: `dist/PBI_CV_TACOMETRO_GAUGE.0.3.2.1.pbiviz` (SHA-256 en
+  `reports/final-0.3.2.1-2026-11-22/artifact-sha256.txt`; no publicado).
+
+### Corregido
+
+- **Al pasar el mouse por cualquier punto de la sparkline mensual, el tooltip mostraba siempre los datos del mes actual
+  del medidor** (p. ej. en el arnés, Ene/Jun/Oct mostraban todos «Valor 91.47 · Programado 95.00 · Semáforo Amarillo»).
+- **Causa raíz exacta:** `src/visual.ts` (`registerInteractions`, líneas 97–100 de 0.3.2.0) registra un único
+  `mousemove` en el elemento raíz del visual que llamaba a `showTooltip(coordenadas)` sin mirar `event.target`; y
+  `showTooltip` (líneas 120–131 de 0.3.2.0) siempre enviaba al `tooltipService` del host
+  `buildTooltipItems(this.currentData, this.tooltipExtras)`, es decir, el `GaugeData` del periodo actual. Los círculos de
+  `TrendSparkline.tsx` sólo tenían un `<title>` SVG nativo con su periodo, que el tooltip del host tapa; ningún dato
+  ligaba el círculo bajo el cursor con su `TrendPoint`.
+- **Corrección:** `TrendSparkline.tsx` marca cada círculo con `data-trend-index` (índice del periodo en
+  `GaugeData.trend`); `visual.ts` (`trendPointTooltip`) busca `event.target.closest("[data-trend-index]")` y, si el
+  índice existe en la serie, muestra `buildTrendPointTooltipItems` (`src/tooltips.ts`): **Periodo, Real, Programado
+  (si hay) y Semáforo (si hay) de ESE periodo**, con el formato del medidor. Fuera de los puntos, con foco de teclado,
+  sin serie mensual o con un índice inexistente se mantiene el tooltip del medidor de siempre. Los campos del rol
+  «Información sobre herramientas» siguen siendo los del mes actual y no se añaden al tooltip de un punto.
+
+### Verificación
+
+- TDD (`reports/final-0.3.2.1-2026-11-22/`): `red-trend-tooltip.txt` (3 fallos: sin `data-trend-index`, el hover de
+  Ene mostraba «Valor 91» del mes actual, versión 0.3.2.0) → `green-trend-tooltip.txt`; `red-cycle2-…` (destinos sin
+  `closest()`) → `green-cycle2-full.txt`; `red-cycle3-opcionales-indice.txt` → GREEN.
+- `npm run lint` (exit 0), `npm run typecheck:test` (exit 0), `npm run test:coverage`: **235 pruebas** en 22 archivos
+  (antes 230 en 21), cobertura Stmts 99.75 % · Branch 95.98 % · Funcs 99.04 % · Lines 99.72 % (0.3.2.0: 99.74 / 95.84 /
+  99.01 / 99.71). `npm run package` (exit 0).
+- Arnés: el `tooltipService` simulado de los escenarios mensuales pinta los `dataItems` (`.harness-tooltip`);
+  `dev-harness/scripts/hover-tooltip.mjs` pasa el mouse por puntos reales en Chromium. Antes (`before-hover.txt` /
+  `before-hover-*.png`): todos los puntos mostraban el mes actual. Después (`after-hover.txt` / `after-hover-*.png`):
+  s6 Ene 72.10/70.00 Rojo, Jun 88.90/87.00 Verde, Oct 91.47/95.00 Amarillo; s9 Feb 78.40/75.00 Rojo, Sep 93.40/93.00
+  Verde.
+
 ## [0.3.2.0] — 2026-11-22 (valor «Real & Mes anterior» + pie más pegado al medidor, pre-1.0, sin validación en Power BI)
 
 ### Versión

@@ -1,0 +1,1058 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index afc0c45..bcd8a54 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -3,6 +3,174 @@
+ Formato basado en *Keep a Changelog*. La versión del visual la define `pbiviz.json`
+ (`visual.version`, 4 partes exigidas por `powerbi-visuals-tools` 7.2.1).
+ 
++## [0.3.3.1] — 2026-11-22 (corrección de 0.3.3.0: número central con el semáforo real + sparkline al ancho máximo seguro, pre-1.0, sin validación en Power BI)
++
++### Versión
++
++- `pbiviz.json`, `package.json` y la raíz de `package-lock.json` (2 apariciones): `0.3.3.0` → **`0.3.3.1`**
++  (`tests/version.test.ts`). Sin cambios en `capabilities.json` ni en la lógica de datos, el encuadre
++  (`computeGaugeFrame`), el pie ni el tooltip por punto de 0.3.2.1.
++- Artefacto local: `dist/PBI_CV_TACOMETRO_GAUGE.0.3.3.1.pbiviz` (SHA-256 en
++  `reports/final-0.3.3.1-2026-11-22/artifact-sha256.txt`; no publicado ni importado en Power BI).
++
++### Revertido (de 0.3.3.0)
++
++- **Clasificación geométrica del número central.** 0.3.3.0 coloreaba el número con la banda del arco que contiene el
++  valor (`buildRangeBands` + `rangeBandColorAt`) e ignoraba a propósito el semáforo de la fuente: con umbrales 50/70,
++  **72.89 con semáforo «Rojo» salía verde** mientras el arco indicador del semáforo se pintaba rojo. Eso contradice la
++  regla TableroMaestro (el semáforo de la fuente manda, no se recalcula) y hacía que número y arco no coincidieran.
++  Se eliminan `buildRangeBands`, `RangeBand` y `rangeBandColorAt` (`src/components/scales.ts`) y su prueba
++  `tests/rangeBands.test.ts` (sin uso); `GaugeRanges` vuelve a recibir umbrales y `rangeBandColors` como en 0.3.2.x.
++- **Escenarios engañosos del arnés.** s16–s21 de 0.3.3.0 usaban semáforos deliberadamente contrarios a los datos
++  (p. ej. `s18-zone-green`: 72.89 «verde» con semáforo «Rojo» ignorado) y s19 demostraba un límite geométrico que ya no
++  rige. Se sustituyen (ver Verificación).
++
++### Corregido
++
++- **Número central = exactamente el color que consume el arco** (`performanceColor` en `Gauge.tsx`, la misma variable
++  que reciben el arco indicador del semáforo — rangos visibles — y el arco de desempeño — rangos ocultos): alto
++  contraste (`foreground`) > semáforo de la fuente (`resolveSemaphoreColor`: Rojo/Amarillo/Verde, clases `text-*`, hex,
++  «Sin semaforizar» gris) > respaldo por umbrales (`createPerformanceColorScale`, sólo si la fuente no trae semáforo, el
++  mismo que ya usaba el arco). No hay ninguna clasificación aparte. «Menor es mejor» no reclasifica un semáforo
++  explícito. Sin semáforo el color coincide con 0.3.3.0 (mismos umbrales `<=`), así que las pruebas de markup 0.2.0.0
++  conservan su única diferencia (`fill="#777777"` → `#FFC000`, `baseline033`). `labelColor` sigue sin aplicarse al número.
++
++### Cambiado
++
++- **Sparkline al ancho máximo técnicamente seguro** (`computeInnerTrendBox(radius, thickness, startAngle, endAngle)`,
++  `src/components/layout.ts`). Razonamiento:
++  - 0.3.3.0 acotaba las *esquinas de la caja* a la cuerda del círculo interior en su borde inferior × 0.995. Pero lo que
++    se dibuja no es la caja: los centros de los puntos van a `TREND_PADDING` (6 px) de sus bordes y cada punto tiene
++    radio ≤ `TREND_CURRENT_POINT_RADIUS` (4 px; las líneas, 0.75 px de medio trazo, quedan dentro). La cota correcta es
++    la del contenido: centros en `[−X, X] × [0.1·rᵢ + 6, 0.6·rᵢ − 6]`, alcance `a = 4 + TREND_EDGE_CLEARANCE (0.5 px)`
++    (medio píxel: lo que el contorno de 1 px de alto contraste invade hacia dentro, y antialiasing).
++  - Cota 1 — banda, con cualquier ángulo: `√(X² + (0.6·rᵢ − 6)²) + a ≤ rᵢ` →
++    `X₁ = √((rᵢ − 4.5)² − (0.6·rᵢ − 6)²)`.
++  - Cota 2 — arco indicador del semáforo (`semaphoreIndicatorRing`, nueva fuente única en `arcUtils.ts` que también usa
++    `Gauge.tsx`): anillo de grosor `max(3, 0.3·grosor)` a 2 px dentro de la banda, dibujado sobre
++    `[startAngle, endAngle]`. Con ángulos que bajan de la horizontal (p. ej. −120°) el anillo entra en la zona de la
++    sparkline, cosa que 0.3.3.0 no consideraba. `X₂` = mayor X cuya distancia exacta (punto–sector anular, evaluada en
++    el perímetro del rectángulo de centros) al anillo es ≥ `a`; se obtiene por bisección (tolerancia 1e-7 px, siempre
++    del lado seguro). Se aplica aunque el mes no traiga semáforo, para que el ancho no salte entre periodos.
++  - **Cota final segura: ancho = 2·(min(X₁, X₂) + 6).** Con el arco por defecto (−120°..60°, grosor 20) manda el
++    anillo en −120°: `X = sin 120°·(rᵢ − 8) − 4.5`; tarjeta 300x300 con pie (rᵢ = 130.5): **215.18 px** (0.3.3.0:
++    207.76; +3.6 %), ranura `x 46.12 → 42.41`. Con −90°..90° manda la banda: 218.39 px. Con −135°..135° el anillo
++    baja más y la cota segura queda en 0.95× del ancho de 0.3.3.0 (que la excedía).
++  - Alto y posición vertical no cambian: radio, centro, `FOOTER_GAP` y pie idénticos.
++  - Las constantes de la sparkline (`TREND_PADDING`, `TREND_POINT_RADIUS`, `TREND_CURRENT_POINT_RADIUS`) viven ahora en
++    `layout.ts` y `TrendSparkline.tsx` las importa (mismos valores).
++
++### Verificación
++
++- TDD (`reports/final-0.3.3.1-2026-11-22/`): `red-c1-center-semaphore.txt` (10 fallos: 72.89 + «Rojo» recibía
++  `#007F38`; `rangeBandColorAt` existía) → `green-c1-…` (13/13); `red-c2-sparkline-safe-width.txt` (37 fallos:
++  `semaphoreIndicatorRing` inexistente, ancho 207.76) → `green-c2-…` (67/67, oráculo independiente por muestreo denso:
++  seguro y a < 0.1 px del máximo en 5 radios × 5 barridos); `red-c3-version.txt` → `green-c3-version.txt`.
++- `npm run lint` (exit 0), `npm run typecheck:test` (exit 0), `npm run test:coverage`: **283 pruebas** en 24 archivos
++  (0.3.3.0: 264 en 25; −1 archivo `rangeBands.test.ts`), cobertura Stmts 99.78 % · Branch 96.28 % · Funcs 99.14 % ·
++  Lines 99.76 % (0.3.3.0: 99.75 / 96.01 / 99.08 / 99.73). `npm run package` (exit 0).
++- Arnés: semáforo derivado como en el modelo (cumplimiento Real/Programado: ≥ 100 % Verde, ≥ 95 % Amarillo, < 95 %
++  Rojo) para «Semáforo» y «Semáforo por periodo»: s16 35.40/72 Rojo, s17 69.80/72 Amarillo, **s18 72.89/80 Rojo con el
++  valor en la banda alta → número rojo = arco**, s19 74.50/72 Verde, s20 480x300 y s21 220x200 (72.89 Rojo), s22
++  arco −135°..135°. `verify-dom.mjs` comprueba `centerFill`, `semaphoreArcFill`, `centerMatchesArc`,
++  `trendWidthRatio` (> 1 vs 0.3.3.0) y `trendClearancePx` (≥ 0.5 a banda y anillo): 24 escenarios, 0 fallos. Capturas
++  `after-0.3.3.1-*.png`, comparativas `compare-0.3.3.0-vs-0.3.3.1-*.png` y comprobación de píxeles del número
++  (`pixel-center-color-check.txt`).
++
++## [0.3.3.0] — 2026-11-22 (UX: número central con color de banda + sparkline al ancho de la abertura, pre-1.0, sin validación en Power BI)
++
++> **Sustituida por 0.3.3.1:** el color geométrico del número central se revirtió y el ancho de la sparkline se
++> recalculó por contenido (ver arriba).
++
++### Versión
++
++- `pbiviz.json`, `package.json` y la raíz de `package-lock.json`: `0.3.2.1` → **`0.3.3.0`** (`tests/version.test.ts`).
++  Tercer dígito: cambio visible y compatible. Sin cambios en `capabilities.json` (roles y objetos intactos), ni en la
++  lógica de datos, el cálculo del pie (`computeGaugeLayout`, `GaugeFooter`) ni el tooltip por punto de 0.3.2.1.
++- Artefacto local: `dist/PBI_CV_TACOMETRO_GAUGE.0.3.3.0.pbiviz` (SHA-256 en
++  `reports/final-0.3.3.0-2026-11-22/artifact-sha256.txt`; no publicado ni importado en Power BI).
++
++### Cambiado
++
++- **Número central en rojo/amarillo/verde según la banda que el arco pinta en el valor actual.**
++  - Fuente única: `buildRangeBands` (`src/components/scales.ts`) produce los tramos min→low, low→mid, mid→max con los
++    colores de `rangeBandColors` (respeta «menor es mejor»). `Gauge.tsx` pasa esos tramos a `GaugeRanges` (que los
++    pinta, mismo markup que antes) y `rangeBandColorAt(bands, valor)` da el color del número. No se usa el rol
++    «Semáforo» ni umbrales nuevos: el color sale exactamente de la geometría de las bandas dibujadas.
++  - Límites: inclusivos por arriba (`<=`), la misma regla que `createPerformanceColorScale` (valor = umbral bajo → banda
++    baja; = umbral medio → banda media). Las bandas de ancho cero no se pintan, así que se omiten (p. ej. umbral bajo =
++    mínimo y valor = mínimo → banda media, la visible). Fuera de rango gana la banda del extremo, igual que el recorte de
++    la escala de ángulo. Ej.: 72.89 con umbrales 50/70 → verde (`#007F38`) aunque el semáforo de la fuente diga «Rojo».
++  - Alto contraste: el número usa `foreground` (las bandas son contorno con relleno `background`, que lo haría invisible).
++  - Consecuencia: el color de «Etiqueta de valor» (`valueLabelCard.color` → `labelColor`) ya no se aplica al número
++    (la propiedad sigue en el panel para no romper informes). Las pruebas de markup 0.2.0.0 aceptan sólo esa diferencia
++    (`fill="#777777"` → `#FFC000` en 91.47 con umbrales 80/95; `baseline033` en `tests/gaugeTrend.test.ts`).
++- **Sparkline mensual al ancho completo de la abertura interior** (`computeInnerTrendBox`, `src/components/layout.ts`).
++  - Justificación: la caja es un rectángulo bajo el número (y de 0.1 a 0.6 radios interiores); su anchura máxima
++    dentro del círculo interior la fija el borde inferior, donde la cuerda mide 2·√(1 − 0.6²) = **1.6 radios
++    interiores**. Antes era 1.5 fijo (≈ 94 % de lo disponible). Ahora el ancho es esa cuerda × 0.995 (holgura para que
++    las esquinas queden estrictamente dentro y nunca toquen la banda con cualquier ángulo).
++  - El alto y la posición vertical no cambian, así que `computeGaugeFrame` (radio y centro), el hueco `FOOTER_GAP` y el
++    pie anclado abajo quedan idénticos (300x300: centro `(150, 177.7)` y pie en `y = 260` sin cambio; sólo la ranura de
++    la sparkline pasa de `x = 52.13` a `46.12`).
++
++### Verificación
++
++- TDD (`reports/final-0.3.3.0-2026-11-22/`), un comportamiento por ciclo, RED → GREEN: `red-c1-band-low` (sin
++  `buildRangeBands`), `red-c2-band-medium`, `red-c3-band-high-72.89`, `red-c5-zero-width-band`,
++  `red-c7-gauge-center-green` (recibía `#777777`), `red-c8-gauge-center-hc` (recibía `#000000`),
++  `red-c10-trend-box-chord` (165.7 < 175.0), `red-c11-sparkline-width-vs-HEAD-layout` (prueba Gauge 480x300/220x200/
++  300x300 contra `layout.ts` de HEAD: 6 fallos de ancho), `red-c12-version`; cada uno con su `green-*`. Casos de límite
++  y «menor es mejor» como caracterización (`c4-…`, `c6-…`, `c9-…`).
++- `npm run lint` (exit 0), `npm run typecheck:test` (exit 0), `npm run test:coverage`: **264 pruebas** en 25 archivos
++  (antes 235 en 22), cobertura Stmts 99.75 % · Branch 96.01 % · Funcs 99.08 % · Lines 99.73 % (0.3.2.1: 99.75 / 95.98 /
++  99.04 / 99.72). `npm run package` (exit 0).
++- Arnés: escenarios nuevos s16 (35.40 rojo), s17 (61.20 amarillo), s18 (72.89 verde), s19 (70.00 = umbral medio →
++  amarillo), s20 (480x300) y s21 (220x200); `verify-dom.mjs` comprueba `centerFill` y `trendWidthRatio` (≥ 0.99 de la
++  cuerda interior): 23 escenarios, 0 fallos. Capturas `after-0.3.3.0-*.png` y comparativas `compare-before-after-*.png`.
++  `hover-tooltip.mjs` confirma el tooltip por punto de 0.3.2.1 (Ene/Jun/Oct y Feb/Sep con los datos de su periodo).
++
++## [0.3.2.1] — 2026-11-22 (corrección: tooltip por punto de la sparkline mensual, pre-1.0, sin validación en Power BI)
++
++### Versión
++
++- `pbiviz.json`, `package.json` y la raíz de `package-lock.json`: `0.3.2.0` → **`0.3.2.1`** (`tests/version.test.ts`).
++  Sin cambios en `capabilities.json` ni en el diseño/layout (arco, sparkline, pie y posiciones idénticos; `verify-dom.mjs`
++  17 escenarios, 0 fallos).
++- Artefacto local: `dist/PBI_CV_TACOMETRO_GAUGE.0.3.2.1.pbiviz` (SHA-256 en
++  `reports/final-0.3.2.1-2026-11-22/artifact-sha256.txt`; no publicado).
++
++### Corregido
++
++- **Al pasar el mouse por cualquier punto de la sparkline mensual, el tooltip mostraba siempre los datos del mes actual
++  del medidor** (p. ej. en el arnés, Ene/Jun/Oct mostraban todos «Valor 91.47 · Programado 95.00 · Semáforo Amarillo»).
++- **Causa raíz exacta:** `src/visual.ts` (`registerInteractions`, líneas 97–100 de 0.3.2.0) registra un único
++  `mousemove` en el elemento raíz del visual que llamaba a `showTooltip(coordenadas)` sin mirar `event.target`; y
++  `showTooltip` (líneas 120–131 de 0.3.2.0) siempre enviaba al `tooltipService` del host
++  `buildTooltipItems(this.currentData, this.tooltipExtras)`, es decir, el `GaugeData` del periodo actual. Los círculos de
++  `TrendSparkline.tsx` sólo tenían un `<title>` SVG nativo con su periodo, que el tooltip del host tapa; ningún dato
++  ligaba el círculo bajo el cursor con su `TrendPoint`.
++- **Corrección:** `TrendSparkline.tsx` marca cada círculo con `data-trend-index` (índice del periodo en
++  `GaugeData.trend`); `visual.ts` (`trendPointTooltip`) busca `event.target.closest("[data-trend-index]")` y, si el
++  índice existe en la serie, muestra `buildTrendPointTooltipItems` (`src/tooltips.ts`): **Periodo, Real, Programado
++  (si hay) y Semáforo (si hay) de ESE periodo**, con el formato del medidor. Fuera de los puntos, con foco de teclado,
++  sin serie mensual o con un índice inexistente se mantiene el tooltip del medidor de siempre. Los campos del rol
++  «Información sobre herramientas» siguen siendo los del mes actual y no se añaden al tooltip de un punto.
++
++### Verificación
++
++- TDD (`reports/final-0.3.2.1-2026-11-22/`): `red-trend-tooltip.txt` (3 fallos: sin `data-trend-index`, el hover de
++  Ene mostraba «Valor 91» del mes actual, versión 0.3.2.0) → `green-trend-tooltip.txt`; `red-cycle2-…` (destinos sin
++  `closest()`) → `green-cycle2-full.txt`; `red-cycle3-opcionales-indice.txt` → GREEN.
++- `npm run lint` (exit 0), `npm run typecheck:test` (exit 0), `npm run test:coverage`: **235 pruebas** en 22 archivos
++  (antes 230 en 21), cobertura Stmts 99.75 % · Branch 95.98 % · Funcs 99.04 % · Lines 99.72 % (0.3.2.0: 99.74 / 95.84 /
++  99.01 / 99.71). `npm run package` (exit 0).
++- Arnés: el `tooltipService` simulado de los escenarios mensuales pinta los `dataItems` (`.harness-tooltip`);
++  `dev-harness/scripts/hover-tooltip.mjs` pasa el mouse por puntos reales en Chromium. Antes (`before-hover.txt` /
++  `before-hover-*.png`): todos los puntos mostraban el mes actual. Después (`after-hover.txt` / `after-hover-*.png`):
++  s6 Ene 72.10/70.00 Rojo, Jun 88.90/87.00 Verde, Oct 91.47/95.00 Amarillo; s9 Feb 78.40/75.00 Rojo, Sep 93.40/93.00
++  Verde.
++
+ ## [0.3.2.0] — 2026-11-22 (valor «Real & Mes anterior» + pie más pegado al medidor, pre-1.0, sin validación en Power BI)
+ 
+ ### Versión
+diff --git a/README.md b/README.md
+index 4f1e9cb..7ac6c2b 100644
+--- a/README.md
++++ b/README.md
+@@ -1,7 +1,7 @@
+ # powerbi-visual-tacometro
+ Medidor de tacómetro con marge y objetivo
+ 
+-Versión actual del visual: **0.3.2.0** (`pbiviz.json`). Cambios, compatibilidad y estado de los puntos A1–A4 / B1–B4
++Versión actual del visual: **0.3.3.1** (`pbiviz.json`). Cambios, compatibilidad y estado de los puntos A1–A4 / B1–B4
+ en [CHANGELOG.md](CHANGELOG.md).
+ 
+ > **Estado:** compila, pasa lint y pruebas unitarias, y se empaqueta localmente. **No se ha validado dentro de
+diff --git a/dev-harness/scripts/screenshots.mjs b/dev-harness/scripts/screenshots.mjs
+index 5f76467..7d8c6cb 100644
+--- a/dev-harness/scripts/screenshots.mjs
++++ b/dev-harness/scripts/screenshots.mjs
+@@ -38,7 +38,10 @@ for (const id of ["s1-normal", "s2a-clamp-high", "s2b-clamp-low", "s3-thirds", "
+     // 0.3.1.0: layout responsivo (tarjeta ancha y compacta).
+     "s10-trend-wide", "s11-trend-compact",
+     // Revisión 0.3.2.0: «Real & Mes anterior» con Real sin recortar y color por favorabilidad.
+-    "s12-prev-unfavorable", "s13-prev-favorable", "s14-prev-lower-better", "s15-prev-out-of-range"]) {
++    "s12-prev-unfavorable", "s13-prev-favorable", "s14-prev-lower-better", "s15-prev-out-of-range",
++    // 0.3.3.1: número central = semáforo de la fuente (= arco indicador) y sparkline al ancho máximo seguro.
++    "s16-sem-red", "s17-sem-yellow", "s18-sem-red-high-band", "s19-sem-green", "s20-sem-red-wide", "s21-sem-red-compact",
++    "s22-sem-red-wide-sweep"]) {
+     await shot(`${id}.png`, `#${id}`);
+ }
+ await shot("s5a-anim-0-before.png", "#s5a-anim-ranges");
+diff --git a/dev-harness/scripts/verify-dom.mjs b/dev-harness/scripts/verify-dom.mjs
+index 068ea08..5633449 100644
+--- a/dev-harness/scripts/verify-dom.mjs
++++ b/dev-harness/scripts/verify-dom.mjs
+@@ -23,6 +23,40 @@ const data = await page.evaluate(() => [...document.querySelectorAll(".card")].m
+     return {
+         id: card.id,
+         text: q("text.center-text")?.textContent ?? null,
++        // 0.3.3.1: color del número central = color del arco indicador del semáforo (o del arco de desempeño).
++        centerFill: q("text.center-text")?.getAttribute("fill") ?? null,
++        semaphoreArcFill: q("path.semaphore-indicator")?.getAttribute("fill") ?? null,
++        centerMatchesArc: (() => {
++            const arc = q("path.semaphore-indicator") ?? q("path.performance-arc");
++            return arc ? q("text.center-text")?.getAttribute("fill") === arc.getAttribute("fill") : null;
++        })(),
++        // 0.3.3.1: ancho de la serie (extremos de los puntos) vs. el de 0.3.3.0 (cuerda en 0.6·inner × 0.995 − 2·6).
++        trendWidthRatio: (() => {
++            if (points.length < 2) return null;
++            const inner = Math.min(...[...(q("path.gauge-background").getAttribute("d") ?? "").matchAll(/A([\d.]+),/g)].map((m) => +m[1]));
++            // Extremos horizontales de la serie: la línea de Programado cubre los 12 periodos; los puntos, los de Real.
++            const xs = [...card.querySelectorAll(".trend-sparkline path")].flatMap((p) => { const r = p.getBoundingClientRect(); return [r.left, r.right]; })
++                .concat(points.map((p) => { const r = p.getBoundingClientRect(); return r.left + r.width / 2; }));
++            return +((Math.max(...xs) - Math.min(...xs)) / (1.6 * inner * 0.995 - 12)).toFixed(4);
++        })(),
++        // 0.3.3.1: holgura mínima (px) de los puntos (radio incluido) al círculo interior y al anillo del semáforo
++        // (sólo puntos dentro del barrido del arco). Debe ser >= 0.5 (TREND_EDGE_CLEARANCE).
++        trendClearancePx: (() => {
++            const ring = q("path.semaphore-indicator");
++            if (!points.length) return null;
++            const c = /translate\(([-\d.e]+),\s*([-\d.e]+)\)/.exec(q("svg.gauge-svg > g").getAttribute("transform"));
++            const inner = Math.min(...[...(q("path.gauge-background").getAttribute("d") ?? "").matchAll(/A([\d.]+),/g)].map((m) => +m[1]));
++            const ringInner = ring ? Math.min(...[...(ring.getAttribute("d") ?? "").matchAll(/A([\d.]+),/g)].map((m) => +m[1])) : Infinity;
++            const [lo, hi] = (/angles=([-\d.]+)\.\.([-\d.]+)/.exec(card.dataset.debug ?? "") ?? [0, -90, 90]).slice(1).map(Number);
++            const s = q("svg.gauge-svg").getBoundingClientRect();
++            return +Math.min(...points.map((p) => {
++                const r = p.getBoundingClientRect();
++                const x = r.left + r.width / 2 - s.left - +c[1], y = r.top + r.height / 2 - s.top - +c[2];
++                const rho = Math.hypot(x, y) + +p.getAttribute("r");
++                const deg = Math.atan2(x, -y) * 180 / Math.PI;
++                return Math.min(inner - rho, deg >= lo && deg <= hi ? ringInner - rho : Infinity);
++            })).toFixed(3);
++        })(),
+         // GaugeMarker (B3) reemplazó a TargetMarker: la clase es "gauge-marker marker-target".
+         targetDeg: rot(".marker-target"),
+         markerDeg,
+@@ -93,6 +127,8 @@ const noExtras = { gaugeTranslate: "translate(150, 150)", trendFills: [], trendR
+ const tenMonths = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct"];
+ const R = "#C00000", A = "#FFC000", V = "#007F38", HC = "#FFFF00";
+ const poaFills = [R, R, A, R, A, V, A, A, V, A];
++// 0.3.3.1: semáforo por cumplimiento Real/Programado de los meses Ene–Sep de zoneSeries + el de Oct.
++const zoneFills = (oct) => [R, A, V, R, V, V, A, V, V, oct];
+ // 0.3.1.0: SVG a todo el tamaño de la tarjeta, sparkline dentro del semicírculo bajo el número,
+ // pie anclado al borde inferior con etiquetas del boceto alineadas en un renglón.
+ // 0.3.2.0: hueco medidor→texto del pie entre 0 (sin solape) y 16 px (antes ~40-70 px); ver `gapOk`.
+@@ -110,11 +146,11 @@ const expected = {
+     "s5b-anim-arc": { text: "20", targetDeg: ang(80, 0, 100), markerDeg: ang(20, 0, 100), ...noExtras },
+     // 0.3.1.0: 300x300 con pie (40 px) abajo y sparkline DENTRO del semicírculo: medidor en 300x260 → centro (150, 130).
+     "s6-trend-footer": { text: "91.47", targetDeg: ang(95, 0, 120), markerDeg: ang(91.47, 0, 120),
+-        gaugeTranslate: "translate(150, 175.25)", ...layout031(300, 300), trendSlot: "translate(52.13, 188.3)", trendFills: poaFills, trendLabels: tenMonths, trendRealLine: "#D1D5DB", trendCurrent: 9, programmedLine: true,
++        gaugeTranslate: "translate(150, 175.25)", ...layout031(300, 300), trendSlot: "translate(42.41, 188.3)" /* 0.3.3.0 x 46.12 → 0.3.3.1 42.41 (anillo del semáforo en -120°), y igual */, trendWidthRatio: ">1", trendClearancePx: ">=0.5", trendFills: poaFills, trendLabels: tenMonths, trendRealLine: "#D1D5DB", trendCurrent: 9, programmedLine: true,
+         footerProgrammed: "95.00", footerDif: "-3.53", footerDifFill: A, footerDescriptor: "Real & Mes anterior", footerPrev: "-1.93", footerPrevFill: R, debugTextVisible: false },
+-    "s10-trend-wide": { text: "91.47", gaugeTranslate: "translate(240, 167)", ...layout031(480, 300), trendFills: poaFills, trendCurrent: 9,
++    "s10-trend-wide": { text: "91.47", centerFill: A, centerMatchesArc: true, gaugeTranslate: "translate(240, 167)", ...layout031(480, 300), trendWidthRatio: ">1", trendClearancePx: ">=0.5", trendFills: poaFills, trendCurrent: 9,
+         footerProgrammed: "95.00", footerDif: "-3.53", footerDifFill: A, footerPrev: "-1.93", footerPrevFill: R, debugTextVisible: false },
+-    "s11-trend-compact": { text: "91.47", gaugeTranslate: "translate(110, 100.33)", ...layout031(220, 200), trendFills: poaFills, trendCurrent: 9,
++    "s11-trend-compact": { text: "91.47", centerFill: A, centerMatchesArc: true, gaugeTranslate: "translate(110, 100.33)", ...layout031(220, 200), trendWidthRatio: ">1", trendClearancePx: ">=0.5", trendFills: poaFills, trendCurrent: 9,
+         footerProgrammed: "95.00", footerDif: "-3.53", footerDifFill: A, footerPrev: "-1.93", footerPrevFill: R, debugTextVisible: false },
+     // Programado sin periodo: sin serie mensual no hay pie ni sparkline; el medidor conserva 300x300 (0.2.0.0).
+     "s7-programmed-no-period": { text: "91.47", targetDeg: ang(95, 0, 120), markerDeg: ang(91.47, 0, 120),
+@@ -132,13 +168,30 @@ const expected = {
+     "s13-prev-favorable": { text: "40.00", footerDif: "-55.00", footerDifFill: R, footerPrev: "+20.00", footerPrevFill: V },
+     "s14-prev-lower-better": { text: "110.00", footerPrev: "-8.00", footerPrevFill: V },
+     "s15-prev-out-of-range": { text: "120.00", footerDif: "+25.00", footerPrev: "+50.00", footerPrevFill: V },
++    // 0.3.3.1: número central = semáforo de la fuente = arco indicador; semáforo derivado de Real/Programado (datos
++    // realistas, sin contradicción artificial). s18: 72.89 en la banda alta (70..100) pero Rojo (91.1% de 80).
++    "s16-sem-red": { text: "35.40", centerFill: R, semaphoreArcFill: R, centerMatchesArc: true, ranges: [R, A, V], trendFills: zoneFills(R),
++        trendInside: true, trendWidthRatio: ">1", trendClearancePx: ">=0.5" },
++    "s17-sem-yellow": { text: "69.80", centerFill: A, semaphoreArcFill: A, centerMatchesArc: true, ranges: [R, A, V], trendFills: zoneFills(A),
++        trendInside: true, trendWidthRatio: ">1", trendClearancePx: ">=0.5" },
++    "s18-sem-red-high-band": { text: "72.89", centerFill: R, semaphoreArcFill: R, centerMatchesArc: true, ranges: [R, A, V], trendFills: zoneFills(R),
++        trendInside: true, trendWidthRatio: ">1", trendClearancePx: ">=0.5" },
++    "s19-sem-green": { text: "74.50", centerFill: V, semaphoreArcFill: V, centerMatchesArc: true, trendFills: zoneFills(V),
++        trendInside: true, trendWidthRatio: ">1", trendClearancePx: ">=0.5" },
++    "s20-sem-red-wide": { text: "72.89", centerFill: R, semaphoreArcFill: R, centerMatchesArc: true, ...layout031(480, 300),
++        trendWidthRatio: ">1", trendClearancePx: ">=0.5" },
++    "s21-sem-red-compact": { text: "72.89", centerFill: R, semaphoreArcFill: R, centerMatchesArc: true, ...layout031(220, 200),
++        trendWidthRatio: ">1", trendClearancePx: ">=0.5" },
++    // Arco -135°..135°: el anillo del semáforo baja más; la serie se estrecha lo justo para no tocarlo.
++    "s22-sem-red-wide-sweep": { text: "72.89", centerFill: R, semaphoreArcFill: R, centerMatchesArc: true, trendInside: true,
++        trendClearancePx: ">=0.5" },
+ };
+ const close = (a, b) => a !== null && Math.abs(a - b) < 0.05;
+ let fails = 0;
+ for (const d of data) {
+     const e = expected[d.id];
+     const mismatches = !e ? ["sin esperado"] : Object.keys(e).filter((key) =>
+-        key.endsWith("Deg") ? !close(d[key], e[key]) : key === "footerGapPx" ? !gapOk(d[key]) : JSON.stringify(d[key]) !== JSON.stringify(e[key]));
++        key.endsWith("Deg") ? !close(d[key], e[key]) : key === "footerGapPx" ? !gapOk(d[key]) : key === "trendWidthRatio" ? !(d[key] > 1) : key === "trendClearancePx" ? !(d[key] >= 0.5 - 0.01) : JSON.stringify(d[key]) !== JSON.stringify(e[key]));
+     if (mismatches.length) fails++;
+     console.log(mismatches.length ? `FAIL [${mismatches.join(",")}]` : "OK  ", JSON.stringify(d), "esperado:", JSON.stringify(e));
+ }
+diff --git a/dev-harness/src/main.ts b/dev-harness/src/main.ts
+index cf51c45..4168ecc 100644
+--- a/dev-harness/src/main.ts
++++ b/dev-harness/src/main.ts
+@@ -48,12 +48,14 @@ function buildMonthlyDataView(period: string[], series: Series, objects: Objects
+  * Host mínimo: servicios que usan update() e interacciones (A3) como funciones vacías.
+  * Con `host: {}` (versión previa del harness) update() fallaba desde 0.2.0.0 por eventService.
+  */
+-function mockHost(highContrast = false): any {
++function mockHost(highContrast = false, tooltipHost?: HTMLElement): any {
+     const noop = () => undefined;
+     return {
+         createSelectionManager: () => ({ showContextMenu: noop }),
+         eventService: { renderingStarted: noop, renderingFinished: noop, renderingFailed: noop },
+-        tooltipService: { enabled: () => false, show: noop, hide: noop },
++        // 0.3.2.1: tooltipService simulado que pinta los dataItems recibidos (como el tooltip del host de
++        // Power BI) en un div .harness-tooltip, para evidenciar qué datos muestra el visual al hover.
++        tooltipService: tooltipHost ? mockTooltipService(tooltipHost) : { enabled: () => false, show: noop, hide: noop },
+         hostCapabilities: { allowInteractions: true },
+         colorPalette: highContrast
+             ? { isHighContrast: true, foreground: { value: "#FFFF00" }, background: { value: "#000000" } }
+@@ -61,6 +63,27 @@ function mockHost(highContrast = false): any {
+     };
+ }
+ 
++/** Tooltip del host simulado: muestra `displayName: value` en las coordenadas que pide el visual. */
++function mockTooltipService(card: HTMLElement): any {
++    const box = document.createElement("div");
++    box.className = "harness-tooltip";
++    box.style.cssText = "position:absolute;display:none;pointer-events:none;background:#fff;border:1px solid #888;" +
++        "box-shadow:0 2px 6px rgba(0,0,0,.25);padding:4px 6px;font-size:11px;line-height:1.35;z-index:10;white-space:nowrap";
++    card.style.position = "relative";
++    card.appendChild(box);
++    return {
++        enabled: () => true,
++        show: (options: { dataItems: Array<{ displayName: string; value: string }>; coordinates: number[] }) => {
++            const visual = card.querySelector(".visual") as HTMLElement;
++            box.innerHTML = options.dataItems.map((item) => `<div><b>${item.displayName}</b>: ${item.value}</div>`).join("");
++            box.style.left = `${visual.offsetLeft + options.coordinates[0] + 12}px`;
++            box.style.top = `${visual.offsetTop + options.coordinates[1] + 12}px`;
++            box.style.display = "block";
++        },
++        hide: () => { box.style.display = "none"; },
++    };
++}
++
+ interface Scenario {
+     id: string;
+     title: string;
+@@ -101,6 +124,23 @@ const prevSeries = (sep: number, oct: number): Series => ({
+     measure: [sep, oct], previousMonth: [null, sep], programmed: [95, 95], min: [0, 0], max: [120, 120],
+     target: [95, 95], lowThreshold: [80, 80], midThreshold: [95, 95], currentPeriod: [10, 10],
+ });
++// 0.3.3.1: número central = color del semáforo de la fuente (el mismo que consume el arco). Datos realistas: el
++// semáforo NO contradice a propósito los datos; se deriva como lo haría el modelo, por cumplimiento Real / Programado
++// de cada mes (>= 100% Verde, >= 95% Amarillo, < 95% Rojo), y alimenta «Semáforo» y «Semáforo por periodo».
++// Las bandas 50/70 del arco son la referencia geométrica: 72.89 cae en la banda alta pero, con Programado 80
++// (91.1%), el semáforo de la fuente es Rojo y el número y el arco indicador se pintan rojos.
++const ZONE_REAL = [41.2, 48.5, 55.3, 52.1, 60.4, 66.8, 63.2, 69.5, 71.4];
++const ZONE_PROG = [45, 50, 55, 58, 60, 63, 65, 68, 70];
++const compliance = (real: number, prog: number): string => (real >= prog ? "Verde" : real >= 0.95 * prog ? "Amarillo" : "Rojo");
++const zoneSeries = (oct: number, octProg: number): Series => {
++    const semaphore: Cell[] = [...ZONE_REAL.map((real, i) => compliance(real, ZONE_PROG[i])), compliance(oct, octProg), null, null];
++    return {
++        measure: [...ZONE_REAL, oct, null, null],
++        programmed: [...ZONE_PROG, octProg, 82, 84],
++        min: constant(0), max: constant(100), target: constant(75), lowThreshold: constant(50), midThreshold: constant(70),
++        semaphore, trendSemaphore: semaphore, currentPeriod: constant(10),
++    };
++};
+ // Orden de filas del host deliberadamente NO cronológico (para s9).
+ const SHUFFLED_ROWS = [9, 2, 11, 0, 5, 7, 1, 10, 4, 3, 8, 6];
+ 
+@@ -146,6 +186,22 @@ const scenarios: Scenario[] = [
+         objects: { ranges: { lowerIsBetter: true } } },
+     { id: "s15-prev-out-of-range", title: "15) Revisión: Real 150 (máx. 120, centro 120) vs 100 → +50.00 verde; Dif. Prog. +25.00",
+         period: ["Sep", "Oct"], order: [9, 10], series: prevSeries(100, 150), format: "#,0.00" },
++    // 0.3.3.1: número central con el color del semáforo de la fuente (= arco indicador) y sparkline al ancho máximo seguro.
++    { id: "s16-sem-red", title: "16) 0.3.3.1 Semáforo Rojo: Oct 35.40 vs Prog. 72 (49%) → número y arco rojos",
++        period: MONTHS, order: MONTH_KEYS, series: zoneSeries(35.4, 72), format: "#,0.00" },
++    { id: "s17-sem-yellow", title: "17) 0.3.3.1 Semáforo Amarillo: Oct 69.80 vs Prog. 72 (96.9%) → número y arco amarillos",
++        period: MONTHS, order: MONTH_KEYS, series: zoneSeries(69.8, 72), format: "#,0.00" },
++    { id: "s18-sem-red-high-band", title: "18) 0.3.3.1 Semáforo Rojo con valor en banda alta: Oct 72.89 vs Prog. 80 (91.1%) → número ROJO",
++        period: MONTHS, order: MONTH_KEYS, series: zoneSeries(72.89, 80), format: "#,0.00" },
++    { id: "s19-sem-green", title: "19) 0.3.3.1 Semáforo Verde: Oct 74.50 vs Prog. 72 (103.5%) → número y arco verdes",
++        period: MONTHS, order: MONTH_KEYS, series: zoneSeries(74.5, 72), format: "#,0.00" },
++    { id: "s20-sem-red-wide", title: "20) 0.3.3.1 Tarjeta ancha 480x300: 72.89 Rojo + sparkline al ancho máximo seguro",
++        period: MONTHS, order: MONTH_KEYS, series: zoneSeries(72.89, 80), format: "#,0.00", viewport: { width: 480, height: 300 } },
++    { id: "s21-sem-red-compact", title: "21) 0.3.3.1 Tarjeta compacta 220x200: 72.89 Rojo + sparkline",
++        period: MONTHS, order: MONTH_KEYS, series: zoneSeries(72.89, 80), format: "#,0.00", viewport: { width: 220, height: 200 } },
++    { id: "s22-sem-red-wide-sweep", title: "22) 0.3.3.1 Arco -135°..135°: el anillo del semáforo acota el ancho (sin tocarlo)",
++        period: MONTHS, order: MONTH_KEYS, series: zoneSeries(72.89, 80), format: "#,0.00",
++        objects: { gauge: { startAngle: -135, endAngle: 135 } } },
+ ];
+ 
+ const grid = document.getElementById("grid")!;
+@@ -168,7 +224,7 @@ for (const sc of scenarios) {
+     card.appendChild(host);
+     grid.appendChild(card);
+ 
+-    const visual = new Visual({ element: host, host: mockHost(sc.highContrast) } as any);
++    const visual = new Visual({ element: host, host: mockHost(sc.highContrast, sc.period ? card : undefined) } as any);
+     const render = (roles: Roles | undefined) => {
+         const dataView = sc.period
+             ? buildMonthlyDataView(sc.period, sc.series ?? {}, sc.objects, sc.format, sc.order, sc.hostRows)
+diff --git a/package-lock.json b/package-lock.json
+index 805161d..810c8ec 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "visual",
+-  "version": "0.3.2.0",
++  "version": "0.3.3.1",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "visual",
+-      "version": "0.3.2.0",
++      "version": "0.3.3.1",
+       "license": "MIT",
+       "dependencies": {
+         "@types/d3": "7.4.3",
+diff --git a/package.json b/package.json
+index 98029e9..4b0c0da 100644
+--- a/package.json
++++ b/package.json
+@@ -1,7 +1,7 @@
+ {
+   "name": "visual",
+   "description": "default_template_value",
+-  "version": "0.3.2.0",
++  "version": "0.3.3.1",
+   "repository": {
+     "type": "default_template_value",
+     "url": "default_template_value"
+diff --git a/pbiviz.json b/pbiviz.json
+index 86a1fef..aed5468 100644
+--- a/pbiviz.json
++++ b/pbiviz.json
+@@ -4,7 +4,7 @@
+     "displayName": "Tacometro Gauge",
+     "guid": "PBI_CV_TACOMETRO_GAUGE",
+     "visualClassName": "Visual",
+-    "version": "0.3.2.0",
++    "version": "0.3.3.1",
+     "description": "A radial gauge visual that replicates the Power BI Radial Gauge visual functionality",
+     "supportUrl": "https://github.com",
+     "gitHubUrl": ""
+diff --git a/src/components/Gauge.tsx b/src/components/Gauge.tsx
+index b25f75b..38b7f8b 100644
+--- a/src/components/Gauge.tsx
++++ b/src/components/Gauge.tsx
+@@ -7,7 +7,7 @@ import { ValueMarker } from "./ValueMarker";
+ import { GaugeMarker } from "./GaugeMarker";
+ import { CenterText, formatGaugeValue } from "./CenterText";
+ import { buildMarkers } from "./markers";
+-import { BAND_RADIUS_FACTOR, bandRadii, degreesToRadians } from "./arcUtils";
++import { BAND_RADIUS_FACTOR, bandRadii, degreesToRadians, semaphoreIndicatorRing } from "./arcUtils";
+ import { comparisonColor, createAngleScale, createPerformanceColorScale, rangeBandColors } from "./scales";
+ import { resolveSemaphoreColor } from "./semaphore";
+ import { GaugeData, GaugeSettings } from "./types";
+@@ -123,14 +123,12 @@ export default class Gauge extends React.Component<Props> {
+     // B1 con rangos visibles: las bandas siguen mostrando los umbrales y, si la fuente trae
+     // semáforo, un arco de progreso delgado por dentro de la banda muestra ese color
+     // (performanceColor, así que el alto contraste conserva la precedencia).
+-    const indicatorThickness = Math.max(3, settings.thickness * 0.3);
+-    const indicatorCenter = Math.max(
+-      indicatorThickness / 2,
+-      bandRadii(radius, settings.thickness).innerRadius - 2 - indicatorThickness / 2
+-    );
+-    const indicatorRadius = indicatorCenter / BAND_RADIUS_FACTOR;
++    // 0.3.3.1: geometría del anillo compartida con computeInnerTrendBox (la sparkline no lo toca).
++    const indicatorRing = semaphoreIndicatorRing(bandRadii(radius, settings.thickness).innerRadius, settings.thickness);
++    const indicatorThickness = indicatorRing.thickness;
++    const indicatorRadius = (indicatorRing.innerRadius + indicatorRing.outerRadius) / 2 / BAND_RADIUS_FACTOR;
+     const format = (value: number) => formatGaugeValue(value, gaugeData.dataFormat);
+-    const trendBox = trend && layout.footer ? computeInnerTrendBox(radius, settings.thickness) : null;
++    const trendBox = trend && layout.footer ? computeInnerTrendBox(radius, settings.thickness, settings.startAngle, settings.endAngle) : null;
+ 
+     return (
+       // A3 Keyboard Navigation: el SVG recibe el foco (supportsKeyboardFocus) y se anuncia como imagen.
+@@ -219,7 +217,9 @@ export default class Gauge extends React.Component<Props> {
+               value={gaugeData.value}
+               fontSize={settings.fontSize}
+               fontFamily={settings.fontFamily}
+-              color={settings.labelColor}
++              // 0.3.3.1: exactamente el color que consume el arco (indicador del semáforo o arco de desempeño):
++              // alto contraste > semáforo de la fuente > umbrales. Sin clasificación geométrica aparte.
++              color={performanceColor}
+               dataFormat={gaugeData.dataFormat}
+             />
+           )}
+diff --git a/src/components/TrendSparkline.tsx b/src/components/TrendSparkline.tsx
+index 78de3b9..73cb544 100644
+--- a/src/components/TrendSparkline.tsx
++++ b/src/components/TrendSparkline.tsx
+@@ -1,11 +1,9 @@
+ import * as React from 'react';
+ import { buildTrendGeometry, statusColor, StatusColors, TrendPoint } from './trend';
++import { TREND_CURRENT_POINT_RADIUS as CURRENT_POINT_RADIUS, TREND_PADDING as PADDING, TREND_POINT_RADIUS as POINT_RADIUS } from './layout';
+ 
+ /** Color neutro de la línea de Real: el estado lo expresan los puntos. */
+ export const TREND_LINE_COLOR = "#D1D5DB";
+-const PADDING = 6;
+-const POINT_RADIUS = 2.5;
+-const CURRENT_POINT_RADIUS = 4;
+ 
+ export interface TrendSparklineProps {
+     points: TrendPoint[];
+@@ -62,6 +60,8 @@ export const TrendSparkline: React.FC<TrendSparklineProps> = ({
+                     <circle
+                         key={vertex.index}
+                         className={current ? "trend-point trend-point-current" : "trend-point"}
++                        // 0.3.2.1: visual.ts lo lee al hover para mostrar el tooltip de ESTE periodo.
++                        data-trend-index={vertex.index}
+                         cx={vertex.x}
+                         cy={vertex.y}
+                         r={current ? CURRENT_POINT_RADIUS : POINT_RADIUS}
+diff --git a/src/components/arcUtils.ts b/src/components/arcUtils.ts
+index ea67da1..e7e0dd2 100644
+--- a/src/components/arcUtils.ts
++++ b/src/components/arcUtils.ts
+@@ -32,6 +32,20 @@ export function bandRadii(radius: number, thickness: number): { innerRadius: num
+     };
+ }
+ 
++/**
++ * 0.3.3.1: anillo del indicador del semáforo (PerformanceArc "semaphore-indicator"), delgado y por dentro de la
++ * banda: grosor max(3, 0.3·grosor) a 2 px del radio interior. Fuente única para Gauge (lo dibuja) y layout (la
++ * sparkline no debe tocarlo).
++ */
++export function semaphoreIndicatorRing(
++    bandInnerRadius: number,
++    thickness: number
++): { innerRadius: number; outerRadius: number; thickness: number } {
++    const ringThickness = Math.max(3, thickness * 0.3);
++    const center = Math.max(ringThickness / 2, bandInnerRadius - 2 - ringThickness / 2);
++    return { innerRadius: center - ringThickness / 2, outerRadius: center + ringThickness / 2, thickness: ringThickness };
++}
++
+ export function degreesToRadians(degrees: number): number {
+     return degrees * (Math.PI / 180);
+ }
+diff --git a/src/components/layout.ts b/src/components/layout.ts
+index fd0f2f4..cc876b6 100644
+--- a/src/components/layout.ts
++++ b/src/components/layout.ts
+@@ -1,4 +1,4 @@
+-import { BAND_RADIUS_FACTOR as BAND_FACTOR, bandRadii } from "./arcUtils";
++import { BAND_RADIUS_FACTOR as BAND_FACTOR, bandRadii, semaphoreIndicatorRing } from "./arcUtils";
+ 
+ /** Alto fijo del pie (valor + etiqueta en dos renglones). */
+ export const FOOTER_HEIGHT = 40;
+@@ -8,10 +8,21 @@ export const FOOTER_GAP = 4;
+ export const MARKER_OVERHANG = 11;
+ /** Alto mínimo útil de la sparkline interior; por debajo no se dibuja. */
+ export const TREND_MIN_HEIGHT = 16;
+-/** Caja de la sparkline relativa al radio interior de la banda (ancho acotado al círculo interior). */
+-const TREND_WIDTH_FACTOR = 1.5;
++/** Caja de la sparkline relativa al radio interior de la banda (alto y posición vertical; el ancho se calcula). */
+ const TREND_TOP_FACTOR = 0.1;
+ const TREND_HEIGHT_FACTOR = 0.5;
++/** 0.3.3.1: relleno interno de TrendSparkline (centros de los puntos extremos a este margen de la caja). */
++export const TREND_PADDING = 6;
++/** Radios de los puntos de TrendSparkline; el del mes actual es el mayor y define el alcance del contenido. */
++export const TREND_POINT_RADIUS = 2.5;
++export const TREND_CURRENT_POINT_RADIUS = 4;
++/**
++ * 0.3.3.1: holgura mínima (px) entre el borde de un punto de la sparkline y cualquier trazo del arco: medio píxel,
++ * lo que el contorno de 1 px de alto contraste de la banda invade hacia dentro (y medio píxel de antialiasing).
++ */
++export const TREND_EDGE_CLEARANCE = 0.5;
++/** Tolerancia (px) de la bisección del ancho; siempre del lado seguro. */
++const TREND_BISECTION_TOLERANCE = 1e-7;
+ 
+ export interface Band {
+     y: number;
+@@ -48,19 +59,133 @@ export function computeGaugeLayout(
+     return { gaugeHeight, footer: { y: gaugeHeight, height: FOOTER_HEIGHT } };
+ }
+ 
++/** ¿`deg` (grados, 0 = 12 en punto, horario) cae en el barrido [lo, hi] (con vueltas de 360°)? */
++function inSweep(deg: number, lo: number, hi: number): boolean {
++    return hi - lo >= 360 || containsAngle(lo, hi, deg);
++}
++
++type Point = [number, number];
++
++const cross = (a: Point, b: Point) => a[0] * b[1] - a[1] * b[0];
++const sub = (a: Point, b: Point): Point => [a[0] - b[0], a[1] - b[1]];
++
++/** Distancia de p al segmento [a, b]. */
++function pointSegmentDistance(p: Point, a: Point, b: Point): number {
++    const ab = sub(b, a);
++    const length2 = ab[0] * ab[0] + ab[1] * ab[1];
++    // Segmento degenerado (a = b, p. ej. fila de ancho 0): el numerador también es 0 → t = 0, sin dividir entre 0.
++    const t = Math.min(1, Math.max(0, ((p[0] - a[0]) * ab[0] + (p[1] - a[1]) * ab[1]) / Math.max(length2, Number.MIN_VALUE)));
++    return Math.hypot(p[0] - a[0] - t * ab[0], p[1] - a[1] - t * ab[1]);
++}
++
++/** Distancia entre los segmentos [a, b] y [c, d] (0 si se cruzan). */
++function segmentDistance(a: Point, b: Point, c: Point, d: Point): number {
++    const d1 = cross(sub(b, a), sub(c, a));
++    const d2 = cross(sub(b, a), sub(d, a));
++    const d3 = cross(sub(d, c), sub(a, c));
++    const d4 = cross(sub(d, c), sub(b, c));
++    if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) {
++        return 0;
++    }
++    return Math.min(pointSegmentDistance(a, c, d), pointSegmentDistance(b, c, d), pointSegmentDistance(c, a, b), pointSegmentDistance(d, a, b));
++}
++
++/** Dirección unitaria del ángulo `deg` (0 = 12 en punto, horario; y hacia abajo). */
++function direction(deg: number): Point {
++    const a = (deg * Math.PI) / 180;
++    return [Math.sin(a), -Math.cos(a)];
++}
++
+ /**
+- * Caja de la sparkline dentro del semicírculo, bajo el número central, en coordenadas relativas
+- * al centro del medidor. Sus esquinas quedan dentro del círculo interior de la banda, así que no
+- * invade el arco con ningún ángulo inicial/final. null si quedaría más baja que TREND_MIN_HEIGHT.
++ * Distancia exacta del segmento [p, q] al sector anular {r0 <= ρ <= r1, ángulo en [lo, hi]} cuando el segmento
++ * está dentro del círculo de radio r1 (el contenido de la sparkline siempre lo está). Dentro del barrido la
++ * distancia es r0 − ρ (mínima donde ρ es máxima: en los extremos de cada tramo, ρ es convexa sobre la recta);
++ * fuera del barrido el punto más cercano del sector está en uno de sus bordes radiales.
+  */
+-export function computeInnerTrendBox(radius: number, thickness: number): Box | null {
++function segmentToAnnularSector(p: Point, q: Point, r0: number, r1: number, lo: number, hi: number): number {
++    const pq = sub(q, p);
++    const at = (t: number): Point => [p[0] + t * pq[0], p[1] + t * pq[1]];
++    const cuts = [0, 1];
++    for (const deg of [lo, hi]) {
++        const dir = direction(deg);
++        const denominator = cross(dir, pq);
++        if (denominator !== 0) {
++            const t = -cross(dir, p) / denominator;
++            if (t > 0 && t < 1) {
++                cuts.push(t);
++            }
++        }
++    }
++    cuts.sort((x, y) => x - y);
++    let best = Infinity;
++    for (let i = 0; i + 1 < cuts.length; i++) {
++        const middle = at((cuts[i] + cuts[i + 1]) / 2);
++        if (inSweep((Math.atan2(middle[0], -middle[1]) * 180) / Math.PI, lo, hi)) {
++            const rho = Math.max(Math.hypot(...at(cuts[i])), Math.hypot(...at(cuts[i + 1])));
++            best = Math.min(best, Math.max(0, r0 - rho));
++        }
++    }
++    for (const deg of [lo, hi]) {
++        const dir = direction(deg);
++        best = Math.min(best, segmentDistance(p, q, [dir[0] * r0, dir[1] * r0], [dir[0] * r1, dir[1] * r1]));
++    }
++    return best;
++}
++
++/**
++ * Caja de la sparkline dentro del semicírculo, bajo el número central, en coordenadas relativas al centro del
++ * medidor. null si quedaría más baja que TREND_MIN_HEIGHT.
++ *
++ * 0.3.3.1 — ancho máximo técnicamente seguro. Lo que se dibuja no es la caja sino su contenido: centros de los
++ * puntos en [−X, X] × [y0 + TREND_PADDING, y1 − TREND_PADDING] (X = ancho/2 − TREND_PADDING), cada uno con radio
++ * hasta TREND_CURRENT_POINT_RADIUS (las líneas, 0.75 px de medio trazo, quedan dentro). Con alcance
++ * a = TREND_CURRENT_POINT_RADIUS + TREND_EDGE_CLEARANCE, X es el mayor valor tal que:
++ *  1. Banda (cualquier ángulo): √(X² + (y1 − relleno)²) + a <= radio interior.
++ *  2. Anillo del indicador del semáforo (semaphoreIndicatorRing, dentro de la banda sobre [startAngle, endAngle]):
++ *     distancia exacta del rectángulo de centros al sector anular >= a (bisección; basta el perímetro porque el
++ *     anillo no cabe dentro del rectángulo).
++ * Se aplica aunque el mes no traiga semáforo, para que el ancho no salte entre periodos.
++ * Alto y posición vertical no cambian (el encuadre de computeGaugeFrame y el pie tampoco).
++ */
++export function computeInnerTrendBox(radius: number, thickness: number, startAngle: number, endAngle: number): Box | null {
+     const inner = bandRadii(radius, thickness).innerRadius;
+     const height = inner * TREND_HEIGHT_FACTOR;
+     if (height < TREND_MIN_HEIGHT) {
+         return null;
+     }
+-    const width = inner * TREND_WIDTH_FACTOR;
+-    return { x: -width / 2, y: inner * TREND_TOP_FACTOR, width, height };
++    const y = inner * TREND_TOP_FACTOR;
++    const top = y + TREND_PADDING;
++    const bottom = y + height - TREND_PADDING;
++    const reach = TREND_CURRENT_POINT_RADIUS + TREND_EDGE_CLEARANCE;
++    const lo = Math.min(startAngle, endAngle);
++    const hi = Math.max(startAngle, endAngle);
++    const ring = semaphoreIndicatorRing(inner, thickness);
++
++    const clearOfRing = (X: number): boolean => {
++        const corners: Point[] = [[-X, top], [X, top], [X, bottom], [-X, bottom]];
++        return corners.every(
++            (corner, i) => segmentToAnnularSector(corner, corners[(i + 1) % 4], ring.innerRadius, ring.outerRadius, lo, hi) >= reach
++        );
++    };
++
++    // 1. Círculo interior (forma cerrada).
++    let halfSpan = Math.sqrt(Math.max(0, (inner - reach) ** 2 - bottom ** 2));
++    // 2. Anillo del semáforo: bisección sólo si el contenido lo alcanzaría.
++    if (!clearOfRing(halfSpan)) {
++        let safe = 0;
++        let unsafe = halfSpan;
++        while (unsafe - safe > TREND_BISECTION_TOLERANCE) {
++            const mid = (safe + unsafe) / 2;
++            if (clearOfRing(mid)) {
++                safe = mid;
++            } else {
++                unsafe = mid;
++            }
++        }
++        halfSpan = safe;
++    }
++    const width = 2 * (halfSpan + TREND_PADDING);
++    return { x: -width / 2, y, width, height };
+ }
+ 
+ export interface GaugeFrame {
+diff --git a/src/tooltips.ts b/src/tooltips.ts
+index 781ae0e..9b494db 100644
+--- a/src/tooltips.ts
++++ b/src/tooltips.ts
+@@ -1,6 +1,7 @@
+ import { formatGaugeValue } from "./components/CenterText";
+ import { buildMarkers } from "./components/markers";
+ import { GaugeData } from "./components/types";
++import { TrendPoint } from "./components/trend";
+ 
+ /** Estructura compatible con powerbi.extensibility.VisualTooltipDataItem. */
+ export interface TooltipItem {
+@@ -27,6 +28,22 @@ export function buildTooltipItems(gaugeData: GaugeData, extras: TooltipItem[] =
+     return items.concat(extras);
+ }
+ 
++/** 0.3.2.1: tooltip de un punto de la sparkline mensual, con el periodo y los valores de ESE punto. */
++export function buildTrendPointTooltipItems(point: TrendPoint, format: (value: number) => string): TooltipItem[] {
++    const items: TooltipItem[] = [
++        { displayName: "Periodo", value: point.label },
++        // Sólo hay punto (círculo) en los periodos con Real.
++        { displayName: "Real", value: format(point.real as number) },
++    ];
++    if (point.programmed !== null) {
++        items.push({ displayName: "Programado", value: format(point.programmed) });
++    }
++    if (point.semaphore) {
++        items.push({ displayName: "Semáforo", value: point.semaphore });
++    }
++    return items;
++}
++
+ /** Etiqueta accesible (lectores de pantalla / navegación por teclado). */
+ export function buildAriaLabel(gaugeData: GaugeData): string {
+     const parts = buildTooltipItems(gaugeData).map((item) => `${item.displayName}: ${item.value}`);
+diff --git a/src/visual.ts b/src/visual.ts
+index 4eb4aee..3a8c1c8 100644
+--- a/src/visual.ts
++++ b/src/visual.ts
+@@ -22,7 +22,7 @@ import { findCurrentPosition, lastIndexWithReal, orderPeriodRows, periodSortKey,
+ import { isFiniteNumber, resolveRange, resolveThresholds } from "./components/scales";
+ import { formatGaugeValue } from "./components/CenterText";
+ import { applyHighContrast } from "./highContrast";
+-import { buildTooltipItems, TooltipItem } from "./tooltips";
++import { buildTooltipItems, buildTrendPointTooltipItems, TooltipItem } from "./tooltips";
+ 
+ export class Visual implements IVisual {
+   private target: HTMLElement;
+@@ -96,7 +96,7 @@ export class Visual implements IVisual {
+     const element = this.target;
+     element.addEventListener("mousemove", (event: MouseEvent) => {
+       const rect = element.getBoundingClientRect();
+-      this.showTooltip([event.clientX - rect.left, event.clientY - rect.top]);
++      this.showTooltip([event.clientX - rect.left, event.clientY - rect.top], event.target);
+     });
+     element.addEventListener("mouseleave", () => this.hideTooltip());
+     // A3 Keyboard Navigation: foco → tooltip en el centro; Shift+F10 / ContextMenu → menú.
+@@ -117,19 +117,33 @@ export class Visual implements IVisual {
+     });
+   }
+ 
+-  private showTooltip(coordinates: number[]) {
++  private showTooltip(coordinates: number[], target?: EventTarget | null) {
+     const tooltipService = this.host.tooltipService;
+     if (!this.currentData || !this.interactionsAllowed() || !tooltipService.enabled()) {
+       return;
+     }
+     tooltipService.show({
+-      dataItems: buildTooltipItems(this.currentData, this.tooltipExtras),
++      dataItems: this.trendPointTooltip(target) ?? buildTooltipItems(this.currentData, this.tooltipExtras),
+       identities: [],
+       coordinates,
+       isTouchEvent: false,
+     });
+   }
+ 
++  /**
++   * 0.3.2.1: sobre un punto de la sparkline (atributo data-trend-index de TrendSparkline) el tooltip es el
++   * de ESE periodo; antes todo mousemove mostraba el del mes actual del medidor. null fuera de los puntos.
++   */
++  private trendPointTooltip(target?: EventTarget | null): TooltipItem[] | null {
++    // Destinos sin DOM (foco, nodos de texto) no tienen closest(): tooltip del medidor.
++    const node = (target as Element | undefined)?.closest?.("[data-trend-index]");
++    const point = node ? this.currentData!.trend?.[Number(node.getAttribute("data-trend-index"))] : undefined;
++    if (!point) {
++      return null;
++    }
++    return buildTrendPointTooltipItems(point, (value) => formatGaugeValue(value, this.currentData!.dataFormat));
++  }
++
+   private hideTooltip() {
+     this.host.tooltipService.hide({ immediately: true, isTouchEvent: false });
+   }
+diff --git a/tests/gaugeTrend.test.ts b/tests/gaugeTrend.test.ts
+index d3a26da..2f2925b 100644
+--- a/tests/gaugeTrend.test.ts
++++ b/tests/gaugeTrend.test.ts
+@@ -11,6 +11,16 @@ import { bandRadii } from "../src/components/arcUtils";
+ import { baseline } from "./fixtures/gaugeBaseline020";
+ const settings = baseline.settings as GaugeSettings;
+ 
++/**
++ * 0.3.3.0: única diferencia intencional con el markup 0.2.0.0: el número central (91.47 con umbrales 80/95)
++ * ya no usa labelColor (#777777) sino el color de la banda del arco que contiene el valor (media → #FFC000).
++ */
++function baseline033(markup: string): string {
++    const legacy = 'fill="#777777">91.47</text>';
++    expect(markup).toContain(legacy);
++    return markup.replace(legacy, 'fill="#FFC000">91.47</text>');
++}
++
+ const thresholds = { lowThreshold: 80, midThreshold: 95 };
+ const trend: TrendPoint[] = [
+     { label: "Ene", real: 80, programmed: 85, semaphore: "Rojo", thresholds },
+@@ -32,17 +42,17 @@ function gaugeGroup(markup: string): string {
+ }
+ 
+ describe("Gauge 0.3.0.0 — el medidor aprobado no cambia", () => {
+-    it("sin Programado ni tendencia el markup es idéntico byte a byte al de 0.2.0.0", () => {
+-        expect(render(baseline.base as GaugeData)).toBe(baseline.noMarkers300x300);
++    it("sin Programado ni tendencia el markup es idéntico byte a byte al de 0.2.0.0 salvo el color del número central (0.3.3.0)", () => {
++        expect(render(baseline.base as GaugeData)).toBe(baseline033(baseline.noMarkers300x300));
+     });
+ 
+-    it("con Programado pero sin serie mensual el markup es idéntico byte a byte al de 0.2.0.0 (sin pie)", () => {
+-        expect(render(baseline.markers as GaugeData)).toBe(baseline.markers300x300);
++    it("con Programado pero sin serie mensual el markup es idéntico byte a byte al de 0.2.0.0 salvo el color del número central (0.3.3.0) (sin pie)", () => {
++        expect(render(baseline.markers as GaugeData)).toBe(baseline033(baseline.markers300x300));
+     });
+ 
+-    it("con un solo mes (serie insuficiente) y Programado el markup es idéntico byte a byte al de 0.2.0.0", () => {
++    it("con un solo mes (serie insuficiente) y Programado el markup es idéntico byte a byte al de 0.2.0.0 salvo el color del número central (0.3.3.0)", () => {
+         const oneMonth = { ...baseline.markers, trend: trend.slice(0, 1), trendCurrentIndex: 0 } as GaugeData;
+-        expect(render(oneMonth)).toBe(baseline.markers300x300);
++        expect(render(oneMonth)).toBe(baseline033(baseline.markers300x300));
+     });
+ 
+     it("0.3.2.0: con tendencia y Programado el medidor es el mismo dibujo de 0.2.0.0 (300x300), sólo desplazado hacia el pie", () => {
+@@ -62,9 +72,13 @@ describe("Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor", () => {
+     it("0.3.2.0: la sparkline va dentro del semicírculo bajo el número y el pie abajo, sin hueco grande", () => {
+         const markup = render(withTrend);
+         // Caja 300x260 con pie: radio por el ancho (interior 130.5), contenido inferior = sparkline (0.6·130.5 = 78.3)
+-        // terminando a FOOTER_GAP (4) del pie → centro (150, 256 − 78.3 = 177.7); caja: x 150 − 97.875, y 177.7 + 13.05.
++        // terminando a FOOTER_GAP (4) del pie → centro (150, 256 − 78.3 = 177.7); caja: y 177.7 + 13.05.
++        // 0.3.3.0: ancho = cuerda interior a y = 0.6·130.5 → 1.6·130.5·0.995 = 207.76; x = 150 − 103.88 = 46.12
++        // (antes 1.5·130.5 → x 52.13). Centro y pie no cambian.
++        // 0.3.3.1 (-90°..90°, sin anillo bajo la horizontal): punto extremo (radio 4 + holgura 0.5) tangente al
++        // círculo interior en y = 0.6·130.5 − 6: X = √(126² − 72.3²) = 103.19; ancho 2·(103.19 + 6) = 218.39 → x = 40.81.
+         expect(markup).toContain('<g transform="translate(150, 177.7)">');
+-        expect(markup).toMatch(/<g class="gauge-trend-slot" transform="translate\(52.13, 190.75\)">[^]*class="trend-sparkline"/);
++        expect(markup).toMatch(/<g class="gauge-trend-slot" transform="translate\(40.81, 190.75\)">[^]*class="trend-sparkline"/);
+         expect(markup).toMatch(/<g class="gauge-footer-slot" transform="translate\(0, 260\)">[^]*class="gauge-footer"/);
+     });
+ 
+@@ -114,7 +128,7 @@ describe("Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor", () => {
+             // Más bajo de la banda/marcadores (ángulo -120°) y de la sparkline.
+             const arcBottom = cy + 0.5 * (outerRadius + MARKER_OVERHANG);
+             const slot = /class="gauge-trend-slot" transform="translate\(([-\d.]+), ([-\d.]+)\)"/.exec(markup)!;
+-            const sparkHeight = computeInnerTrendBox(frame.radius, s.thickness)!.height;
++            const sparkHeight = computeInnerTrendBox(frame.radius, s.thickness, -120, 60)!.height;
+             const bottom = Math.max(arcBottom, Number(slot[2]) + sparkHeight);
+             const footerTop = height - 40;
+             expect(bottom, `${width}x${height}`).toBeLessThanOrEqual(footerTop - FOOTER_GAP + 0.01);
+diff --git a/tests/layout.test.ts b/tests/layout.test.ts
+index a19521a..d77353a 100644
+--- a/tests/layout.test.ts
++++ b/tests/layout.test.ts
+@@ -1,8 +1,9 @@
+ import { describe, expect, it } from "vitest";
+ import {
+     computeGaugeFrame, computeGaugeLayout, computeInnerTrendBox, FOOTER_GAP, FOOTER_HEIGHT, MARKER_OVERHANG, TREND_MIN_HEIGHT,
++    TREND_CURRENT_POINT_RADIUS, TREND_EDGE_CLEARANCE, TREND_PADDING,
+ } from "../src/components/layout";
+-import { bandRadii } from "../src/components/arcUtils";
++import { bandRadii, semaphoreIndicatorRing } from "../src/components/arcUtils";
+ 
+ describe("computeGaugeLayout — reparto vertical (0.3.1.0: sólo el pie reserva alto)", () => {
+     it("sin pie, el medidor ocupa todo el alto (diseño 0.2.0.0 intacto)", () => {
+@@ -45,32 +46,103 @@ describe("computeInnerTrendBox — sparkline dentro del semicírculo, bajo el n
+     it("caja centrada en x, debajo del centro y proporcional al radio interior (medidor 300x260, grosor 20)", () => {
+         const radius = 260 / 2 / 0.95 - 10;
+         const inner = bandRadii(radius, 20).innerRadius;
+-        const box = computeInnerTrendBox(radius, 20);
++        const box = computeInnerTrendBox(radius, 20, -90, 90);
+         expect(box).not.toBeNull();
+-        expect(box!.x).toBeCloseTo(-inner * 0.75, 6);
+-        expect(box!.width).toBeCloseTo(inner * 1.5, 6);
++        // 0.3.3.1: ancho por el contenido (puntos), no por las esquinas de la caja; ver describe 0.3.3.1.
++        expect(box!.x).toBeCloseTo(-box!.width / 2, 6);
+         expect(box!.y).toBeCloseTo(inner * 0.1, 6);
+         expect(box!.height).toBeCloseTo(inner * 0.5, 6);
+     });
+ 
+-    it("las cuatro esquinas quedan dentro del círculo interior (no invade la banda con ningún ángulo)", () => {
+-        for (const [radius, thickness] of [[126.84, 20], [60, 10], [300, 40]]) {
+-            const inner = bandRadii(radius, thickness).innerRadius;
+-            const box = computeInnerTrendBox(radius, thickness)!;
+-            for (const x of [box.x, box.x + box.width]) {
+-                for (const y of [box.y, box.y + box.height]) {
+-                    expect(Math.hypot(x, y)).toBeLessThan(inner);
+-                }
+-            }
+-            expect(box.y).toBeGreaterThan(0);
+-        }
+-    });
+-
+     it("si el radio interior es muy chico (caja < TREND_MIN_HEIGHT) no hay sparkline", () => {
+         // inner = radius*0.95 - 10 = 2*TREND_MIN_HEIGHT - 1 → alto de la caja < TREND_MIN_HEIGHT
+         const radius = (TREND_MIN_HEIGHT * 2 - 1 + 10) / 0.95;
+-        expect(computeInnerTrendBox(radius, 20)).toBeNull();
++        expect(computeInnerTrendBox(radius, 20, -120, 60)).toBeNull();
++    });
++});
++
++/**
++ * Oráculo independiente (muestreo denso): los centros de los puntos de la sparkline pueden estar en cualquier
++ * lugar del rectángulo [−X, X] × [y0 + relleno, y1 − relleno]; cada punto ocupa su radio máximo más la holgura.
++ * Seguro ⇔ ese contenido queda dentro del círculo interior de la banda y fuera del anillo del indicador del
++ * semáforo en el barrido del arco. Basta el perímetro del rectángulo (el anillo no cabe dentro de él).
++ */
++function contentIsSafe(radius: number, thickness: number, lo: number, hi: number, X: number): boolean {
++    const inner = bandRadii(radius, thickness).innerRadius;
++    const ring = semaphoreIndicatorRing(inner, thickness);
++    const top = inner * 0.1 + TREND_PADDING;
++    const bottom = inner * 0.6 - TREND_PADDING;
++    const reach = TREND_CURRENT_POINT_RADIUS + TREND_EDGE_CLEARANCE;
++    const inSweep = (deg: number) => [-360, 0, 360].some((k) => deg + k >= Math.min(lo, hi) && deg + k <= Math.max(lo, hi));
++    const centers: Array<[number, number]> = [];
++    for (let i = 0; i <= 200; i++) {
++        const y = top + ((bottom - top) * i) / 200;
++        centers.push([-X, y], [X, y]);
++        const x = -X + (2 * X * i) / 200;
++        centers.push([x, top], [x, bottom]);
++    }
++    for (const [cx, cy] of centers) {
++        for (let k = 0; k < 180; k++) {
++            const a = (k * Math.PI) / 90;
++            const x = cx + reach * Math.cos(a);
++            const y = cy + reach * Math.sin(a);
++            const rho = Math.hypot(x, y);
++            if (rho > inner + 1e-9) return false;
++            const deg = (Math.atan2(x, -y) * 180) / Math.PI;
++            if (rho >= ring.innerRadius - 1e-9 && rho <= ring.outerRadius && inSweep(deg)) return false;
++        }
++    }
++    return true;
++}
++
++/** Mayor X seguro según el oráculo (búsqueda binaria). */
++function oracleHalfSpan(radius: number, thickness: number, lo: number, hi: number): number {
++    let a = 0;
++    let b = bandRadii(radius, thickness).innerRadius;
++    for (let i = 0; i < 24; i++) {
++        const m = (a + b) / 2;
++        if (contentIsSafe(radius, thickness, lo, hi, m)) a = m; else b = m;
++    }
++    return a;
++}
++
++describe("computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja)", () => {
++    const configs: Array<[number, number]> = [[126.84, 20], [147.89, 20], [60, 10], [300, 40], [45, 20]];
++    const sweeps: Array<[number, number]> = [[-120, 60], [-90, 90], [-135, 135], [-60, 120], [-150, 30]];
++
++    it("medidor por defecto (300x260, -120°..60°, grosor 20): limita el anillo del semáforo en -120°", () => {
++        const radius = (130.5 + 10) / 0.95; // inner 130.5 (tarjeta 300x300 con pie)
++        const ring = semaphoreIndicatorRing(130.5, 20);
++        expect(ring.innerRadius).toBeCloseTo(122.5, 9);
++        const box = computeInnerTrendBox(radius, 20, -120, 60)!;
++        const halfSpan = Math.sin((120 * Math.PI) / 180) * 122.5 - TREND_CURRENT_POINT_RADIUS - TREND_EDGE_CLEARANCE;
++        expect(box.width).toBeCloseTo(2 * (halfSpan + TREND_PADDING), 6); // 215.18
++        // Más ancho que 0.3.3.0 (cuerda en 0.6·inner con holgura 0.995 → 207.76).
++        expect(box.width).toBeGreaterThan(130.5 * 1.6 * 0.995);
+     });
++
++    it("sin anillo bajo la horizontal (-90°..90°) limita el círculo interior menos el radio del punto y la holgura", () => {
++        const radius = (130.5 + 10) / 0.95;
++        const box = computeInnerTrendBox(radius, 20, -90, 90)!;
++        const halfSpan = Math.sqrt((130.5 - TREND_CURRENT_POINT_RADIUS - TREND_EDGE_CLEARANCE) ** 2 - (0.6 * 130.5 - TREND_PADDING) ** 2);
++        expect(box.width).toBeCloseTo(2 * (halfSpan + TREND_PADDING), 6); // 218.39
++    });
++
++    for (const [radius, thickness] of configs) {
++        for (const [lo, hi] of sweeps) {
++            it(`r=${radius} grosor=${thickness} ${lo}°..${hi}°: seguro (oráculo) y máximo (a < 0.1 px del oráculo)`, () => {
++                const box = computeInnerTrendBox(radius, thickness, lo, hi);
++                expect(box).not.toBeNull();
++                const X = box!.width / 2 - TREND_PADDING;
++                expect(contentIsSafe(radius, thickness, lo, hi, X)).toBe(true);
++                expect(X).toBeGreaterThan(oracleHalfSpan(radius, thickness, lo, hi) - 0.1);
++                // Alto y posición vertical intactos: el pie y el encuadre no cambian.
++                const inner = bandRadii(radius, thickness).innerRadius;
++                expect(box!.y).toBeCloseTo(inner * 0.1, 9);
++                expect(box!.height).toBeCloseTo(inner * 0.5, 9);
++            });
++        }
++    }
+ });
+ 
+ /** Extremo inferior (y > 0 hacia abajo) del contenido del medidor relativo a su centro, muestreado. */
+@@ -82,7 +154,7 @@ function contentBottom(radius: number, thickness: number, startDeg: number, endD
+         // Banda + sobresaliente máximo de marcadores (triángulo: tip a outer+1, base a outer+11).
+         bottom = Math.max(bottom, -Math.cos(a) * (outerRadius + MARKER_OVERHANG));
+     }
+-    const box = computeInnerTrendBox(radius, thickness);
++    const box = computeInnerTrendBox(radius, thickness, startDeg, endDeg);
+     return Math.max(bottom, box ? box.y + box.height : 0);
+ }
+ 
+diff --git a/tests/version.test.ts b/tests/version.test.ts
+index 15c477e..c57a948 100644
+--- a/tests/version.test.ts
++++ b/tests/version.test.ts
+@@ -3,11 +3,11 @@ import * as pbiviz from "../pbiviz.json";
+ import * as pkg from "../package.json";
+ import * as lock from "../package-lock.json";
+ 
+-describe("versión 0.3.2.0 (valor Real & Mes anterior + pie más pegado al medidor)", () => {
+-    it("pbiviz.json, package.json y package-lock.json están sincronizados en 0.3.2.0", () => {
+-        expect(pbiviz.visual.version).toBe("0.3.2.0");
+-        expect(pkg.version).toBe("0.3.2.0");
+-        expect(lock.version).toBe("0.3.2.0");
+-        expect((lock.packages as Record<string, { version?: string }>)[""].version).toBe("0.3.2.0");
++describe("versión 0.3.3.1 (número central con el color del semáforo del arco + sparkline al ancho máximo seguro)", () => {
++    it("pbiviz.json, package.json y package-lock.json están sincronizados en 0.3.3.1", () => {
++        expect(pbiviz.visual.version).toBe("0.3.3.1");
++        expect(pkg.version).toBe("0.3.3.1");
++        expect(lock.version).toBe("0.3.3.1");
++        expect((lock.packages as Record<string, { version?: string }>)[""].version).toBe("0.3.3.1");
+     });
+ });

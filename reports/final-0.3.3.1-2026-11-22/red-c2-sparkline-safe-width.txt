@@ -1,0 +1,74 @@
+ ✓ tests/layout.test.ts > computeGaugeLayout — reparto vertical (0.3.1.0: sólo el pie reserva alto) > sin pie, el medidor ocupa todo el alto (diseño 0.2.0.0 intacto) 3ms
+ ✓ tests/layout.test.ts > computeGaugeLayout — reparto vertical (0.3.1.0: sólo el pie reserva alto) > con pie reserva FOOTER_HEIGHT en la parte inferior 0ms
+ ✓ tests/layout.test.ts > computeGaugeLayout — reparto vertical (0.3.1.0: sólo el pie reserva alto) > la sparkline ya no reserva alto: con pie el medidor conserva todo menos el pie (300x300 → 300x260) 0ms
+ ✓ tests/layout.test.ts > computeGaugeLayout — reparto vertical (0.3.1.0: sólo el pie reserva alto) > el pie queda anclado al borde inferior en cualquier alto 0ms
+ ✓ tests/layout.test.ts > computeGaugeLayout — reparto vertical (0.3.1.0: sólo el pie reserva alto) > si no cabe (alto < 2x el pie) no reserva nada para conservar el medidor 0ms
+ ✓ tests/layout.test.ts > computeInnerTrendBox — sparkline dentro del semicírculo, bajo el número central > caja centrada en x, debajo del centro y proporcional al radio interior (medidor 300x260, grosor 20) 1ms
+ ✓ tests/layout.test.ts > computeInnerTrendBox — sparkline dentro del semicírculo, bajo el número central > si el radio interior es muy chico (caja < TREND_MIN_HEIGHT) no hay sparkline 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > medidor por defecto (300x260, -120°..60°, grosor 20): limita el anillo del semáforo en -120° 4ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > sin anillo bajo la horizontal (-90°..90°) limita el círculo interior menos el radio del punto y la holgura 2ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=126.84 grosor=20 -120°..60°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 1ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=126.84 grosor=20 -90°..90°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=126.84 grosor=20 -135°..135°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=126.84 grosor=20 -60°..120°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=126.84 grosor=20 -150°..30°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=147.89 grosor=20 -120°..60°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=147.89 grosor=20 -90°..90°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=147.89 grosor=20 -135°..135°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=147.89 grosor=20 -60°..120°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=147.89 grosor=20 -150°..30°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=60 grosor=10 -120°..60°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=60 grosor=10 -90°..90°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=60 grosor=10 -135°..135°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=60 grosor=10 -60°..120°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=60 grosor=10 -150°..30°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=300 grosor=40 -120°..60°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=300 grosor=40 -90°..90°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=300 grosor=40 -135°..135°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=300 grosor=40 -60°..120°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=300 grosor=40 -150°..30°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=45 grosor=20 -120°..60°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=45 grosor=20 -90°..90°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=45 grosor=20 -135°..135°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=45 grosor=20 -60°..120°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ × tests/layout.test.ts > computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja) > r=45 grosor=20 -150°..30°: seguro (oráculo) y máximo (a < 0.1 px del oráculo) 0ms
+ ✓ tests/layout.test.ts > computeGaugeFrame — 0.3.2.0: medidor pegado al pie (menos hueco vertical) > sin pie el encuadre es el de 0.2.0.0 (radio por el lado menor, centro de la caja) 0ms
+ ✓ tests/layout.test.ts > computeGaugeFrame — 0.3.2.0: medidor pegado al pie (menos hueco vertical) > con pie, en los tamaños válidos el contenido inferior queda a FOOTER_GAP del pie y el hueco se reduce 1ms
+ ✓ tests/layout.test.ts > computeGaugeFrame — 0.3.2.0: medidor pegado al pie (menos hueco vertical) > con pie y cualquier ángulo: no rebasa el ancho ni el borde superior y nunca invade el pie 2ms
+ ✓ tests/layout.test.ts > computeGaugeFrame — 0.3.2.0: medidor pegado al pie (menos hueco vertical) > 300x300 (-120..60): radio por el ancho y el centro baja para cerrar el hueco 0ms
+ ✓ tests/layout.test.ts > computeGaugeFrame — 0.3.2.0: medidor pegado al pie (menos hueco vertical) > arco sin 0° (p. ej. invertido 90°..270°): el número central (alto = fontSize) no se sale por arriba 0ms
+ ✓ tests/layout.test.ts > computeGaugeFrame — 0.3.2.0: medidor pegado al pie (menos hueco vertical) > número central más alto que el espacio disponible: el encuadre sigue siendo finito y positivo 0ms
+ ✓ tests/layout.test.ts > computeGaugeFrame — 0.3.2.0: medidor pegado al pie (menos hueco vertical) > círculo completo: el radio se ajusta para que los marcadores inferiores no invadan el pie 0ms
+ × tests/sparklineWidth.test.ts > TrendSparkline 0.3.3.1 — ancho máximo seguro dentro de la abertura interior > 480x300 (-90°..90°): puntos dentro del círculo, fuera del anillo del semáforo y sobre el pie 13ms
+ × tests/sparklineWidth.test.ts > TrendSparkline 0.3.3.1 — ancho máximo seguro dentro de la abertura interior > 480x300 (-120°..60°): puntos dentro del círculo, fuera del anillo del semáforo y sobre el pie 2ms
+ × tests/sparklineWidth.test.ts > TrendSparkline 0.3.3.1 — ancho máximo seguro dentro de la abertura interior > 480x300 (-135°..135°): puntos dentro del círculo, fuera del anillo del semáforo y sobre el pie 2ms
+ × tests/sparklineWidth.test.ts > TrendSparkline 0.3.3.1 — ancho máximo seguro dentro de la abertura interior > 220x200 (-90°..90°): puntos dentro del círculo, fuera del anillo del semáforo y sobre el pie 2ms
+ × tests/sparklineWidth.test.ts > TrendSparkline 0.3.3.1 — ancho máximo seguro dentro de la abertura interior > 220x200 (-120°..60°): puntos dentro del círculo, fuera del anillo del semáforo y sobre el pie 2ms
+ × tests/sparklineWidth.test.ts > TrendSparkline 0.3.3.1 — ancho máximo seguro dentro de la abertura interior > 220x200 (-135°..135°): puntos dentro del círculo, fuera del anillo del semáforo y sobre el pie 2ms
+ × tests/sparklineWidth.test.ts > TrendSparkline 0.3.3.1 — ancho máximo seguro dentro de la abertura interior > 300x300 (-90°..90°): puntos dentro del círculo, fuera del anillo del semáforo y sobre el pie 2ms
+ × tests/sparklineWidth.test.ts > TrendSparkline 0.3.3.1 — ancho máximo seguro dentro de la abertura interior > 300x300 (-120°..60°): puntos dentro del círculo, fuera del anillo del semáforo y sobre el pie 2ms
+ × tests/sparklineWidth.test.ts > TrendSparkline 0.3.3.1 — ancho máximo seguro dentro de la abertura interior > 300x300 (-135°..135°): puntos dentro del círculo, fuera del anillo del semáforo y sobre el pie 2ms
+ ✓ tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — el medidor aprobado no cambia > sin Programado ni tendencia el markup es idéntico byte a byte al de 0.2.0.0 salvo el color del número central (0.3.3.0) 8ms
+ ✓ tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — el medidor aprobado no cambia > con Programado pero sin serie mensual el markup es idéntico byte a byte al de 0.2.0.0 salvo el color del número central (0.3.3.0) (sin pie) 2ms
+ ✓ tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — el medidor aprobado no cambia > con un solo mes (serie insuficiente) y Programado el markup es idéntico byte a byte al de 0.2.0.0 salvo el color del número central (0.3.3.0) 1ms
+ ✓ tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — el medidor aprobado no cambia > 0.3.2.0: con tendencia y Programado el medidor es el mismo dibujo de 0.2.0.0 (300x300), sólo desplazado hacia el pie 3ms
+ × tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor > 0.3.2.0: la sparkline va dentro del semicírculo bajo el número y el pie abajo, sin hueco grande 5ms
+ ✓ tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor > 0.3.1.0: todos los puntos quedan dentro del círculo interior y por debajo del número central 6ms
+ ✓ tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor > 0.3.1.0: el SVG usa todo el ancho y el pie queda anclado al borde inferior en cualquier tamaño 3ms
+ ✓ tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor > 0.3.2.0: con arco invertido (90°..270°) el centro deja sitio al número central (fontSize) arriba en tarjeta ancha 1ms
+ ✓ tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor > 0.3.2.0: el hueco entre el medidor y el pie es FOOTER_GAP y no hay solape (300x300, 480x300, 220x200) 3ms
+ ✓ tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor > los puntos usan el color de estado de cada mes y el mes actual se resalta 1ms
+ ✓ tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor > el pie muestra Programado, la diferencia con el color de estado actual y el descriptor 1ms
+ ✓ tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor > 0.3.2.0: con Real mes anterior, 'Real & Mes anterior' muestra Real − mes anterior; bajar es desfavorable (rojo) 2ms
+ ✓ tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor > 0.3.2.0 (revisión): la diferencia con el mes anterior usa el Real sin recortar (150 − 100) 1ms
+ ✓ tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor > revisión B1: sin índice de mes actual no se resalta ningún punto (no se asume el último) 1ms
+ ✓ tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor > con un solo mes no hay sparkline ni pie (la serie mensual no es suficiente) 1ms
+ ✓ tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor > Real fuera de rango: la diferencia usa el mismo Real que muestra el centro (recortado a [mín, máx]) 1ms
+ ✓ tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor > alto contraste: el pie usa el foreground 1ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 37 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected '<svg class="gauge-svg" width="300" he…' to match /<g class="gauge-trend-slot" transform…/
+TypeError: semaphoreIndicatorRing is not a function
+AssertionError: expected 207.756 to be close to NaN, received difference is NaN, but expected 5e-7
+TypeError: semaphoreIndicatorRing is not a function
+TypeError: semaphoreIndicatorRing is not a function
+      Tests  37 failed | 30 passed (67)

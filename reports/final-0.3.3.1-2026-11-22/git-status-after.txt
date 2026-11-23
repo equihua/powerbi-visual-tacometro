@@ -1,0 +1,24 @@
+ M CHANGELOG.md
+ M README.md
+ M dev-harness/scripts/screenshots.mjs
+ M dev-harness/scripts/verify-dom.mjs
+ M dev-harness/src/main.ts
+ M package-lock.json
+ M package.json
+ M pbiviz.json
+ M src/components/Gauge.tsx
+ M src/components/TrendSparkline.tsx
+ M src/components/arcUtils.ts
+ M src/components/layout.ts
+ M src/tooltips.ts
+ M src/visual.ts
+ M tests/gaugeTrend.test.ts
+ M tests/layout.test.ts
+ M tests/version.test.ts
+?? dev-harness/scripts/hover-tooltip.mjs
+?? reports/final-0.3.2.1-2026-11-22/
+?? reports/final-0.3.3.0-2026-11-22/
+?? reports/final-0.3.3.1-2026-11-22/
+?? tests/centerTextColor.test.ts
+?? tests/sparklineWidth.test.ts
+?? tests/trendTooltip.test.ts

@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
     computeGaugeFrame, computeGaugeLayout, computeInnerTrendBox, FOOTER_GAP, FOOTER_HEIGHT, MARKER_OVERHANG, TREND_MIN_HEIGHT,
+    TREND_CURRENT_POINT_RADIUS, TREND_EDGE_CLEARANCE, TREND_PADDING,
 } from "../src/components/layout";
-import { bandRadii } from "../src/components/arcUtils";
+import { bandRadii, semaphoreIndicatorRing } from "../src/components/arcUtils";
 
 describe("computeGaugeLayout — reparto vertical (0.3.1.0: sólo el pie reserva alto)", () => {
     it("sin pie, el medidor ocupa todo el alto (diseño 0.2.0.0 intacto)", () => {
@@ -45,32 +46,103 @@ describe("computeInnerTrendBox — sparkline dentro del semicírculo, bajo el n�
     it("caja centrada en x, debajo del centro y proporcional al radio interior (medidor 300x260, grosor 20)", () => {
         const radius = 260 / 2 / 0.95 - 10;
         const inner = bandRadii(radius, 20).innerRadius;
-        const box = computeInnerTrendBox(radius, 20);
+        const box = computeInnerTrendBox(radius, 20, -90, 90);
         expect(box).not.toBeNull();
-        expect(box!.x).toBeCloseTo(-inner * 0.75, 6);
-        expect(box!.width).toBeCloseTo(inner * 1.5, 6);
+        // 0.3.3.1: ancho por el contenido (puntos), no por las esquinas de la caja; ver describe 0.3.3.1.
+        expect(box!.x).toBeCloseTo(-box!.width / 2, 6);
         expect(box!.y).toBeCloseTo(inner * 0.1, 6);
         expect(box!.height).toBeCloseTo(inner * 0.5, 6);
-    });
-
-    it("las cuatro esquinas quedan dentro del círculo interior (no invade la banda con ningún ángulo)", () => {
-        for (const [radius, thickness] of [[126.84, 20], [60, 10], [300, 40]]) {
-            const inner = bandRadii(radius, thickness).innerRadius;
-            const box = computeInnerTrendBox(radius, thickness)!;
-            for (const x of [box.x, box.x + box.width]) {
-                for (const y of [box.y, box.y + box.height]) {
-                    expect(Math.hypot(x, y)).toBeLessThan(inner);
-                }
-            }
-            expect(box.y).toBeGreaterThan(0);
-        }
     });
 
     it("si el radio interior es muy chico (caja < TREND_MIN_HEIGHT) no hay sparkline", () => {
         // inner = radius*0.95 - 10 = 2*TREND_MIN_HEIGHT - 1 → alto de la caja < TREND_MIN_HEIGHT
         const radius = (TREND_MIN_HEIGHT * 2 - 1 + 10) / 0.95;
-        expect(computeInnerTrendBox(radius, 20)).toBeNull();
+        expect(computeInnerTrendBox(radius, 20, -120, 60)).toBeNull();
     });
+});
+
+/**
+ * Oráculo independiente (muestreo denso): los centros de los puntos de la sparkline pueden estar en cualquier
+ * lugar del rectángulo [−X, X] × [y0 + relleno, y1 − relleno]; cada punto ocupa su radio máximo más la holgura.
+ * Seguro ⇔ ese contenido queda dentro del círculo interior de la banda y fuera del anillo del indicador del
+ * semáforo en el barrido del arco. Basta el perímetro del rectángulo (el anillo no cabe dentro de él).
+ */
+function contentIsSafe(radius: number, thickness: number, lo: number, hi: number, X: number): boolean {
+    const inner = bandRadii(radius, thickness).innerRadius;
+    const ring = semaphoreIndicatorRing(inner, thickness);
+    const top = inner * 0.1 + TREND_PADDING;
+    const bottom = inner * 0.6 - TREND_PADDING;
+    const reach = TREND_CURRENT_POINT_RADIUS + TREND_EDGE_CLEARANCE;
+    const inSweep = (deg: number) => [-360, 0, 360].some((k) => deg + k >= Math.min(lo, hi) && deg + k <= Math.max(lo, hi));
+    const centers: Array<[number, number]> = [];
+    for (let i = 0; i <= 200; i++) {
+        const y = top + ((bottom - top) * i) / 200;
+        centers.push([-X, y], [X, y]);
+        const x = -X + (2 * X * i) / 200;
+        centers.push([x, top], [x, bottom]);
+    }
+    for (const [cx, cy] of centers) {
+        for (let k = 0; k < 180; k++) {
+            const a = (k * Math.PI) / 90;
+            const x = cx + reach * Math.cos(a);
+            const y = cy + reach * Math.sin(a);
+            const rho = Math.hypot(x, y);
+            if (rho > inner + 1e-9) return false;
+            const deg = (Math.atan2(x, -y) * 180) / Math.PI;
+            if (rho >= ring.innerRadius - 1e-9 && rho <= ring.outerRadius && inSweep(deg)) return false;
+        }
+    }
+    return true;
+}
+
+/** Mayor X seguro según el oráculo (búsqueda binaria). */
+function oracleHalfSpan(radius: number, thickness: number, lo: number, hi: number): number {
+    let a = 0;
+    let b = bandRadii(radius, thickness).innerRadius;
+    for (let i = 0; i < 24; i++) {
+        const m = (a + b) / 2;
+        if (contentIsSafe(radius, thickness, lo, hi, m)) a = m; else b = m;
+    }
+    return a;
+}
+
+describe("computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja)", () => {
+    const configs: Array<[number, number]> = [[126.84, 20], [147.89, 20], [60, 10], [300, 40], [45, 20]];
+    const sweeps: Array<[number, number]> = [[-120, 60], [-90, 90], [-135, 135], [-60, 120], [-150, 30]];
+
+    it("medidor por defecto (300x260, -120°..60°, grosor 20): limita el anillo del semáforo en -120°", () => {
+        const radius = (130.5 + 10) / 0.95; // inner 130.5 (tarjeta 300x300 con pie)
+        const ring = semaphoreIndicatorRing(130.5, 20);
+        expect(ring.innerRadius).toBeCloseTo(122.5, 9);
+        const box = computeInnerTrendBox(radius, 20, -120, 60)!;
+        const halfSpan = Math.sin((120 * Math.PI) / 180) * 122.5 - TREND_CURRENT_POINT_RADIUS - TREND_EDGE_CLEARANCE;
+        expect(box.width).toBeCloseTo(2 * (halfSpan + TREND_PADDING), 6); // 215.18
+        // Más ancho que 0.3.3.0 (cuerda en 0.6·inner con holgura 0.995 → 207.76).
+        expect(box.width).toBeGreaterThan(130.5 * 1.6 * 0.995);
+    });
+
+    it("sin anillo bajo la horizontal (-90°..90°) limita el círculo interior menos el radio del punto y la holgura", () => {
+        const radius = (130.5 + 10) / 0.95;
+        const box = computeInnerTrendBox(radius, 20, -90, 90)!;
+        const halfSpan = Math.sqrt((130.5 - TREND_CURRENT_POINT_RADIUS - TREND_EDGE_CLEARANCE) ** 2 - (0.6 * 130.5 - TREND_PADDING) ** 2);
+        expect(box.width).toBeCloseTo(2 * (halfSpan + TREND_PADDING), 6); // 218.39
+    });
+
+    for (const [radius, thickness] of configs) {
+        for (const [lo, hi] of sweeps) {
+            it(`r=${radius} grosor=${thickness} ${lo}°..${hi}°: seguro (oráculo) y máximo (a < 0.1 px del oráculo)`, () => {
+                const box = computeInnerTrendBox(radius, thickness, lo, hi);
+                expect(box).not.toBeNull();
+                const X = box!.width / 2 - TREND_PADDING;
+                expect(contentIsSafe(radius, thickness, lo, hi, X)).toBe(true);
+                expect(X).toBeGreaterThan(oracleHalfSpan(radius, thickness, lo, hi) - 0.1);
+                // Alto y posición vertical intactos: el pie y el encuadre no cambian.
+                const inner = bandRadii(radius, thickness).innerRadius;
+                expect(box!.y).toBeCloseTo(inner * 0.1, 9);
+                expect(box!.height).toBeCloseTo(inner * 0.5, 9);
+            });
+        }
+    }
 });
 
 /** Extremo inferior (y > 0 hacia abajo) del contenido del medidor relativo a su centro, muestreado. */
@@ -82,7 +154,7 @@ function contentBottom(radius: number, thickness: number, startDeg: number, endD
         // Banda + sobresaliente máximo de marcadores (triángulo: tip a outer+1, base a outer+11).
         bottom = Math.max(bottom, -Math.cos(a) * (outerRadius + MARKER_OVERHANG));
     }
-    const box = computeInnerTrendBox(radius, thickness);
+    const box = computeInnerTrendBox(radius, thickness, startDeg, endDeg);
     return Math.max(bottom, box ? box.y + box.height : 0);
 }
 

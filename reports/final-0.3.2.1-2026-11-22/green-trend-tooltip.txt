@@ -1,0 +1,9 @@
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  19:26:11
+   Duration  212ms (import 50%, transform 41%, tests 8%, worker 2%)
+

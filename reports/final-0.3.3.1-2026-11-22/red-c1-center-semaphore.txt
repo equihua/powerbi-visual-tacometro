@@ -1,0 +1,39 @@
+     × regresión: 72.89 (geométricamente en la banda alta 70..100) con semáforo «Rojo» → número ROJO 15ms
+     × el número coincide con el arco indicador del semáforo (rangos visibles) 2ms
+     × el número coincide con el arco de desempeño (rangos ocultos): 30 con semáforo «Verde» → verde 2ms
+     × semáforo de la fuente «Rojo» → #C00000 (mismo mapeo resolveSemaphoreColor que el arco) 1ms
+     × semáforo de la fuente «Amarillo» → #FFC000 (mismo mapeo resolveSemaphoreColor que el arco) 1ms
+     × semáforo de la fuente «text-danger» → #C00000 (mismo mapeo resolveSemaphoreColor que el arco) 1ms
+     × semáforo de la fuente «#123456» → #123456 (mismo mapeo resolveSemaphoreColor que el arco) 1ms
+     × semáforo de la fuente «Sin semaforizar» → #ADB5BD (mismo mapeo resolveSemaphoreColor que el arco) 1ms
+     × menor es mejor no reclasifica: semáforo «Verde» → verde aunque 72.89 caiga en la banda alta (roja) 1ms
+     × ya no existe la clasificación geométrica aparte (rangeBandColorAt eliminado) 1ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  tests/centerTextColor.test.ts > CenterText 0.3.3.1 — color del semáforo real, el mismo que consume el arco > regresión: 72.89 (geométricamente en la banda alta 70..100) con semáforo «Rojo» → número ROJO
+AssertionError: expected '#007F38' to be '#C00000' // Object.is equality
+ FAIL  tests/centerTextColor.test.ts > CenterText 0.3.3.1 — color del semáforo real, el mismo que consume el arco > el número coincide con el arco indicador del semáforo (rangos visibles)
+AssertionError: expected '#007F38' to be '#C00000' // Object.is equality
+ FAIL  tests/centerTextColor.test.ts > CenterText 0.3.3.1 — color del semáforo real, el mismo que consume el arco > el número coincide con el arco de desempeño (rangos ocultos): 30 con semáforo «Verde» → verde
+AssertionError: expected '#C00000' to be '#007F38' // Object.is equality
+ FAIL  tests/centerTextColor.test.ts > CenterText 0.3.3.1 — color del semáforo real, el mismo que consume el arco > semáforo de la fuente «Rojo» → #C00000 (mismo mapeo resolveSemaphoreColor que el arco)
+ FAIL  tests/centerTextColor.test.ts > CenterText 0.3.3.1 — color del semáforo real, el mismo que consume el arco > semáforo de la fuente «text-danger» → #C00000 (mismo mapeo resolveSemaphoreColor que el arco)
+AssertionError: expected '#007F38' to be '#C00000' // Object.is equality
+     91|         expect(centerFill(markup)).toBe(expected);
+     92|         expect(pathFill(markup, "semaphore-indicator")).toBe(expected);
+ FAIL  tests/centerTextColor.test.ts > CenterText 0.3.3.1 — color del semáforo real, el mismo que consume el arco > semáforo de la fuente «Amarillo» → #FFC000 (mismo mapeo resolveSemaphoreColor que el arco)
+AssertionError: expected '#007F38' to be '#FFC000' // Object.is equality
+     91|         expect(centerFill(markup)).toBe(expected);
+     92|         expect(pathFill(markup, "semaphore-indicator")).toBe(expected);
+ FAIL  tests/centerTextColor.test.ts > CenterText 0.3.3.1 — color del semáforo real, el mismo que consume el arco > semáforo de la fuente «#123456» → #123456 (mismo mapeo resolveSemaphoreColor que el arco)
+AssertionError: expected '#007F38' to be '#123456' // Object.is equality
+     91|         expect(centerFill(markup)).toBe(expected);
+     92|         expect(pathFill(markup, "semaphore-indicator")).toBe(expected);
+ FAIL  tests/centerTextColor.test.ts > CenterText 0.3.3.1 — color del semáforo real, el mismo que consume el arco > semáforo de la fuente «Sin semaforizar» → #ADB5BD (mismo mapeo resolveSemaphoreColor que el arco)
+AssertionError: expected '#007F38' to be '#ADB5BD' // Object.is equality
+     91|         expect(centerFill(markup)).toBe(expected);
+     92|         expect(pathFill(markup, "semaphore-indicator")).toBe(expected);
+ FAIL  tests/centerTextColor.test.ts > CenterText 0.3.3.1 — color del semáforo real, el mismo que consume el arco > menor es mejor no reclasifica: semáforo «Verde» → verde aunque 72.89 caiga en la banda alta (roja)
+AssertionError: expected '#C00000' to be '#007F38' // Object.is equality
+ FAIL  tests/centerTextColor.test.ts > CenterText 0.3.3.1 — color del semáforo real, el mismo que consume el arco > ya no existe la clasificación geométrica aparte (rangeBandColorAt eliminado)
+AssertionError: expected [Function rangeBandColorAt] to be undefined
+      Tests  10 failed | 3 passed (13)

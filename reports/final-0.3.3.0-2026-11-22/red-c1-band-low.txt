@@ -1,0 +1,25 @@
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+
+ ❯ tests/rangeBands.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/rangeBands.test.ts [ tests/rangeBands.test.ts ]
+TypeError: buildRangeBands is not a function
+ ❯ tests/rangeBands.test.ts:10:19
+      8|
+      9| describe("rangeBandColorAt — color de la banda que el arco pinta en el…
+     10|     const bands = buildRangeBands(range, thresholds, colors, false);
+       |                   ^
+     11|
+     12|     it("valor dentro de la banda baja → rojo", () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  20:31:20
+   Duration  124ms (worker 97%, environment 3%)
+

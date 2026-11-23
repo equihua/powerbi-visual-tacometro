@@ -1,0 +1,27 @@
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+
+ ❯ tests/layout.test.ts (16 tests | 1 failed) 11ms
+   ❯ computeInnerTrendBox — sparkline dentro del semicírculo, bajo el número central (3)
+     × caja centrada en x, debajo del centro y proporcional al radio interior (medidor 300x260, grosor 20) 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/layout.test.ts > computeInnerTrendBox — sparkline dentro del semicírculo, bajo el número central > caja centrada en x, debajo del centro y proporcional al radio interior (medidor 300x260, grosor 20)
+AssertionError: expected -87.958 to be close to -82.87499999999999, received difference is 5.083000000000013, but expected 5e-7
+ ❯ tests/layout.test.ts:50:24
+     48|         const box = computeInnerTrendBox(radius, 20);
+     49|         expect(box).not.toBeNull();
+     50|         expect(box!.x).toBeCloseTo(-inner * 0.75, 6);
+       |                        ^
+     51|         expect(box!.width).toBeCloseTo(inner * 1.5, 6);
+     52|         expect(box!.y).toBeCloseTo(inner * 0.1, 6);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 15 passed (16)
+   Start at  20:33:41
+   Duration  123ms (transform 38%, import 37%, tests 20%, worker 5%)
+

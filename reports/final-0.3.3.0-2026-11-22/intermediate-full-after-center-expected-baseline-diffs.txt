@@ -1,0 +1,68 @@
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+
+stderr | tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — el medidor aprobado no cambia > sin Programado ni tendencia el markup es idéntico byte a byte al de 0.2.0.0
+Your app (or one of its dependencies) is using an outdated JSX transform. Update to the modern JSX transform for faster performance: https://react.dev/link/new-jsx-transform
+
+ ❯ tests/gaugeTrend.test.ts (17 tests | 3 failed) 60ms
+   ❯ Gauge 0.3.0.0 — el medidor aprobado no cambia (4)
+     × sin Programado ni tendencia el markup es idéntico byte a byte al de 0.2.0.0 17ms
+     × con Programado pero sin serie mensual el markup es idéntico byte a byte al de 0.2.0.0 (sin pie) 3ms
+     × con un solo mes (serie insuficiente) y Programado el markup es idéntico byte a byte al de 0.2.0.0 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — el medidor aprobado no cambia > sin Programado ni tendencia el markup es idéntico byte a byte al de 0.2.0.0
+AssertionError: expected '<svg class="gauge-svg" width="300" he…' to be '<svg class="gauge-svg" width="300" he…' // Object.is equality
+
+Expected: "<svg class="gauge-svg" width="300" height="300" tabindex="0" role="img" aria-label="Tacómetro. Valor: 91.47; Mínimo: 0.00; Máximo: 120.00; Semáforo: Amarillo"><g transform="translate(150, 150)"><path class="gauge-background" d="M-150.5,0A150.5,150.5,0,1,1,150.5,0L130.5,0A130.5,130.5,0,1,0,-130.5,0Z" fill="#e0e0e0" stroke="none"></path><g class="gauge-ranges"><path class="range-low" d="M-150.5,0A150.5,150.5,0,0,1,75.25,-130.337L65.25,-113.016A130.5,130.5,0,0,0,-130.5,0Z" fill="#C00000" stroke="none"></path><path class="range-medium" d="M75.25,-130.337A150.5,150.5,0,0,1,119.4,-91.619L103.533,-79.443A130.5,130.5,0,0,0,65.25,-113.016Z" fill="#FFC000" stroke="none"></path><path class="range-high" d="M119.4,-91.619A150.5,150.5,0,0,1,150.5,0L130.5,0A130.5,130.5,0,0,0,103.533,-79.443Z" fill="#007F38" stroke="none"></path></g><path class="semaphore-indicator" fill="#FFC000" stroke="none"></path><g class="value-marker"><g><path d="M 0,-6 L -5,3 L 5,3 Z" fill="#333333" stroke="#333333" stroke-width="1"></path></g></g><text class="center-text" text-anchor="middle" dominant-baseline="middle" y="-10" font-size="20" font-family="Arial" fill="#777777">91.47</text></g></svg>"
+Received: "<svg class="gauge-svg" width="300" height="300" tabindex="0" role="img" aria-label="Tacómetro. Valor: 91.47; Mínimo: 0.00; Máximo: 120.00; Semáforo: Amarillo"><g transform="translate(150, 150)"><path class="gauge-background" d="M-150.5,0A150.5,150.5,0,1,1,150.5,0L130.5,0A130.5,130.5,0,1,0,-130.5,0Z" fill="#e0e0e0" stroke="none"></path><g class="gauge-ranges"><path class="range-low" d="M-150.5,0A150.5,150.5,0,0,1,75.25,-130.337L65.25,-113.016A130.5,130.5,0,0,0,-130.5,0Z" fill="#C00000" stroke="none"></path><path class="range-medium" d="M75.25,-130.337A150.5,150.5,0,0,1,119.4,-91.619L103.533,-79.443A130.5,130.5,0,0,0,65.25,-113.016Z" fill="#FFC000" stroke="none"></path><path class="range-high" d="M119.4,-91.619A150.5,150.5,0,0,1,150.5,0L130.5,0A130.5,130.5,0,0,0,103.533,-79.443Z" fill="#007F38" stroke="none"></path></g><path class="semaphore-indicator" fill="#FFC000" stroke="none"></path><g class="value-marker"><g><path d="M 0,-6 L -5,3 L 5,3 Z" fill="#333333" stroke="#333333" stroke-width="1"></path></g></g><text class="center-text" text-anchor="middle" dominant-baseline="middle" y="-10" font-size="20" font-family="Arial" fill="#FFC000">91.47</text></g></svg>"
+
+ ❯ tests/gaugeTrend.test.ts:36:52
+     34| describe("Gauge 0.3.0.0 — el medidor aprobado no cambia", () => {
+     35|     it("sin Programado ni tendencia el markup es idéntico byte a byte …
+     36|         expect(render(baseline.base as GaugeData)).toBe(baseline.noMar…
+       |                                                    ^
+     37|     });
+     38|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — el medidor aprobado no cambia > con Programado pero sin serie mensual el markup es idéntico byte a byte al de 0.2.0.0 (sin pie)
+AssertionError: expected '<svg class="gauge-svg" width="300" he…' to be '<svg class="gauge-svg" width="300" he…' // Object.is equality
+
+Expected: "<svg class="gauge-svg" width="300" height="300" tabindex="0" role="img" aria-label="Tacómetro. Valor: 91.47; Mínimo: 0.00; Máximo: 120.00; Objetivo: 95.00; Meta con margen: 95.00; Programado: 95.00; Semáforo: Amarillo"><g transform="translate(150, 150)"><path class="gauge-background" d="M-150.5,0A150.5,150.5,0,1,1,150.5,0L130.5,0A130.5,130.5,0,1,0,-130.5,0Z" fill="#e0e0e0" stroke="none"></path><g class="gauge-ranges"><path class="range-low" d="M-150.5,0A150.5,150.5,0,0,1,75.25,-130.337L65.25,-113.016A130.5,130.5,0,0,0,-130.5,0Z" fill="#C00000" stroke="none"></path><path class="range-medium" d="M75.25,-130.337A150.5,150.5,0,0,1,119.4,-91.619L103.533,-79.443A130.5,130.5,0,0,0,65.25,-113.016Z" fill="#FFC000" stroke="none"></path><path class="range-high" d="M119.4,-91.619A150.5,150.5,0,0,1,150.5,0L130.5,0A130.5,130.5,0,0,0,103.533,-79.443Z" fill="#007F38" stroke="none"></path></g><path class="semaphore-indicator" fill="#FFC000" stroke="none"></path><g class="gauge-marker marker-target" transform="rotate(52.49999999999999)"><title>Objetivo: 95.00</title><line x1="0" y1="-156.5" x2="0" y2="-124.5" stroke="#252423" stroke-width="3" stroke-linecap="butt"></line></g><g class="gauge-marker marker-targetWithMargin" transform="rotate(52.49999999999999)"><title>Meta con margen: 95.00</title><line x1="0" y1="-156.5" x2="0" y2="-124.5" stroke="#605E5C" stroke-width="3" stroke-linecap="butt" stroke-dasharray="4 3"></line></g><g class="gauge-marker marker-programmed" transform="rotate(52.49999999999999)"><title>Programado: 95.00</title><polygon points="0,-151.5 -6,-161.5 6,-161.5" fill="#0078D4"></polygon></g><g class="value-marker"><g><path d="M 0,-6 L -5,3 L 5,3 Z" fill="#333333" stroke="#333333" stroke-width="1"></path></g></g><text class="center-text" text-anchor="middle" dominant-baseline="middle" y="-10" font-size="20" font-family="Arial" fill="#777777">91.47</text></g></svg>"
+Received: "<svg class="gauge-svg" width="300" height="300" tabindex="0" role="img" aria-label="Tacómetro. Valor: 91.47; Mínimo: 0.00; Máximo: 120.00; Objetivo: 95.00; Meta con margen: 95.00; Programado: 95.00; Semáforo: Amarillo"><g transform="translate(150, 150)"><path class="gauge-background" d="M-150.5,0A150.5,150.5,0,1,1,150.5,0L130.5,0A130.5,130.5,0,1,0,-130.5,0Z" fill="#e0e0e0" stroke="none"></path><g class="gauge-ranges"><path class="range-low" d="M-150.5,0A150.5,150.5,0,0,1,75.25,-130.337L65.25,-113.016A130.5,130.5,0,0,0,-130.5,0Z" fill="#C00000" stroke="none"></path><path class="range-medium" d="M75.25,-130.337A150.5,150.5,0,0,1,119.4,-91.619L103.533,-79.443A130.5,130.5,0,0,0,65.25,-113.016Z" fill="#FFC000" stroke="none"></path><path class="range-high" d="M119.4,-91.619A150.5,150.5,0,0,1,150.5,0L130.5,0A130.5,130.5,0,0,0,103.533,-79.443Z" fill="#007F38" stroke="none"></path></g><path class="semaphore-indicator" fill="#FFC000" stroke="none"></path><g class="gauge-marker marker-target" transform="rotate(52.49999999999999)"><title>Objetivo: 95.00</title><line x1="0" y1="-156.5" x2="0" y2="-124.5" stroke="#252423" stroke-width="3" stroke-linecap="butt"></line></g><g class="gauge-marker marker-targetWithMargin" transform="rotate(52.49999999999999)"><title>Meta con margen: 95.00</title><line x1="0" y1="-156.5" x2="0" y2="-124.5" stroke="#605E5C" stroke-width="3" stroke-linecap="butt" stroke-dasharray="4 3"></line></g><g class="gauge-marker marker-programmed" transform="rotate(52.49999999999999)"><title>Programado: 95.00</title><polygon points="0,-151.5 -6,-161.5 6,-161.5" fill="#0078D4"></polygon></g><g class="value-marker"><g><path d="M 0,-6 L -5,3 L 5,3 Z" fill="#333333" stroke="#333333" stroke-width="1"></path></g></g><text class="center-text" text-anchor="middle" dominant-baseline="middle" y="-10" font-size="20" font-family="Arial" fill="#FFC000">91.47</text></g></svg>"
+
+ ❯ tests/gaugeTrend.test.ts:40:55
+     38|
+     39|     it("con Programado pero sin serie mensual el markup es idéntico by…
+     40|         expect(render(baseline.markers as GaugeData)).toBe(baseline.ma…
+       |                                                       ^
+     41|     });
+     42|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  tests/gaugeTrend.test.ts > Gauge 0.3.0.0 — el medidor aprobado no cambia > con un solo mes (serie insuficiente) y Programado el markup es idéntico byte a byte al de 0.2.0.0
+AssertionError: expected '<svg class="gauge-svg" width="300" he…' to be '<svg class="gauge-svg" width="300" he…' // Object.is equality
+
+Expected: "<svg class="gauge-svg" width="300" height="300" tabindex="0" role="img" aria-label="Tacómetro. Valor: 91.47; Mínimo: 0.00; Máximo: 120.00; Objetivo: 95.00; Meta con margen: 95.00; Programado: 95.00; Semáforo: Amarillo"><g transform="translate(150, 150)"><path class="gauge-background" d="M-150.5,0A150.5,150.5,0,1,1,150.5,0L130.5,0A130.5,130.5,0,1,0,-130.5,0Z" fill="#e0e0e0" stroke="none"></path><g class="gauge-ranges"><path class="range-low" d="M-150.5,0A150.5,150.5,0,0,1,75.25,-130.337L65.25,-113.016A130.5,130.5,0,0,0,-130.5,0Z" fill="#C00000" stroke="none"></path><path class="range-medium" d="M75.25,-130.337A150.5,150.5,0,0,1,119.4,-91.619L103.533,-79.443A130.5,130.5,0,0,0,65.25,-113.016Z" fill="#FFC000" stroke="none"></path><path class="range-high" d="M119.4,-91.619A150.5,150.5,0,0,1,150.5,0L130.5,0A130.5,130.5,0,0,0,103.533,-79.443Z" fill="#007F38" stroke="none"></path></g><path class="semaphore-indicator" fill="#FFC000" stroke="none"></path><g class="gauge-marker marker-target" transform="rotate(52.49999999999999)"><title>Objetivo: 95.00</title><line x1="0" y1="-156.5" x2="0" y2="-124.5" stroke="#252423" stroke-width="3" stroke-linecap="butt"></line></g><g class="gauge-marker marker-targetWithMargin" transform="rotate(52.49999999999999)"><title>Meta con margen: 95.00</title><line x1="0" y1="-156.5" x2="0" y2="-124.5" stroke="#605E5C" stroke-width="3" stroke-linecap="butt" stroke-dasharray="4 3"></line></g><g class="gauge-marker marker-programmed" transform="rotate(52.49999999999999)"><title>Programado: 95.00</title><polygon points="0,-151.5 -6,-161.5 6,-161.5" fill="#0078D4"></polygon></g><g class="value-marker"><g><path d="M 0,-6 L -5,3 L 5,3 Z" fill="#333333" stroke="#333333" stroke-width="1"></path></g></g><text class="center-text" text-anchor="middle" dominant-baseline="middle" y="-10" font-size="20" font-family="Arial" fill="#777777">91.47</text></g></svg>"
+Received: "<svg class="gauge-svg" width="300" height="300" tabindex="0" role="img" aria-label="Tacómetro. Valor: 91.47; Mínimo: 0.00; Máximo: 120.00; Objetivo: 95.00; Meta con margen: 95.00; Programado: 95.00; Semáforo: Amarillo"><g transform="translate(150, 150)"><path class="gauge-background" d="M-150.5,0A150.5,150.5,0,1,1,150.5,0L130.5,0A130.5,130.5,0,1,0,-130.5,0Z" fill="#e0e0e0" stroke="none"></path><g class="gauge-ranges"><path class="range-low" d="M-150.5,0A150.5,150.5,0,0,1,75.25,-130.337L65.25,-113.016A130.5,130.5,0,0,0,-130.5,0Z" fill="#C00000" stroke="none"></path><path class="range-medium" d="M75.25,-130.337A150.5,150.5,0,0,1,119.4,-91.619L103.533,-79.443A130.5,130.5,0,0,0,65.25,-113.016Z" fill="#FFC000" stroke="none"></path><path class="range-high" d="M119.4,-91.619A150.5,150.5,0,0,1,150.5,0L130.5,0A130.5,130.5,0,0,0,103.533,-79.443Z" fill="#007F38" stroke="none"></path></g><path class="semaphore-indicator" fill="#FFC000" stroke="none"></path><g class="gauge-marker marker-target" transform="rotate(52.49999999999999)"><title>Objetivo: 95.00</title><line x1="0" y1="-156.5" x2="0" y2="-124.5" stroke="#252423" stroke-width="3" stroke-linecap="butt"></line></g><g class="gauge-marker marker-targetWithMargin" transform="rotate(52.49999999999999)"><title>Meta con margen: 95.00</title><line x1="0" y1="-156.5" x2="0" y2="-124.5" stroke="#605E5C" stroke-width="3" stroke-linecap="butt" stroke-dasharray="4 3"></line></g><g class="gauge-marker marker-programmed" transform="rotate(52.49999999999999)"><title>Programado: 95.00</title><polygon points="0,-151.5 -6,-161.5 6,-161.5" fill="#0078D4"></polygon></g><g class="value-marker"><g><path d="M 0,-6 L -5,3 L 5,3 Z" fill="#333333" stroke="#333333" stroke-width="1"></path></g></g><text class="center-text" text-anchor="middle" dominant-baseline="middle" y="-10" font-size="20" font-family="Arial" fill="#FFC000">91.47</text></g></svg>"
+
+ ❯ tests/gaugeTrend.test.ts:45:34
+     43|     it("con un solo mes (serie insuficiente) y Programado el markup es…
+     44|         const oneMonth = { ...baseline.markers, trend: trend.slice(0, …
+     45|         expect(render(oneMonth)).toBe(baseline.markers300x300);
+       |                                  ^
+     46|     });
+     47|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed | 23 passed (24)
+      Tests  3 failed | 254 passed (257)
+   Start at  20:33:07
+   Duration  510ms (import 59%, transform 30%, tests 9%, worker 2%)
+

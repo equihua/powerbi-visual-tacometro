@@ -1,0 +1,42 @@
+
+ RUN  v5.1.0 /home/equihua/Projects/PowerBI/Dexter/React/powerbi-visual-tacometro
+      Coverage enabled with v8
+
+
+ Test Files  21 passed (21)
+      Tests  230 passed (230)
+   Start at  19:23:41
+   Duration  577ms (import 49%, transform 24%, worker 17%, tests 10%)
+
+[34m % [39m[2mCoverage report from [22m[33mv8[39m
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   99.74 |    95.84 |   99.01 |   99.71 |                   
+ src               |   99.48 |     93.2 |   97.82 |   99.43 |                   
+  highContrast.ts  |     100 |      100 |     100 |     100 |                   
+  tooltips.ts      |     100 |      100 |     100 |     100 |                   
+  visual.ts        |   99.43 |    92.81 |   97.56 |   99.37 | 412               
+ src/components    |     100 |    99.21 |     100 |     100 |                   
+  GaugeFooter.tsx  |     100 |      100 |     100 |     100 |                   
+  GaugeMarker.tsx  |     100 |      100 |     100 |     100 |                   
+  ...Sparkline.tsx |     100 |      100 |     100 |     100 |                   
+  arcUtils.ts      |     100 |       50 |     100 |     100 | 23                
+  layout.ts        |     100 |      100 |     100 |     100 |                   
+  markers.ts       |     100 |      100 |     100 |     100 |                   
+  scales.ts        |     100 |      100 |     100 |     100 |                   
+  semaphore.ts     |     100 |      100 |     100 |     100 |                   
+  trend.ts         |     100 |      100 |     100 |     100 |                   
+-------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 99.74% ( 387/388 )
+Branches     : 95.84% ( 277/289 )
+Functions    : 99.01% ( 101/102 )
+Lines        : 99.71% ( 355/356 )
+================================================================================
+npm notice
+npm notice New major version of npm available! 11.19.1 -> 12.2.3
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.3
+npm notice To update run: npm install -g npm@12.2.3
+npm notice
