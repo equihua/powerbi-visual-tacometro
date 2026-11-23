@@ -145,6 +145,39 @@ describe("computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (c
     }
 });
 
+describe("computeInnerTrendBox — 0.3.4.0: sin «Mostrar Rangos» no existe el anillo del semáforo (semaphore-indicator) que evitar", () => {
+    // Gauge.tsx sólo dibuja el anillo delgado cuando showRanges está activo (semaphore-indicator);
+    // con showRanges=false el performance-arc ocupa todo el grosor de la banda y no hay anillo que
+    // el contenido de la sparkline pudiera tocar: el único límite relevante es el círculo interior.
+    const radius = (130.5 + 10) / 0.95; // inner 130.5 (tarjeta 300x300 con pie), igual que el caso 0.3.3.1.
+
+    it("quinto parámetro showRanges por omisión es true: mismo ancho que antes (215.18, limitado por el anillo)", () => {
+        const withDefault = computeInnerTrendBox(radius, 20, -120, 60)!;
+        const withExplicitTrue = computeInnerTrendBox(radius, 20, -120, 60, true)!;
+        expect(withDefault.width).toEqual(withExplicitTrue.width);
+        expect(withDefault.width).toBeCloseTo(215.18, 1);
+    });
+
+    it("showRanges=false: el ancho crece al del círculo interior (sin la restricción del anillo), igual que -90°..90°", () => {
+        const ringConstrained = computeInnerTrendBox(radius, 20, -120, 60, true)!;
+        const circleOnly = computeInnerTrendBox(radius, 20, -120, 60, false)!;
+        expect(circleOnly.width).toBeGreaterThan(ringConstrained.width);
+
+        const halfSpan = Math.sqrt((130.5 - TREND_CURRENT_POINT_RADIUS - TREND_EDGE_CLEARANCE) ** 2 - (0.6 * 130.5 - TREND_PADDING) ** 2);
+        expect(circleOnly.width).toBeCloseTo(2 * (halfSpan + TREND_PADDING), 6); // 218.39, mismo límite que -90°..90°
+
+        // Alto y posición vertical siguen intactos: showRanges sólo afecta el ancho.
+        expect(circleOnly.y).toBeCloseTo(ringConstrained.y, 9);
+        expect(circleOnly.height).toBeCloseTo(ringConstrained.height, 9);
+    });
+
+    it("showRanges=false y barrido que no alcanza el círculo (-90°..90°, donde el anillo tampoco limitaba): mismo ancho que antes", () => {
+        const withRanges = computeInnerTrendBox(radius, 20, -90, 90, true)!;
+        const withoutRanges = computeInnerTrendBox(radius, 20, -90, 90, false)!;
+        expect(withoutRanges.width).toBeCloseTo(withRanges.width, 9);
+    });
+});
+
 /** Extremo inferior (y > 0 hacia abajo) del contenido del medidor relativo a su centro, muestreado. */
 function contentBottom(radius: number, thickness: number, startDeg: number, endDeg: number): number {
     const { outerRadius } = bandRadii(radius, thickness);

@@ -55,21 +55,20 @@ export const TrendSparkline: React.FC<TrendSparklineProps> = ({
             {geometry.realPoints.map((vertex) => {
                 const point = points[vertex.index];
                 const current = vertex.index === currentIndex;
-                const programmed = point.programmed !== null ? ` · Prog. ${format(point.programmed)}` : "";
                 return (
+                    // 0.3.4.0: sin <title> SVG nativo (tooltip gris de depuración del navegador, duplicaba
+                    // a la tooltip clara de visual.ts/tooltips.ts). visual.ts lee data-trend-index al hover
+                    // para mostrar únicamente esa tooltip clara con los mismos datos (periodo, Real, Programado).
                     <circle
                         key={vertex.index}
                         className={current ? "trend-point trend-point-current" : "trend-point"}
-                        // 0.3.2.1: visual.ts lo lee al hover para mostrar el tooltip de ESTE periodo.
                         data-trend-index={vertex.index}
                         cx={vertex.x}
                         cy={vertex.y}
                         r={current ? CURRENT_POINT_RADIUS : POINT_RADIUS}
                         // Estado del punto con datos de SU periodo (semáforo y umbrales de su fila), no del mes actual.
                         fill={statusColor(vertex.value, point.semaphore, point.thresholds, colors)}
-                    >
-                        <title>{`${point.label}: Real ${format(vertex.value)}${programmed}`}</title>
-                    </circle>
+                    />
                 );
             })}
         </g>

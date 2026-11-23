@@ -59,10 +59,9 @@ describe("TrendSparkline — historial mensual Real / Programado", () => {
         expect(render({ currentIndex: -1 })).not.toContain("trend-point-current");
     });
 
-    it("cada punto tiene título accesible con mes, Real y Programado", () => {
+    it("0.3.4.0: los puntos ya NO llevan <title> SVG nativo (tooltip gris de depuración del navegador, duplicaba la tooltip clara por punto de visual.ts/tooltips.ts)", () => {
         const markup = render();
-        expect(markup).toContain("<title>Feb: Real 90.0 · Prog. 60.0</title>");
-        expect(markup).toContain("<title>Abr: Real 60.0 · Prog. 80.0</title>");
+        expect(markup).not.toContain("<title>");
     });
 
     it("el mes actual se resalta con un radio mayor", () => {

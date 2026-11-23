@@ -4,7 +4,7 @@
     "displayName": "Tacometro Gauge",
     "guid": "PBI_CV_TACOMETRO_GAUGE",
     "visualClassName": "Visual",
-    "version": "0.3.3.1",
+    "version": "0.3.4.0",
     "description": "A radial gauge visual that replicates the Power BI Radial Gauge visual functionality",
     "supportUrl": "https://github.com",
     "gitHubUrl": ""

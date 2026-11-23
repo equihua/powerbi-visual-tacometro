@@ -76,21 +76,14 @@ function lastProps(): { settings: GaugeSettings; onRendered?: () => void } {
 beforeEach(() => render.mockClear());
 
 describe("A3 Tooltips (tooltipService)", () => {
-    it("mousemove muestra el tooltip con valor, objetivo y campos del rol 'tooltips'", () => {
+    it("0.3.4.0: mousemove fuera de un punto de la sparkline ya NO muestra la tooltip nativa del medidor completo (eliminada)", () => {
         const { host, element, visual } = setup();
         update(visual);
         fire(element, "mousemove", { clientX: 160, clientY: 90 });
-        expect(host.tooltipService.show).toHaveBeenCalledTimes(1);
-        const args = host.tooltipService.show.mock.calls[0][0];
-        expect(args.coordinates).toEqual([60, 40]);
-        expect(args.isTouchEvent).toBe(false);
-        expect(args.identities).toEqual([]);
-        expect(args.dataItems).toContainEqual({ displayName: "Valor", value: "65" });
-        expect(args.dataItems).toContainEqual({ displayName: "Objetivo", value: "80" });
-        expect(args.dataItems).toContainEqual({ displayName: "Unidad", value: "min/cliente" });
+        expect(host.tooltipService.show).not.toHaveBeenCalled();
     });
 
-    it("mouseleave oculta el tooltip", () => {
+    it("mouseleave oculta cualquier tooltip pendiente", () => {
         const { host, element, visual } = setup();
         update(visual);
         fire(element, "mouseleave");
@@ -105,11 +98,11 @@ describe("A3 Tooltips (tooltipService)", () => {
 });
 
 describe("A3 Keyboard Navigation", () => {
-    it("al recibir foco muestra el tooltip en el centro y al perderlo lo oculta", () => {
+    it("0.3.4.0: al recibir foco ya no hay tooltip del medidor completo (eliminada); al perder el foco se sigue ocultando cualquier tooltip pendiente", () => {
         const { host, element, visual } = setup();
         update(visual);
         fire(element, "focusin");
-        expect(host.tooltipService.show.mock.calls[0][0].coordinates).toEqual([150, 100]);
+        expect(host.tooltipService.show).not.toHaveBeenCalled();
         fire(element, "focusout");
         expect(host.tooltipService.hide).toHaveBeenCalled();
     });

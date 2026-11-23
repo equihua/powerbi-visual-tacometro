@@ -144,11 +144,11 @@ describe("0.3.2.1 — tooltip por punto de la sparkline mensual", () => {
         ]);
     });
 
-    it("un índice que ya no existe en la serie (DOM desfasado) usa el tooltip del medidor", () => {
+    it("un índice que ya no existe en la serie (DOM desfasado) ya no muestra tooltip (0.3.4.0: sin respaldo del medidor completo)", () => {
         const { element, visual, tooltipService } = setup();
         visual.update({ dataViews: [monthlyDataView()], viewport: { width: 300, height: 300 } } as unknown as VisualUpdateOptions);
         hover(element, new FakeNode({ "data-trend-index": "9" }, element));
-        expect(tooltipService.show.mock.calls[0][0].dataItems).toContainEqual({ displayName: "Valor", value: "91" });
+        expect(tooltipService.show).not.toHaveBeenCalled();
 
         // Sin serie mensual (sin rol «Periodo») tampoco hay puntos válidos.
         visual.update({
@@ -156,13 +156,13 @@ describe("0.3.2.1 — tooltip por punto de la sparkline mensual", () => {
             viewport: { width: 300, height: 300 },
         } as unknown as VisualUpdateOptions);
         hover(element, new FakeNode({ "data-trend-index": "0" }, element));
-        expect(tooltipService.show.mock.calls[1][0].dataItems).toContainEqual({ displayName: "Valor", value: "42" });
+        expect(tooltipService.show).not.toHaveBeenCalled();
     });
 
-    it("fuera de los puntos (resto del medidor) sigue el tooltip del mes actual", () => {
+    it("fuera de los puntos (resto del medidor) ya no muestra tooltip (0.3.4.0: se eliminó la tooltip nativa oscura del medidor completo)", () => {
         const { element, visual, tooltipService } = setup();
         visual.update({ dataViews: [monthlyDataView()], viewport: { width: 300, height: 300 } } as unknown as VisualUpdateOptions);
         hover(element, new FakeNode({ class: "trend-sparkline" }, element));
-        expect(tooltipService.show.mock.calls[0][0].dataItems).toContainEqual({ displayName: "Valor", value: "91" });
+        expect(tooltipService.show).not.toHaveBeenCalled();
     });
 });

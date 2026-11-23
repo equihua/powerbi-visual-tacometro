@@ -146,8 +146,22 @@ function segmentToAnnularSector(p: Point, q: Point, r0: number, r1: number, lo: 
  *     anillo no cabe dentro del rectángulo).
  * Se aplica aunque el mes no traiga semáforo, para que el ancho no salte entre periodos.
  * Alto y posición vertical no cambian (el encuadre de computeGaugeFrame y el pie tampoco).
+ *
+ * 0.3.4.0 — `showRanges`: el anillo (`semaphore-indicator`, PerformanceArc) sólo lo dibuja Gauge.tsx
+ * cuando «Mostrar Rangos» está activo; con el formato apagado el performance-arc ocupa todo el grosor
+ * de la banda y no existe ningún anillo que la sparkline pudiera tocar, así que el paso 2 (bisección
+ * contra el anillo) se omite y el único límite es el círculo interior (paso 1). A diferencia del
+ * semáforo del mes (dato, puede faltar en una actualización y aparecer en otra), `showRanges` es una
+ * opción de formato fija para todo el reporte: omitir el paso 2 cuando está apagada no reintroduce el
+ * salto de ancho entre periodos que el resto de la función evita a propósito.
  */
-export function computeInnerTrendBox(radius: number, thickness: number, startAngle: number, endAngle: number): Box | null {
+export function computeInnerTrendBox(
+    radius: number,
+    thickness: number,
+    startAngle: number,
+    endAngle: number,
+    showRanges: boolean = true
+): Box | null {
     const inner = bandRadii(radius, thickness).innerRadius;
     const height = inner * TREND_HEIGHT_FACTOR;
     if (height < TREND_MIN_HEIGHT) {
@@ -159,30 +173,31 @@ export function computeInnerTrendBox(radius: number, thickness: number, startAng
     const reach = TREND_CURRENT_POINT_RADIUS + TREND_EDGE_CLEARANCE;
     const lo = Math.min(startAngle, endAngle);
     const hi = Math.max(startAngle, endAngle);
-    const ring = semaphoreIndicatorRing(inner, thickness);
-
-    const clearOfRing = (X: number): boolean => {
-        const corners: Point[] = [[-X, top], [X, top], [X, bottom], [-X, bottom]];
-        return corners.every(
-            (corner, i) => segmentToAnnularSector(corner, corners[(i + 1) % 4], ring.innerRadius, ring.outerRadius, lo, hi) >= reach
-        );
-    };
 
     // 1. Círculo interior (forma cerrada).
     let halfSpan = Math.sqrt(Math.max(0, (inner - reach) ** 2 - bottom ** 2));
-    // 2. Anillo del semáforo: bisección sólo si el contenido lo alcanzaría.
-    if (!clearOfRing(halfSpan)) {
-        let safe = 0;
-        let unsafe = halfSpan;
-        while (unsafe - safe > TREND_BISECTION_TOLERANCE) {
-            const mid = (safe + unsafe) / 2;
-            if (clearOfRing(mid)) {
-                safe = mid;
-            } else {
-                unsafe = mid;
+    // 2. Anillo del semáforo: sólo existe (y sólo hace falta la bisección) si showRanges lo dibuja.
+    if (showRanges) {
+        const ring = semaphoreIndicatorRing(inner, thickness);
+        const clearOfRing = (X: number): boolean => {
+            const corners: Point[] = [[-X, top], [X, top], [X, bottom], [-X, bottom]];
+            return corners.every(
+                (corner, i) => segmentToAnnularSector(corner, corners[(i + 1) % 4], ring.innerRadius, ring.outerRadius, lo, hi) >= reach
+            );
+        };
+        if (!clearOfRing(halfSpan)) {
+            let safe = 0;
+            let unsafe = halfSpan;
+            while (unsafe - safe > TREND_BISECTION_TOLERANCE) {
+                const mid = (safe + unsafe) / 2;
+                if (clearOfRing(mid)) {
+                    safe = mid;
+                } else {
+                    unsafe = mid;
+                }
             }
+            halfSpan = safe;
         }
-        halfSpan = safe;
     }
     const width = 2 * (halfSpan + TREND_PADDING);
     return { x: -width / 2, y, width, height };

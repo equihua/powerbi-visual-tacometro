@@ -128,7 +128,10 @@ export default class Gauge extends React.Component<Props> {
     const indicatorThickness = indicatorRing.thickness;
     const indicatorRadius = (indicatorRing.innerRadius + indicatorRing.outerRadius) / 2 / BAND_RADIUS_FACTOR;
     const format = (value: number) => formatGaugeValue(value, gaugeData.dataFormat);
-    const trendBox = trend && layout.footer ? computeInnerTrendBox(radius, settings.thickness, settings.startAngle, settings.endAngle) : null;
+    // 0.3.4.0: sin «Mostrar Rangos» no se dibuja el anillo delgado del semáforo (abajo sólo el
+    // performance-arc de grosor completo), así que la sparkline no necesita evitarlo (más ancho).
+    const trendBox =
+        trend && layout.footer ? computeInnerTrendBox(radius, settings.thickness, settings.startAngle, settings.endAngle, settings.showRanges) : null;
 
     return (
       // A3 Keyboard Navigation: el SVG recibe el foco (supportsKeyboardFocus) y se anuncia como imagen.

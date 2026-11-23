@@ -22,7 +22,7 @@ import { findCurrentPosition, lastIndexWithReal, orderPeriodRows, periodSortKey,
 import { isFiniteNumber, resolveRange, resolveThresholds } from "./components/scales";
 import { formatGaugeValue } from "./components/CenterText";
 import { applyHighContrast } from "./highContrast";
-import { buildTooltipItems, buildTrendPointTooltipItems, TooltipItem } from "./tooltips";
+import { buildTrendPointTooltipItems, TooltipItem } from "./tooltips";
 
 export class Visual implements IVisual {
   private target: HTMLElement;
@@ -117,13 +117,24 @@ export class Visual implements IVisual {
     });
   }
 
+  /**
+   * 0.3.4.0: se elimina la tooltip nativa oscura del medidor completo (decisión de producto; coexistía
+   * con 3 tooltips distintas). Sólo queda la tooltip clara por punto de la sparkline mensual
+   * (trendPointTooltip, arreglada en 0.3.2.1). Sin un punto bajo el cursor/foco no se llama al
+   * tooltip service: no hay nada que mostrar. El selectionManager y el formato condicional no
+   * dependen de esta llamada (identities siempre fue [], no hay selección de puntos de datos).
+   */
   private showTooltip(coordinates: number[], target?: EventTarget | null) {
     const tooltipService = this.host.tooltipService;
     if (!this.currentData || !this.interactionsAllowed() || !tooltipService.enabled()) {
       return;
     }
+    const dataItems = this.trendPointTooltip(target);
+    if (!dataItems) {
+      return;
+    }
     tooltipService.show({
-      dataItems: this.trendPointTooltip(target) ?? buildTooltipItems(this.currentData, this.tooltipExtras),
+      dataItems,
       identities: [],
       coordinates,
       isTouchEvent: false,
