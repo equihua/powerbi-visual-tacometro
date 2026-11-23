@@ -8,9 +8,30 @@ export const FOOTER_GAP = 4;
 export const MARKER_OVERHANG = 11;
 /** Alto mínimo útil de la sparkline interior; por debajo no se dibuja. */
 export const TREND_MIN_HEIGHT = 16;
-/** Caja de la sparkline relativa al radio interior de la banda (alto y posición vertical; el ancho se calcula). */
+/**
+ * Caja de la sparkline relativa al radio interior de la banda (alto y posición vertical; el ancho se calcula).
+ *
+ * 0.3.4.1 — HEIGHT_FACTOR bajó de 0.5 a 0.3: diagnóstico del ancho inconsistente entre layouts (QA
+ * deleg_7d71b0fd, 'poa_inicio' ~60% del ancho de tarjeta vs 'poa_subdireccion'/'poa_energia_limpia'
+ * ~42-43%). Causa raíz: el ancho máximo seguro de la sparkline (computeInnerTrendBox) es una fracción
+ * ~constante del radio interior de la banda (`inner`), y ese radio lo fija computeGaugeFrame según el
+ * ALTO disponible de la tarjeta (banda + marcadores + número central + pie, todos en px fijos), no
+ * según su ancho. En tarjetas "paisaje" (1 medidor grande, más anchas que altas) ese radio queda más
+ * chico en proporción al ancho que en tarjetas "retrato" (4 medidores en fila), así que CUALQUIER
+ * elemento dimensionado a partir de `inner` —banda, anillo del semáforo y sparkline por igual— se ve
+ * proporcionalmente más angosto frente al ancho de tarjeta. No hay un valor fijo/breakpoint oculto en
+ * el cálculo del ancho (ya es "máximo técnicamente seguro" relativo a `inner`, correcto y consistente
+ * como fracción de `inner` en ambos layouts); el ancho de banda/anillo/arco no se tocan aquí (habría
+ * que rediseñar computeGaugeFrame, cambio de mayor alcance y riesgo, fuera de esta corrección).
+ * Lo que SÍ es ajustable sin tocar el encuadre del medidor: cuánto alto necesita la propia caja de la
+ * sparkline. Una serie mensual de líneas finas no necesita media `inner` de alto para verse bien; con
+ * menos profundidad vertical (bottom más cerca del centro) la bisección de ancho (pasos 1 y 2 de
+ * computeInnerTrendBox) libera más ancho seguro en AMBOS layouts por el mismo mecanismo ya validado
+ * (no es un porcentaje arbitrario: sigue siendo el máximo seguro, ahora con menos alto exigido).
+ * TOP_FACTOR no cambia (posición vertical superior de la caja intacta).
+ */
 const TREND_TOP_FACTOR = 0.1;
-const TREND_HEIGHT_FACTOR = 0.5;
+const TREND_HEIGHT_FACTOR = 0.3;
 /** 0.3.3.1: relleno interno de TrendSparkline (centros de los puntos extremos a este margen de la caja). */
 export const TREND_PADDING = 6;
 /** Radios de los puntos de TrendSparkline; el del mes actual es el mayor y define el alcance del contenido. */
@@ -85,6 +106,14 @@ function segmentDistance(a: Point, b: Point, c: Point, d: Point): number {
     const d3 = cross(sub(d, c), sub(a, c));
     const d4 = cross(sub(d, c), sub(b, c));
     if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) {
+        // 0.3.4.1: rama estructuralmente inalcanzable tras el fix de causa raíz (TREND_HEIGHT_FACTOR
+        // 0.5→0.3). Al bajar el alto de la caja de la sparkline, el rango geométrico donde el borde del
+        // rectángulo de centros puede cruzar (no sólo acercarse a) el borde radial del sector del anillo
+        // se angostó hasta quedar fuera de cualquier combinación válida de radio/grosor/barrido probada
+        // (incluyendo barridos amplios y asimétricos hasta 260°, ver intento documentado y descartado en
+        // el historial de tests de este archivo). Confirmado por decisión de Orchestrator: no perseguir
+        // más un caso que ejercite esta rama; se documenta y excluye en vez de dejar un test sin valor real.
+        /* v8 ignore next */
         return 0;
     }
     return Math.min(pointSegmentDistance(a, c, d), pointSegmentDistance(b, c, d), pointSegmentDistance(c, a, b), pointSegmentDistance(d, a, b));

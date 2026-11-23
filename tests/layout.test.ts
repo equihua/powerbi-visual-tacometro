@@ -51,12 +51,15 @@ describe("computeInnerTrendBox — sparkline dentro del semicírculo, bajo el n�
         // 0.3.3.1: ancho por el contenido (puntos), no por las esquinas de la caja; ver describe 0.3.3.1.
         expect(box!.x).toBeCloseTo(-box!.width / 2, 6);
         expect(box!.y).toBeCloseTo(inner * 0.1, 6);
-        expect(box!.height).toBeCloseTo(inner * 0.5, 6);
+        // 0.3.4.1: TREND_HEIGHT_FACTOR bajó de 0.5 a 0.3 (ver comentario en layout.ts) para liberar
+        // más ancho seguro en tarjetas "paisaje" (1 medidor grande) sin tocar banda/anillo/arco.
+        expect(box!.height).toBeCloseTo(inner * 0.3, 6);
     });
 
     it("si el radio interior es muy chico (caja < TREND_MIN_HEIGHT) no hay sparkline", () => {
-        // inner = radius*0.95 - 10 = 2*TREND_MIN_HEIGHT - 1 → alto de la caja < TREND_MIN_HEIGHT
-        const radius = (TREND_MIN_HEIGHT * 2 - 1 + 10) / 0.95;
+        // 0.3.4.1: alto de caja = inner·0.3 (antes inner·0.5); inner = TREND_MIN_HEIGHT/0.3 - 1 →
+        // alto = TREND_MIN_HEIGHT - 0.3, apenas por debajo de TREND_MIN_HEIGHT.
+        const radius = (TREND_MIN_HEIGHT / 0.3 - 1 + 10) / 0.95;
         expect(computeInnerTrendBox(radius, 20, -120, 60)).toBeNull();
     });
 });
@@ -71,7 +74,8 @@ function contentIsSafe(radius: number, thickness: number, lo: number, hi: number
     const inner = bandRadii(radius, thickness).innerRadius;
     const ring = semaphoreIndicatorRing(inner, thickness);
     const top = inner * 0.1 + TREND_PADDING;
-    const bottom = inner * 0.6 - TREND_PADDING;
+    // 0.3.4.1: bottom = y + height - padding = inner·(TOP_FACTOR + HEIGHT_FACTOR) - padding = inner·0.4 (antes 0.6).
+    const bottom = inner * 0.4 - TREND_PADDING;
     const reach = TREND_CURRENT_POINT_RADIUS + TREND_EDGE_CLEARANCE;
     const inSweep = (deg: number) => [-360, 0, 360].some((k) => deg + k >= Math.min(lo, hi) && deg + k <= Math.max(lo, hi));
     const centers: Array<[number, number]> = [];
@@ -107,7 +111,9 @@ function oracleHalfSpan(radius: number, thickness: number, lo: number, hi: numbe
 }
 
 describe("computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja)", () => {
-    const configs: Array<[number, number]> = [[126.84, 20], [147.89, 20], [60, 10], [300, 40], [45, 20]];
+    // 0.3.4.1: [60,10] y [45,20] ya no generan sparkline con el factor 0.3 (inner < TREND_MIN_HEIGHT/0.3 ≈
+    // 53.33); sustituidos por [65,10] y [75,20] (inner 56.75 y 61.25, alto 17.03 y 18.38, con margen > TREND_MIN_HEIGHT).
+    const configs: Array<[number, number]> = [[126.84, 20], [147.89, 20], [65, 10], [300, 40], [75, 20]];
     const sweeps: Array<[number, number]> = [[-120, 60], [-90, 90], [-135, 135], [-60, 120], [-150, 30]];
 
     it("medidor por defecto (300x260, -120°..60°, grosor 20): limita el anillo del semáforo en -120°", () => {
@@ -115,17 +121,29 @@ describe("computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (c
         const ring = semaphoreIndicatorRing(130.5, 20);
         expect(ring.innerRadius).toBeCloseTo(122.5, 9);
         const box = computeInnerTrendBox(radius, 20, -120, 60)!;
-        const halfSpan = Math.sin((120 * Math.PI) / 180) * 122.5 - TREND_CURRENT_POINT_RADIUS - TREND_EDGE_CLEARANCE;
-        expect(box.width).toBeCloseTo(2 * (halfSpan + TREND_PADDING), 6); // 215.18
-        // Más ancho que 0.3.3.0 (cuerda en 0.6·inner con holgura 0.995 → 207.76).
-        expect(box.width).toBeGreaterThan(130.5 * 1.6 * 0.995);
+        const reach = TREND_CURRENT_POINT_RADIUS + TREND_EDGE_CLEARANCE;
+        // 0.3.4.1: con TREND_HEIGHT_FACTOR 0.5→0.3 la caja es más baja (bottom = inner·0.4 − padding = 46.2,
+        // antes inner·0.6 − padding = 72.3) y el punto de amarre con el anillo CAMBIA DE FORMA: el borde
+        // radial del sector en -120° (de r=122.5 a r=128.5) queda ahora por completo FUERA del rango
+        // vertical de la caja (su y va de 61.25 a 64.25, y bottom bajó a 46.2 < 61.25), así que ya no es el
+        // borde recto el que limita (fórmula vieja sin(120°)·122.5) sino la ESQUINA inferior del rectángulo
+        // de centros: su ángulo respecto al centro (~-113.05°, dentro de [-120°, 60°]) cae en el barrido, así
+        // que el punto más cercano del anillo es sobre su ARCO interior (mismo tipo de restricción que el
+        // círculo interior del paso 1, pero contra ring.innerRadius en vez de inner): X = √((ring.innerRadius
+        // − reach)² − bottom²). Verificado numéricamente contra la bisección real y el oráculo de muestreo.
+        const bottom = 130.5 * 0.4 - TREND_PADDING; // 46.2
+        const halfSpan = Math.sqrt((ring.innerRadius - reach) ** 2 - bottom ** 2);
+        expect(box.width).toBeCloseTo(2 * (halfSpan + TREND_PADDING), 6); // 229.16
+        // Más ancho que con el factor anterior (0.3.4.0, 215.18): la caja más baja libera más ancho seguro.
+        expect(box.width).toBeGreaterThan(215.18);
     });
 
     it("sin anillo bajo la horizontal (-90°..90°) limita el círculo interior menos el radio del punto y la holgura", () => {
         const radius = (130.5 + 10) / 0.95;
         const box = computeInnerTrendBox(radius, 20, -90, 90)!;
-        const halfSpan = Math.sqrt((130.5 - TREND_CURRENT_POINT_RADIUS - TREND_EDGE_CLEARANCE) ** 2 - (0.6 * 130.5 - TREND_PADDING) ** 2);
-        expect(box.width).toBeCloseTo(2 * (halfSpan + TREND_PADDING), 6); // 218.39
+        // 0.3.4.1: bottom = inner·0.4 − padding (antes 0.6).
+        const halfSpan = Math.sqrt((130.5 - TREND_CURRENT_POINT_RADIUS - TREND_EDGE_CLEARANCE) ** 2 - (0.4 * 130.5 - TREND_PADDING) ** 2);
+        expect(box.width).toBeCloseTo(2 * (halfSpan + TREND_PADDING), 6); // 246.45
     });
 
     for (const [radius, thickness] of configs) {
@@ -139,7 +157,7 @@ describe("computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (c
                 // Alto y posición vertical intactos: el pie y el encuadre no cambian.
                 const inner = bandRadii(radius, thickness).innerRadius;
                 expect(box!.y).toBeCloseTo(inner * 0.1, 9);
-                expect(box!.height).toBeCloseTo(inner * 0.5, 9);
+                expect(box!.height).toBeCloseTo(inner * 0.3, 9); // 0.3.4.1: TREND_HEIGHT_FACTOR 0.5→0.3
             });
         }
     }
@@ -151,11 +169,12 @@ describe("computeInnerTrendBox — 0.3.4.0: sin «Mostrar Rangos» no existe el 
     // el contenido de la sparkline pudiera tocar: el único límite relevante es el círculo interior.
     const radius = (130.5 + 10) / 0.95; // inner 130.5 (tarjeta 300x300 con pie), igual que el caso 0.3.3.1.
 
-    it("quinto parámetro showRanges por omisión es true: mismo ancho que antes (215.18, limitado por el anillo)", () => {
+    it("quinto parámetro showRanges por omisión es true: mismo ancho que antes (229.16, limitado por el anillo)", () => {
         const withDefault = computeInnerTrendBox(radius, 20, -120, 60)!;
         const withExplicitTrue = computeInnerTrendBox(radius, 20, -120, 60, true)!;
         expect(withDefault.width).toEqual(withExplicitTrue.width);
-        expect(withDefault.width).toBeCloseTo(215.18, 1);
+        // 0.3.4.1: TREND_HEIGHT_FACTOR 0.5→0.3 cambió el valor (ver test "medidor por defecto" arriba).
+        expect(withDefault.width).toBeCloseTo(229.16, 1);
     });
 
     it("showRanges=false: el ancho crece al del círculo interior (sin la restricción del anillo), igual que -90°..90°", () => {
@@ -163,8 +182,9 @@ describe("computeInnerTrendBox — 0.3.4.0: sin «Mostrar Rangos» no existe el 
         const circleOnly = computeInnerTrendBox(radius, 20, -120, 60, false)!;
         expect(circleOnly.width).toBeGreaterThan(ringConstrained.width);
 
-        const halfSpan = Math.sqrt((130.5 - TREND_CURRENT_POINT_RADIUS - TREND_EDGE_CLEARANCE) ** 2 - (0.6 * 130.5 - TREND_PADDING) ** 2);
-        expect(circleOnly.width).toBeCloseTo(2 * (halfSpan + TREND_PADDING), 6); // 218.39, mismo límite que -90°..90°
+        // 0.3.4.1: bottom = inner·0.4 − padding (antes 0.6).
+        const halfSpan = Math.sqrt((130.5 - TREND_CURRENT_POINT_RADIUS - TREND_EDGE_CLEARANCE) ** 2 - (0.4 * 130.5 - TREND_PADDING) ** 2);
+        expect(circleOnly.width).toBeCloseTo(2 * (halfSpan + TREND_PADDING), 6); // 246.45, mismo límite que -90°..90°
 
         // Alto y posición vertical siguen intactos: showRanges sólo afecta el ancho.
         expect(circleOnly.y).toBeCloseTo(ringConstrained.y, 9);

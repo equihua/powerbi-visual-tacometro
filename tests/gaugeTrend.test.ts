@@ -57,10 +57,12 @@ describe("Gauge 0.3.0.0 — el medidor aprobado no cambia", () => {
 
     it("0.3.2.0: con tendencia y Programado el medidor es el mismo dibujo de 0.2.0.0 (300x300), sólo desplazado hacia el pie", () => {
         // render sin tendencia = 0.2.0.0 byte a byte (pruebas anteriores), así que el medidor no cambia de diseño:
-        // con pie (-90°..90°, 300x300) el radio lo limita el ancho y sólo el centro baja de y=150 a y=177.7.
+        // con pie (-90°..90°, 300x300) el radio lo limita el ancho; el centro baja de y=150 a y=203.8 (0.3.4.1:
+        // bottom=0 en este barrido, así que sólo la sparkline fija contentBottom = trendBottom·inner; con
+        // TREND_HEIGHT_FACTOR 0.5→0.3 (trendBottom 0.6→0.4) el centro queda más abajo, más cerca del pie).
         const withTrend = gaugeGroup(render({ ...baseline.markers, trend, trendCurrentIndex: 2 } as GaugeData));
-        expect(withTrend).toContain('<g transform="translate(150, 177.7)">');
-        expect(withTrend.replace('<g transform="translate(150, 177.7)">', '<g transform="translate(150, 150)">')).toBe(
+        expect(withTrend).toContain('<g transform="translate(150, 203.8)">');
+        expect(withTrend.replace('<g transform="translate(150, 203.8)">', '<g transform="translate(150, 150)">')).toBe(
             gaugeGroup(render(baseline.markers as GaugeData, settings, 300, 300))
         );
     });
@@ -71,14 +73,14 @@ describe("Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor", () => {
 
     it("0.3.2.0: la sparkline va dentro del semicírculo bajo el número y el pie abajo, sin hueco grande", () => {
         const markup = render(withTrend);
-        // Caja 300x260 con pie: radio por el ancho (interior 130.5), contenido inferior = sparkline (0.6·130.5 = 78.3)
-        // terminando a FOOTER_GAP (4) del pie → centro (150, 256 − 78.3 = 177.7); caja: y 177.7 + 13.05.
-        // 0.3.3.0: ancho = cuerda interior a y = 0.6·130.5 → 1.6·130.5·0.995 = 207.76; x = 150 − 103.88 = 46.12
-        // (antes 1.5·130.5 → x 52.13). Centro y pie no cambian.
-        // 0.3.3.1 (-90°..90°, sin anillo bajo la horizontal): punto extremo (radio 4 + holgura 0.5) tangente al
-        // círculo interior en y = 0.6·130.5 − 6: X = √(126² − 72.3²) = 103.19; ancho 2·(103.19 + 6) = 218.39 → x = 40.81.
-        expect(markup).toContain('<g transform="translate(150, 177.7)">');
-        expect(markup).toMatch(/<g class="gauge-trend-slot" transform="translate\(40.81, 190.75\)">[^]*class="trend-sparkline"/);
+        // Caja 300x260 con pie: radio por el ancho (interior 130.5), contenido inferior = sparkline
+        // (trendBottom·130.5 = 0.4·130.5 = 52.2) terminando a FOOTER_GAP (4) del pie
+        // → centro (150, 256 − 52.2 = 203.8); caja: y 203.8 + 13.05.
+        // 0.3.4.1: TREND_HEIGHT_FACTOR 0.5→0.3 (más alto disponible para el ancho de la sparkline, ver
+        // layout.ts); bottom de la caja = inner·0.4 − 6 = 46.2; X = √(126² − 46.2²) = 117.22; ancho
+        // 2·(117.22 + 6) = 246.45 → x = 150 − 123.22 = 26.78.
+        expect(markup).toContain('<g transform="translate(150, 203.8)">');
+        expect(markup).toMatch(/<g class="gauge-trend-slot" transform="translate\(26.78, 216.85\)">[^]*class="trend-sparkline"/);
         expect(markup).toMatch(/<g class="gauge-footer-slot" transform="translate\(0, 260\)">[^]*class="gauge-footer"/);
     });
 
