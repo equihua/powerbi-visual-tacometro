@@ -3,6 +3,80 @@
 Formato basado en *Keep a Changelog*. La versión del visual la define `pbiviz.json`
 (`visual.version`, 4 partes exigidas por `powerbi-visuals-tools` 7.2.1).
 
+## [0.3.5.0] — 2026-11-23 (sparkline: medio ancho por lado, cierra la brecha entre layouts 4-en-fila y 1-grande, pre-1.0, sin validación en Power BI)
+
+### Versión
+
+- `pbiviz.json`, `package.json` y la raíz de `package-lock.json` (2 apariciones): `0.3.4.1` → **`0.3.5.0`**
+  (`tests/version.test.ts`). Segundo dígito: cambio de firma pública (`computeInnerTrendBox` gana el parámetro
+  `cardWidth`, obligatorio antes de `showRanges`) aunque compatible en comportamiento para el caso simétrico
+  (barrido alrededor del eje vertical o círculo completo da el mismo ancho que antes). Sin cambios en
+  `capabilities.json` ni en `computeGaugeFrame` (el radio/encuadre del medidor no se tocó).
+- Artefacto local: `dist/PBI_CV_TACOMETRO_GAUGE.0.3.5.0.pbiviz` (SHA-256 en
+  `reports/final-0.3.5.0-2026-11-23/artifact-sha256.txt`).
+
+### Diagnóstico (continuación del ciclo iniciado por un Developer anterior, sin commitear)
+
+- QA reportó una brecha de % de ancho de tarjeta entre `poa_inicio` (4 medidores en fila, tarjetas ~430x338,
+  ~68.9 % del ancho) y `poa_subdireccion`/`poa_energia_limpia` (1 medidor grande, ~430x268, ~49.0 %).
+- Causa raíz: `GaugeBackground`/`GaugeRanges`/`PerformanceArc` (`Gauge.tsx`) sólo dibujan la banda dentro de
+  `[startAngle, endAngle]` (por defecto −120°..60°, asimétrico respecto al eje vertical: 120° a la izquierda del
+  12 en punto, sólo 60° a la derecha), pero `computeInnerTrendBox` (0.3.3.1–0.3.4.1) trataba la banda como
+  obstáculo a **cualquier ángulo** y forzaba un único ancho simétrico para ambos lados de la caja. Con ese
+  barrido asimétrico, el lado derecho de la caja (ningún punto bajo el centro cae nunca en el barrido —su
+  ángulo queda siempre en (90°,180°)) no tocaba la banda a ningún radio, pero se recortaba igual que el
+  izquierdo (que sí la toca) por la simetría forzada. `computeGaugeFrame` (radio/encuadre) **no es la causa**:
+  ya usa el máximo radio seguro dado el alto fijo de la tarjeta; agrandarlo exigiría reducir constantes para
+  toda tarjeta o deformar el arco en una elipse, ambas fuera de alcance.
+
+### Cambiado
+
+- **`computeInnerTrendBox` calcula el medio ancho de cada lado por separado** (izquierda/derecha, antes un único
+  `halfSpan` simétrico), reusando el mismo mecanismo exacto de bisección contra `segmentToAnnularSector`
+  (banda + sobresaliente de marcadores, y el anillo del semáforo si `showRanges`) que ya validaba el límite 1
+  desde 0.3.3.1, pero ahora acotado a `[startAngle, endAngle]` en vez de "cualquier ángulo", y aplicado al
+  medio rectángulo de cada lado por separado.
+- **Nuevo parámetro obligatorio `cardWidth`** (antes de `showRanges`): el lado que el barrido no alcanza no
+  tiene límite geométrico, así que necesita un tope físico — la caja no puede salirse de la tarjeta. El tope es
+  `cardWidth / 2 − 2·TREND_PADDING` (mismo margen que ya usa el relleno del contenido, aplicado dos veces:
+  punto→caja, caja→tarjeta). `Gauge.tsx` pasa el mismo `width` que ya recibía `computeGaugeFrame`.
+- La bisección por lado corre sobre `[0, cardWidth/2 − 2·TREND_PADDING]` completo (sin atajos adicionales);
+  dado que la caja crece de forma contigua desde el centro, una vez que un lado toca la banda/anillo en algún
+  punto, seguir creciendo nunca "escapa" de ese contacto (el borde superior/inferior de la caja, al extenderse,
+  sigue conteniendo el tramo que ya era inseguro) — la seguridad por lado es monotónica, confirmado con un
+  oráculo Python independiente (reimplementación de `segmentToAnnularSector`/`clearOfSector`, sin atajos, barrido
+  denso hasta 20×(outer+sobresaliente) en 5 radios × 5 barridos × 2 lados: cero reentradas de inseguro→seguro).
+- Con barridos simétricos respecto al eje vertical (p. ej. −90°..90°) o círculo completo (−180°..180°) el
+  resultado es **exactamente** el de 0.3.4.1 (ningún lado privilegiado, regresión verificada por test).
+
+### Corregido (oráculo del test, no la fórmula de producción)
+
+- El oráculo independiente de `tests/layout.test.ts` (`contentIsSafe`, muestreo denso del perímetro de la caja)
+  muestreaba con un número FIJO de 200 pasos sobre todo el rango candidato. Desde que un lado puede crecer hasta
+  el ancho de tarjeta (órdenes de magnitud mayor que el radio del medidor), ese muestreo se volvía demasiado
+  grueso para detectar la ventana de colisión real (decenas de px) cuando el candidato era enorme (p. ej. 400 000
+  px), reportando falsamente "seguro" un ancho que en realidad cruzaba la banda. La fórmula de producción
+  (`computeInnerTrendBox`) **ya era correcta**: validada contra una reimplementación Python independiente de su
+  mecanismo (bisección + `xSafeBeyond`), coincide con un oráculo de muestreo fino acotado a un horizonte
+  puramente geométrico en 50 combinaciones (5 radios × 5 barridos × 2 lados), sin discrepancias. Se corrigió el
+  oráculo del test (acotar el muestreo a `3·(outer + MARKER_OVERHANG) + 50` — el radio exterior de cualquier
+  obstáculo modelado, más allá del cual ningún punto puede tocar nada sin importar el ángulo — en vez del rango
+  candidato completo) y se quitó el test `"DEBUG TEMP"` dejado por el ciclo anterior.
+
+### Verificación
+
+- `npx vitest run --coverage`: **290 pruebas** en 24 archivos (0.3.4.1: 286), 0 fallos. Cobertura Stmts 99.79 % ·
+  Branch 96.35 % · Funcs 99.15 % · Lines 99.77 % (0.3.4.1: 99.78 / 95.98 / 99.14 / 99.76 — sin regresión;
+  `layout.ts` 100 % en las 4 métricas).
+- `tests/gaugeTrend.test.ts` (fixture 300x300, barrido −90°..90°): el valor esperado de la ranura cambió de
+  `translate(26.78, …)` a `translate(6, …)` — no es una regresión: con ese barrido simétrico la banda nunca cae
+  bajo el barrido dibujado en ningún lado (ver diagnóstico), así que 0.3.5.0 correctamente deja de limitarla por
+  el círculo interior (117.22 px, el límite de un modelo que ya no aplica) y la acota sólo por el ancho de
+  tarjeta (138 px por lado, cardWidth 300).
+- Verificación visual real con CDP (reporte 387b1d12-6db1-4c94-afbe-8617d080307b, páginas `poa_inicio`,
+  `poa_subdireccion`, `poa_energia_limpia`) tras publicar: ver bitácora de este cambio
+  (`60_Bitacoras/Hermes/Developer/`) para las mediciones en vivo y la comparación contra el baseline 68.9 %/49.0 %.
+
 ## [0.3.3.1] — 2026-11-22 (corrección de 0.3.3.0: número central con el semáforo real + sparkline al ancho máximo seguro, pre-1.0, sin validación en Power BI)
 
 ### Versión

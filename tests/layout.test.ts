@@ -5,6 +5,9 @@ import {
 } from "../src/components/layout";
 import { bandRadii, semaphoreIndicatorRing } from "../src/components/arcUtils";
 
+/** Ancho de tarjeta "sin límite práctico" para pruebas que sólo quieren ejercitar el límite geométrico (banda/anillo). */
+const HUGE_WIDTH = 1_000_000;
+
 describe("computeGaugeLayout — reparto vertical (0.3.1.0: sólo el pie reserva alto)", () => {
     it("sin pie, el medidor ocupa todo el alto (diseño 0.2.0.0 intacto)", () => {
         expect(computeGaugeLayout(300, 300, { footer: false })).toEqual({
@@ -43,12 +46,13 @@ describe("computeGaugeLayout — reparto vertical (0.3.1.0: sólo el pie reserva
 });
 
 describe("computeInnerTrendBox — sparkline dentro del semicírculo, bajo el número central", () => {
-    it("caja centrada en x, debajo del centro y proporcional al radio interior (medidor 300x260, grosor 20)", () => {
+    it("caja centrada en x (barrido simétrico respecto al vertical, sin tope de tarjeta), debajo del centro y proporcional al radio interior (medidor 300x260, grosor 20)", () => {
         const radius = 260 / 2 / 0.95 - 10;
         const inner = bandRadii(radius, 20).innerRadius;
-        const box = computeInnerTrendBox(radius, 20, -90, 90);
+        const box = computeInnerTrendBox(radius, 20, -90, 90, HUGE_WIDTH);
         expect(box).not.toBeNull();
-        // 0.3.3.1: ancho por el contenido (puntos), no por las esquinas de la caja; ver describe 0.3.3.1.
+        // -90°..90° es simétrico respecto al eje vertical: ambos lados dan el mismo medio ancho, así
+        // que la caja sigue centrada en x aunque el cálculo ya no sea un único ancho simétrico.
         expect(box!.x).toBeCloseTo(-box!.width / 2, 6);
         expect(box!.y).toBeCloseTo(inner * 0.1, 6);
         // 0.3.4.1: TREND_HEIGHT_FACTOR bajó de 0.5 a 0.3 (ver comentario en layout.ts) para liberar
@@ -56,33 +60,51 @@ describe("computeInnerTrendBox — sparkline dentro del semicírculo, bajo el n�
         expect(box!.height).toBeCloseTo(inner * 0.3, 6);
     });
 
-    it("si el radio interior es muy chico (caja < TREND_MIN_HEIGHT) no hay sparkline", () => {
+    it("si el radio interior es muy chico (caja < TREND_MIN_HEIGHT) no hay sparkline, sin importar el ancho de tarjeta", () => {
         // 0.3.4.1: alto de caja = inner·0.3 (antes inner·0.5); inner = TREND_MIN_HEIGHT/0.3 - 1 →
         // alto = TREND_MIN_HEIGHT - 0.3, apenas por debajo de TREND_MIN_HEIGHT.
         const radius = (TREND_MIN_HEIGHT / 0.3 - 1 + 10) / 0.95;
-        expect(computeInnerTrendBox(radius, 20, -120, 60)).toBeNull();
+        expect(computeInnerTrendBox(radius, 20, -120, 60, HUGE_WIDTH)).toBeNull();
+        expect(computeInnerTrendBox(radius, 20, -120, 60, 300)).toBeNull();
     });
 });
 
 /**
- * Oráculo independiente (muestreo denso): los centros de los puntos de la sparkline pueden estar en cualquier
- * lugar del rectángulo [−X, X] × [y0 + relleno, y1 − relleno]; cada punto ocupa su radio máximo más la holgura.
- * Seguro ⇔ ese contenido queda dentro del círculo interior de la banda y fuera del anillo del indicador del
- * semáforo en el barrido del arco. Basta el perímetro del rectángulo (el anillo no cabe dentro de él).
+ * Oráculo independiente (muestreo denso) por LADO: dado el medio ancho de cada lado (xLeft >= 0 a la
+ * izquierda, xRight >= 0 a la derecha, pueden ser distintos desde 0.3.5.0), ¿el contenido (centros +
+ * TREND_CURRENT_POINT_RADIUS + TREND_EDGE_CLEARANCE) evita la banda (+ sobresaliente de marcadores) y,
+ * si showRanges, el anillo del indicador del semáforo, dentro del barrido real [lo, hi]? A diferencia
+ * de 0.3.4.1 y anteriores, la banda YA NO se trata como "cualquier ángulo": sólo es obstáculo donde
+ * GaugeBackground/GaugeRanges/PerformanceArc realmente la dibujan (el mismo barrido).
  */
-function contentIsSafe(radius: number, thickness: number, lo: number, hi: number, X: number): boolean {
-    const inner = bandRadii(radius, thickness).innerRadius;
-    const ring = semaphoreIndicatorRing(inner, thickness);
+function contentIsSafe(
+    radius: number, thickness: number, lo: number, hi: number, xLeft: number, xRight: number, showRanges: boolean = true
+): boolean {
+    const { innerRadius: inner, outerRadius: outer } = bandRadii(radius, thickness);
+    const ring = showRanges ? semaphoreIndicatorRing(inner, thickness) : null;
     const top = inner * 0.1 + TREND_PADDING;
-    // 0.3.4.1: bottom = y + height - padding = inner·(TOP_FACTOR + HEIGHT_FACTOR) - padding = inner·0.4 (antes 0.6).
     const bottom = inner * 0.4 - TREND_PADDING;
     const reach = TREND_CURRENT_POINT_RADIUS + TREND_EDGE_CLEARANCE;
     const inSweep = (deg: number) => [-360, 0, 360].some((k) => deg + k >= Math.min(lo, hi) && deg + k <= Math.max(lo, hi));
+    // 0.3.5.0: el medio ancho candidato por lado ya no está acotado por el círculo de la banda (puede
+    // llegar al ancho de tarjeta, órdenes de magnitud mayor que el medidor). Muestrear con un número FIJO
+    // de pasos sobre todo ese rango (como antes de 0.3.5.0) deja el paso demasiado grueso para detectar la
+    // ventana de colisión real (típicamente un orden de magnitud menor que el radio del medidor) cuando el
+    // candidato es enorme — falso negativo de colisión, no del código bajo prueba sino de este oráculo.
+    // Corrección: acotar el muestreo a un horizonte puramente geométrico, independiente de cualquier
+    // fórmula de producción: más allá de 3·(outer + MARKER_OVERHANG) — el radio exterior de CUALQUIER
+    // obstáculo modelado aquí, banda+sobresaliente o anillo, ambos ⊆ [0, outer+MARKER_OVERHANG] — un punto
+    // con esa coordenada x ya tiene ρ ≥ |x| > ese radio exterior sin importar el ángulo, así que no hay
+    // nada que muestrear ahí (hecho geométrico puro, no asume nada sobre cómo compute InnerTrendBox decide
+    // el ancho). Si [0, horizonte] resulta seguro, [horizonte, xLeft/xRight] lo es incondicionalmente.
+    const horizon = 3 * (outer + MARKER_OVERHANG) + 50;
+    const sampledLeft = Math.min(xLeft, horizon);
+    const sampledRight = Math.min(xRight, horizon);
     const centers: Array<[number, number]> = [];
-    for (let i = 0; i <= 200; i++) {
-        const y = top + ((bottom - top) * i) / 200;
-        centers.push([-X, y], [X, y]);
-        const x = -X + (2 * X * i) / 200;
+    for (let i = 0; i <= 400; i++) {
+        const y = top + ((bottom - top) * i) / 400;
+        centers.push([-sampledLeft, y], [sampledRight, y]);
+        const x = -sampledLeft + ((sampledRight - -sampledLeft) * i) / 400;
         centers.push([x, top], [x, bottom]);
     }
     for (const [cx, cy] of centers) {
@@ -91,100 +113,152 @@ function contentIsSafe(radius: number, thickness: number, lo: number, hi: number
             const x = cx + reach * Math.cos(a);
             const y = cy + reach * Math.sin(a);
             const rho = Math.hypot(x, y);
-            if (rho > inner + 1e-9) return false;
             const deg = (Math.atan2(x, -y) * 180) / Math.PI;
-            if (rho >= ring.innerRadius - 1e-9 && rho <= ring.outerRadius && inSweep(deg)) return false;
+            const within = (r0: number, r1: number) => rho >= r0 - 1e-9 && rho <= r1 + 1e-9 && inSweep(deg);
+            if (within(inner, outer + MARKER_OVERHANG)) return false;
+            if (ring && within(ring.innerRadius, ring.outerRadius)) return false;
         }
     }
     return true;
 }
 
-/** Mayor X seguro según el oráculo (búsqueda binaria). */
-function oracleHalfSpan(radius: number, thickness: number, lo: number, hi: number): number {
+/**
+ * Mayor medio ancho seguro para UN lado (el otro fijo en 0: por construcción cada lado de la caja sólo
+ * depende de su propio medio ancho — las esquinas que se revisan son (0, top/bottom) y (±x, top/bottom)
+ * — así que fijar el otro lado en 0 no cambia el resultado y aísla la pregunta a ese lado).
+ */
+function oracleSideMax(
+    radius: number, thickness: number, lo: number, hi: number, sign: -1 | 1, cap: number, showRanges: boolean = true
+): number {
     let a = 0;
-    let b = bandRadii(radius, thickness).innerRadius;
-    for (let i = 0; i < 24; i++) {
+    let b = cap;
+    for (let i = 0; i < 28; i++) {
         const m = (a + b) / 2;
-        if (contentIsSafe(radius, thickness, lo, hi, m)) a = m; else b = m;
+        const safe = sign === -1 ? contentIsSafe(radius, thickness, lo, hi, m, 0, showRanges) : contentIsSafe(radius, thickness, lo, hi, 0, m, showRanges);
+        if (safe) a = m; else b = m;
     }
     return a;
 }
 
-describe("computeInnerTrendBox 0.3.3.1 — ancho máximo técnicamente seguro (contenido, no esquinas de la caja)", () => {
-    // 0.3.4.1: [60,10] y [45,20] ya no generan sparkline con el factor 0.3 (inner < TREND_MIN_HEIGHT/0.3 ≈
-    // 53.33); sustituidos por [65,10] y [75,20] (inner 56.75 y 61.25, alto 17.03 y 18.38, con margen > TREND_MIN_HEIGHT).
-    const configs: Array<[number, number]> = [[126.84, 20], [147.89, 20], [65, 10], [300, 40], [75, 20]];
-    const sweeps: Array<[number, number]> = [[-120, 60], [-90, 90], [-135, 135], [-60, 120], [-150, 30]];
-
-    it("medidor por defecto (300x260, -120°..60°, grosor 20): limita el anillo del semáforo en -120°", () => {
+describe("computeInnerTrendBox 0.3.5.0 — medio ancho POR LADO, acotado por el ancho de tarjeta", () => {
+    it("medidor por defecto (300x260, -120°..60°, grosor 20), tarjeta ancha (sin tope real): limita el anillo del semáforo sólo del lado izquierdo (el barrido no llega al derecho)", () => {
         const radius = (130.5 + 10) / 0.95; // inner 130.5 (tarjeta 300x300 con pie)
         const ring = semaphoreIndicatorRing(130.5, 20);
         expect(ring.innerRadius).toBeCloseTo(122.5, 9);
-        const box = computeInnerTrendBox(radius, 20, -120, 60)!;
+        const box = computeInnerTrendBox(radius, 20, -120, 60, HUGE_WIDTH)!;
         const reach = TREND_CURRENT_POINT_RADIUS + TREND_EDGE_CLEARANCE;
-        // 0.3.4.1: con TREND_HEIGHT_FACTOR 0.5→0.3 la caja es más baja (bottom = inner·0.4 − padding = 46.2,
-        // antes inner·0.6 − padding = 72.3) y el punto de amarre con el anillo CAMBIA DE FORMA: el borde
-        // radial del sector en -120° (de r=122.5 a r=128.5) queda ahora por completo FUERA del rango
-        // vertical de la caja (su y va de 61.25 a 64.25, y bottom bajó a 46.2 < 61.25), así que ya no es el
-        // borde recto el que limita (fórmula vieja sin(120°)·122.5) sino la ESQUINA inferior del rectángulo
-        // de centros: su ángulo respecto al centro (~-113.05°, dentro de [-120°, 60°]) cae en el barrido, así
-        // que el punto más cercano del anillo es sobre su ARCO interior (mismo tipo de restricción que el
-        // círculo interior del paso 1, pero contra ring.innerRadius en vez de inner): X = √((ring.innerRadius
-        // − reach)² − bottom²). Verificado numéricamente contra la bisección real y el oráculo de muestreo.
         const bottom = 130.5 * 0.4 - TREND_PADDING; // 46.2
-        const halfSpan = Math.sqrt((ring.innerRadius - reach) ** 2 - bottom ** 2);
-        expect(box.width).toBeCloseTo(2 * (halfSpan + TREND_PADDING), 6); // 229.16
-        // Más ancho que con el factor anterior (0.3.4.0, 215.18): la caja más baja libera más ancho seguro.
-        expect(box.width).toBeGreaterThan(215.18);
+        // Izquierda: igual que el único ancho simétrico de 0.3.4.1 (229.16/2 - PADDING = 108.58): el
+        // barrido SÍ llega a ese lado (ángulo de la esquina ~-113° está en [-120°, 60°]), así que el
+        // anillo del semáforo sigue limitando igual que antes.
+        const halfSpanLeft = Math.sqrt((ring.innerRadius - reach) ** 2 - bottom ** 2);
+        const halfLeft = -box.x - TREND_PADDING;
+        expect(halfLeft).toBeCloseTo(halfSpanLeft, 4); // 108.58
+        // Derecha: el barrido NUNCA llega a ese lado (para cualquier x > 0, el ángulo de ambas esquinas
+        // cae en (90°, 180°), fuera de [-120°, 60°]) — sin obstáculo, topa con el ancho "ilimitado" de
+        // la prueba (HUGE_WIDTH / 2 - 2·PADDING).
+        const halfRight = box.width - halfLeft - 2 * TREND_PADDING;
+        expect(halfRight).toBeCloseTo(HUGE_WIDTH / 2 - 2 * TREND_PADDING, 4);
+        expect(halfRight).toBeGreaterThan(halfLeft * 5); // claramente asimétrica
     });
 
-    it("sin anillo bajo la horizontal (-90°..90°) limita el círculo interior menos el radio del punto y la holgura", () => {
+    it("tope por ancho de tarjeta: con una tarjeta real (430 px) el lado libre topa en cardWidth/2 - 2·PADDING, no crece sin límite", () => {
         const radius = (130.5 + 10) / 0.95;
-        const box = computeInnerTrendBox(radius, 20, -90, 90)!;
-        // 0.3.4.1: bottom = inner·0.4 − padding (antes 0.6).
-        const halfSpan = Math.sqrt((130.5 - TREND_CURRENT_POINT_RADIUS - TREND_EDGE_CLEARANCE) ** 2 - (0.4 * 130.5 - TREND_PADDING) ** 2);
-        expect(box.width).toBeCloseTo(2 * (halfSpan + TREND_PADDING), 6); // 246.45
+        const cardWidth = 430;
+        const box = computeInnerTrendBox(radius, 20, -120, 60, cardWidth)!;
+        const halfLeft = -box.x - TREND_PADDING;
+        const halfRight = box.width - halfLeft - 2 * TREND_PADDING;
+        expect(halfRight).toBeCloseTo(cardWidth / 2 - 2 * TREND_PADDING, 9); // 203
+        expect(halfLeft).toBeLessThan(halfRight);
+        // Resultado real citado en el diagnóstico (poa_inicio, 430x338 ⇒ radius mayor que éste; aquí sólo
+        // se confirma el mecanismo del tope, no la cifra final de campo, que se verifica con CDP).
     });
 
-    for (const [radius, thickness] of configs) {
-        for (const [lo, hi] of sweeps) {
-            it(`r=${radius} grosor=${thickness} ${lo}°..${hi}°: seguro (oráculo) y máximo (a < 0.1 px del oráculo)`, () => {
-                const box = computeInnerTrendBox(radius, thickness, lo, hi);
+    it("tarjeta angosta: el tope de ancho puede llegar a 0 (Math.max(0, …)) sin romper la caja", () => {
+        const radius = (130.5 + 10) / 0.95;
+        const box = computeInnerTrendBox(radius, 20, -120, 60, 2 * TREND_PADDING - 1)!; // cardWidth/2 - 2·PADDING < 0
+        expect(box.width).toBeCloseTo(2 * TREND_PADDING, 9); // ambos lados en 0
+    });
+
+    it("barrido simétrico respecto al vertical (-90°..90°): ambos lados dan el mismo medio ancho (ninguno privilegiado)", () => {
+        const radius = (130.5 + 10) / 0.95;
+        const box = computeInnerTrendBox(radius, 20, -90, 90, HUGE_WIDTH)!;
+        const halfLeft = -box.x - TREND_PADDING;
+        const halfRight = box.width - halfLeft - 2 * TREND_PADDING;
+        expect(halfRight).toBeCloseTo(halfLeft, 6);
+        // Sin banda en ningún ángulo por debajo del centro con este barrido (ver test de medidor por
+        // defecto arriba, mismo razonamiento aplicado a ambos lados): topa con el ancho "ilimitado".
+        expect(halfLeft).toBeCloseTo(HUGE_WIDTH / 2 - 2 * TREND_PADDING, 4);
+    });
+
+    it("círculo completo (-180°..180°): la banda está en TODOS los ángulos, ambos lados vuelven a topar igual (regresión exacta a 0.3.4.1)", () => {
+        const radius = (130.5 + 10) / 0.95;
+        const box = computeInnerTrendBox(radius, 20, -180, 180, HUGE_WIDTH)!;
+        const halfLeft = -box.x - TREND_PADDING;
+        const halfRight = box.width - halfLeft - 2 * TREND_PADDING;
+        expect(halfRight).toBeCloseTo(halfLeft, 6);
+        // Mismo valor exacto que el único "halfSpan" simétrico de 0.3.4.1 para este caso (229.16/2 - 6).
+        expect(box.width).toBeCloseTo(229.16, 1);
+    });
+
+    it("sin anillo bajo la horizontal (-90°..90°, showRanges=false o true): el límite es sólo la banda (círculo interior), igual por ambos lados", () => {
+        const radius = (130.5 + 10) / 0.95;
+        const box = computeInnerTrendBox(radius, 20, -90, 90, 300)!;
+        const halfLeft = -box.x - TREND_PADDING;
+        const halfRight = box.width - halfLeft - 2 * TREND_PADDING;
+        expect(halfLeft).toBeCloseTo(halfRight, 6);
+        expect(halfLeft).toBeCloseTo(300 / 2 - 2 * TREND_PADDING, 6); // tope de tarjeta, no el círculo (300 es angosta)
+    });
+
+    for (const [radius, thickness] of [[126.84, 20], [147.89, 20], [65, 10], [300, 40], [75, 20]] as Array<[number, number]>) {
+        for (const [lo, hi] of [[-120, 60], [-90, 90], [-135, 135], [-60, 120], [-150, 30]] as Array<[number, number]>) {
+            it(`r=${radius} grosor=${thickness} ${lo}°..${hi}°: cada lado es seguro (oráculo) y máximo (a < 0.1 px del oráculo)`, () => {
+                const box = computeInnerTrendBox(radius, thickness, lo, hi, HUGE_WIDTH);
                 expect(box).not.toBeNull();
-                const X = box!.width / 2 - TREND_PADDING;
-                expect(contentIsSafe(radius, thickness, lo, hi, X)).toBe(true);
-                expect(X).toBeGreaterThan(oracleHalfSpan(radius, thickness, lo, hi) - 0.1);
+                const halfLeft = -box!.x - TREND_PADDING;
+                const halfRight = box!.width - halfLeft - 2 * TREND_PADDING;
+                expect(contentIsSafe(radius, thickness, lo, hi, halfLeft, halfRight)).toBe(true);
+                // El tope de "ancho ilimitado" de la propia fórmula es HUGE_WIDTH/2 - 2·PADDING: el
+                // oráculo debe buscar en ese mismo tope (no en HUGE_WIDTH tal cual) para comparar justo.
+                const cap = HUGE_WIDTH / 2 - 2 * TREND_PADDING;
+                expect(halfLeft).toBeGreaterThan(oracleSideMax(radius, thickness, lo, hi, -1, cap) - 0.1);
+                expect(halfRight).toBeGreaterThan(oracleSideMax(radius, thickness, lo, hi, 1, cap) - 0.1);
                 // Alto y posición vertical intactos: el pie y el encuadre no cambian.
                 const inner = bandRadii(radius, thickness).innerRadius;
                 expect(box!.y).toBeCloseTo(inner * 0.1, 9);
-                expect(box!.height).toBeCloseTo(inner * 0.3, 9); // 0.3.4.1: TREND_HEIGHT_FACTOR 0.5→0.3
+                expect(box!.height).toBeCloseTo(inner * 0.3, 9);
             });
         }
     }
 });
 
 describe("computeInnerTrendBox — 0.3.4.0: sin «Mostrar Rangos» no existe el anillo del semáforo (semaphore-indicator) que evitar", () => {
-    // Gauge.tsx sólo dibuja el anillo delgado cuando showRanges está activo (semaphore-indicator);
-    // con showRanges=false el performance-arc ocupa todo el grosor de la banda y no hay anillo que
-    // el contenido de la sparkline pudiera tocar: el único límite relevante es el círculo interior.
+    // Gauge.tsx sólo dibuja el anillo delgado cuando showRanges está activo; con showRanges=false el
+    // performance-arc ocupa todo el grosor de la banda y no hay anillo que el contenido de la sparkline
+    // pudiera tocar: el único límite relevante es la banda (círculo interior, paso 1).
     const radius = (130.5 + 10) / 0.95; // inner 130.5 (tarjeta 300x300 con pie), igual que el caso 0.3.3.1.
 
-    it("quinto parámetro showRanges por omisión es true: mismo ancho que antes (229.16, limitado por el anillo)", () => {
-        const withDefault = computeInnerTrendBox(radius, 20, -120, 60)!;
-        const withExplicitTrue = computeInnerTrendBox(radius, 20, -120, 60, true)!;
+    it("sexto parámetro showRanges por omisión es true: mismo ancho que pasarlo explícito", () => {
+        const withDefault = computeInnerTrendBox(radius, 20, -120, 60, HUGE_WIDTH)!;
+        const withExplicitTrue = computeInnerTrendBox(radius, 20, -120, 60, HUGE_WIDTH, true)!;
         expect(withDefault.width).toEqual(withExplicitTrue.width);
-        // 0.3.4.1: TREND_HEIGHT_FACTOR 0.5→0.3 cambió el valor (ver test "medidor por defecto" arriba).
-        expect(withDefault.width).toBeCloseTo(229.16, 1);
+        expect(withDefault.x).toEqual(withExplicitTrue.x);
     });
 
-    it("showRanges=false: el ancho crece al del círculo interior (sin la restricción del anillo), igual que -90°..90°", () => {
-        const ringConstrained = computeInnerTrendBox(radius, 20, -120, 60, true)!;
-        const circleOnly = computeInnerTrendBox(radius, 20, -120, 60, false)!;
-        expect(circleOnly.width).toBeGreaterThan(ringConstrained.width);
+    it("showRanges=false: el lado izquierdo crece al del círculo interior (sin la restricción del anillo); el derecho no cambia (ya no tenía anillo que evitar)", () => {
+        const ringConstrained = computeInnerTrendBox(radius, 20, -120, 60, HUGE_WIDTH, true)!;
+        const circleOnly = computeInnerTrendBox(radius, 20, -120, 60, HUGE_WIDTH, false)!;
+        const halfLeft = (box: typeof ringConstrained) => -box.x - TREND_PADDING;
+        expect(halfLeft(circleOnly)).toBeGreaterThan(halfLeft(ringConstrained));
 
-        // 0.3.4.1: bottom = inner·0.4 − padding (antes 0.6).
-        const halfSpan = Math.sqrt((130.5 - TREND_CURRENT_POINT_RADIUS - TREND_EDGE_CLEARANCE) ** 2 - (0.4 * 130.5 - TREND_PADDING) ** 2);
-        expect(circleOnly.width).toBeCloseTo(2 * (halfSpan + TREND_PADDING), 6); // 246.45, mismo límite que -90°..90°
+        const reach = TREND_CURRENT_POINT_RADIUS + TREND_EDGE_CLEARANCE;
+        const bottom = 0.4 * 130.5 - TREND_PADDING;
+        const expectedLeft = Math.sqrt((130.5 - reach) ** 2 - bottom ** 2);
+        expect(halfLeft(circleOnly)).toBeCloseTo(expectedLeft, 6); // 117.22, el límite de 0.3.4.1 sin anillo
+
+        // El derecho ya era "libre" (sin anillo que evitar, el barrido no llega): igual con o sin showRanges.
+        const halfRight = (box: typeof ringConstrained) => box.width - halfLeft(box) - 2 * TREND_PADDING;
+        expect(halfRight(circleOnly)).toBeCloseTo(halfRight(ringConstrained), 6);
 
         // Alto y posición vertical siguen intactos: showRanges sólo afecta el ancho.
         expect(circleOnly.y).toBeCloseTo(ringConstrained.y, 9);
@@ -192,8 +266,8 @@ describe("computeInnerTrendBox — 0.3.4.0: sin «Mostrar Rangos» no existe el 
     });
 
     it("showRanges=false y barrido que no alcanza el círculo (-90°..90°, donde el anillo tampoco limitaba): mismo ancho que antes", () => {
-        const withRanges = computeInnerTrendBox(radius, 20, -90, 90, true)!;
-        const withoutRanges = computeInnerTrendBox(radius, 20, -90, 90, false)!;
+        const withRanges = computeInnerTrendBox(radius, 20, -90, 90, HUGE_WIDTH, true)!;
+        const withoutRanges = computeInnerTrendBox(radius, 20, -90, 90, HUGE_WIDTH, false)!;
         expect(withoutRanges.width).toBeCloseTo(withRanges.width, 9);
     });
 });
@@ -207,7 +281,10 @@ function contentBottom(radius: number, thickness: number, startDeg: number, endD
         // Banda + sobresaliente máximo de marcadores (triángulo: tip a outer+1, base a outer+11).
         bottom = Math.max(bottom, -Math.cos(a) * (outerRadius + MARKER_OVERHANG));
     }
-    const box = computeInnerTrendBox(radius, thickness, startDeg, endDeg);
+    // Ancho de tarjeta grande: estas pruebas (computeGaugeFrame) sólo necesitan el alto de la caja
+    // (box.y + box.height), que no depende del ancho de tarjeta; HUGE_WIDTH evita que el tope de ancho
+    // interfiera con lo que se está midiendo aquí.
+    const box = computeInnerTrendBox(radius, thickness, startDeg, endDeg, HUGE_WIDTH);
     return Math.max(bottom, box ? box.y + box.height : 0);
 }
 

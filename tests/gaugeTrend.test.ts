@@ -76,15 +76,28 @@ describe("Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor", () => {
         // Caja 300x260 con pie: radio por el ancho (interior 130.5), contenido inferior = sparkline
         // (trendBottom·130.5 = 0.4·130.5 = 52.2) terminando a FOOTER_GAP (4) del pie
         // → centro (150, 256 − 52.2 = 203.8); caja: y 203.8 + 13.05.
-        // 0.3.4.1: TREND_HEIGHT_FACTOR 0.5→0.3 (más alto disponible para el ancho de la sparkline, ver
-        // layout.ts); bottom de la caja = inner·0.4 − 6 = 46.2; X = √(126² − 46.2²) = 117.22; ancho
-        // 2·(117.22 + 6) = 246.45 → x = 150 − 123.22 = 26.78.
+        // 0.3.5.0: barrido -90°..90° (fixture): ningún punto bajo el centro cae nunca en ese barrido (su
+        // ángulo respecto al centro queda siempre en (90°,180°) o (-180°,-90°), fuera de [-90°,90°]) —
+        // ni la banda ni el anillo son obstáculo en ningún lado, así que el único límite es el ancho de
+        // tarjeta (300): halfWidthCap = 300/2 − 2·6 = 138 por lado → ancho total 2·138 + 12 = 288 →
+        // x = 150 − 144 = 6. Antes de 0.3.5.0 (banda tratada como obstáculo a cualquier ángulo) el límite
+        // era el círculo interior (X = √(126² − 46.2²) = 117.22, ancho 246.45, x = 26.78); ese valor ya no
+        // aplica porque la banda, en este barrido, nunca estuvo realmente en el camino.
         expect(markup).toContain('<g transform="translate(150, 203.8)">');
-        expect(markup).toMatch(/<g class="gauge-trend-slot" transform="translate\(26.78, 216.85\)">[^]*class="trend-sparkline"/);
+        expect(markup).toMatch(/<g class="gauge-trend-slot" transform="translate\(6, 216.85\)">[^]*class="trend-sparkline"/);
         expect(markup).toMatch(/<g class="gauge-footer-slot" transform="translate\(0, 260\)">[^]*class="gauge-footer"/);
     });
 
-    it("0.3.1.0: todos los puntos quedan dentro del círculo interior y por debajo del número central", () => {
+    it("0.3.1.0 (0.3.5.0: por lado) — todos los puntos quedan por debajo del número central y, donde el barrido SÍ dibuja la banda, dentro del círculo interior", () => {
+        // 0.3.5.0: ya no exige "dentro del círculo interior" en TODOS los ángulos — sólo donde el barrido
+        // [startAngle, endAngle] realmente dibuja la banda (ver layout.ts, computeInnerTrendBox). Fuera del
+        // barrido un punto puede superar `inner` con seguridad (no hay nada que tocar ahí); dentro del
+        // barrido sigue exigiéndose el círculo interior, igual que 0.3.1.0.
+        const inSweep = (deg: number) => {
+            const lo = Math.min(settings.startAngle, settings.endAngle);
+            const hi = Math.max(settings.startAngle, settings.endAngle);
+            return [-360, 0, 360].some((k) => deg + k >= lo && deg + k <= hi);
+        };
         for (const [width, height] of [[300, 300], [600, 300], [300, 500], [180, 160]]) {
             const markup = render(withTrend, settings, width, height);
             const slot = /class="gauge-trend-slot" transform="translate\(([-\d.]+), ([-\d.]+)\)"/.exec(markup);
@@ -97,8 +110,14 @@ describe("Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor", () => {
             for (const [, cx, cy] of circles) {
                 const x = Number(slot![1]) + Number(cx) - width / 2;
                 const y = Number(slot![2]) + Number(cy) - Math.round(frame.cy * 100) / 100;
-                expect(Math.hypot(x, y)).toBeLessThan(inner);
-                expect(y).toBeGreaterThan(0);
+                const deg = (Math.atan2(x, -y) * 180) / Math.PI;
+                if (inSweep(deg)) {
+                    expect(Math.hypot(x, y), `${width}x${height}`).toBeLessThan(inner);
+                }
+                // Nunca sale de la tarjeta (mitad de ancho desde el centro, con margen).
+                expect(x, `${width}x${height}`).toBeGreaterThan(-width / 2);
+                expect(x, `${width}x${height}`).toBeLessThan(width / 2);
+                expect(y, `${width}x${height}`).toBeGreaterThan(0);
             }
         }
     });
@@ -130,7 +149,7 @@ describe("Gauge 0.3.0.0 — sparkline mensual y pie debajo del medidor", () => {
             // Más bajo de la banda/marcadores (ángulo -120°) y de la sparkline.
             const arcBottom = cy + 0.5 * (outerRadius + MARKER_OVERHANG);
             const slot = /class="gauge-trend-slot" transform="translate\(([-\d.]+), ([-\d.]+)\)"/.exec(markup)!;
-            const sparkHeight = computeInnerTrendBox(frame.radius, s.thickness, -120, 60)!.height;
+            const sparkHeight = computeInnerTrendBox(frame.radius, s.thickness, -120, 60, width)!.height;
             const bottom = Math.max(arcBottom, Number(slot[2]) + sparkHeight);
             const footerTop = height - 40;
             expect(bottom, `${width}x${height}`).toBeLessThanOrEqual(footerTop - FOOTER_GAP + 0.01);

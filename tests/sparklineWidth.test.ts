@@ -40,9 +40,16 @@ describe("TrendSparkline 0.3.3.1 — ancho máximo seguro dentro de la abertura 
                 );
                 expect(circles.length).toBe(REAL.length);
 
-                // Dentro del círculo interior (con el radio del punto) y por debajo del centro (bajo el número).
+                // Dentro del círculo interior (con el radio del punto) donde el barrido SÍ dibuja la banda
+                // (0.3.5.0: fuera del barrido un punto puede superar `inner` con seguridad — ver layout.ts),
+                // y siempre por debajo del centro (bajo el número) y dentro del ancho de la tarjeta.
                 for (const c of circles) {
-                    expect(Math.hypot(c.x - cx, c.y - cy) + c.r).toBeLessThan(inner);
+                    const deg = (Math.atan2(c.x - cx, -(c.y - cy)) * 180) / Math.PI;
+                    if (deg >= startAngle && deg <= endAngle) {
+                        expect(Math.hypot(c.x - cx, c.y - cy) + c.r).toBeLessThan(inner);
+                    }
+                    expect(c.x).toBeGreaterThan(0);
+                    expect(c.x).toBeLessThan(width);
                     expect(c.y).toBeGreaterThan(cy);
                 }
                 // Sin invadir el pie: el punto más bajo queda por encima de footer.y − FOOTER_GAP.
@@ -57,8 +64,9 @@ describe("TrendSparkline 0.3.3.1 — ancho máximo seguro dentro de la abertura 
                     const deg = (Math.atan2(c.x - cx, -(c.y - cy)) * 180) / Math.PI;
                     if (deg >= startAngle && deg <= endAngle) {
                         expect(rho + c.r + TREND_EDGE_CLEARANCE).toBeLessThanOrEqual(ring.innerRadius + 0.02);
+                        // 0.3.5.0: la banda (círculo interior) sólo es obstáculo dentro del barrido real.
+                        expect(rho + c.r + TREND_EDGE_CLEARANCE).toBeLessThanOrEqual(inner + 0.02);
                     }
-                    expect(rho + c.r + TREND_EDGE_CLEARANCE).toBeLessThanOrEqual(inner + 0.02);
                 }
 
                 // Ancho: con -120°..60° y -90°..90° la serie es más ancha que en 0.3.3.0 (cuerda en 0.6·inner × 0.995).
