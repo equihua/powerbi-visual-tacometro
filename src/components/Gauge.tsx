@@ -12,8 +12,9 @@ import { comparisonColor, createAngleScale, createPerformanceColorScale, rangeBa
 import { resolveSemaphoreColor } from "./semaphore";
 import { GaugeData, GaugeSettings } from "./types";
 import { buildAriaLabel } from "../tooltips";
-import { computeGaugeFrame, computeGaugeLayout, computeInnerTrendBox } from "./layout";
-import { TrendSparkline } from "./TrendSparkline";
+import { applyTrendBoxOverrides, computeGaugeFrame, computeGaugeLayout, computeInnerTrendBox } from "./layout";
+import { TrendChartType, TrendSparkline } from "./TrendSparkline";
+import { YScaleMode } from "./trend";
 import { GaugeFooter } from "./GaugeFooter";
 
 /** Colores del pie (texto oscuro / gris secundario, como los títulos de Power BI). */
@@ -92,7 +93,10 @@ export default class Gauge extends React.Component<Props> {
       settings.startAngle,
       settings.endAngle,
       layout.footer !== null,
-      settings.showValueLabel ? settings.fontSize : 0
+      settings.showValueLabel ? settings.fontSize : 0,
+      settings.topMargin,
+      settings.arcScale,
+      settings.offsetY
     );
     const radius = frame.radius;
     const centerX = round2(frame.cx);
@@ -132,8 +136,16 @@ export default class Gauge extends React.Component<Props> {
     // performance-arc de grosor completo), así que la sparkline no necesita evitarlo (más ancho).
     // 0.3.5.0: computeInnerTrendBox necesita el ancho real de la tarjeta (`width`, el mismo que recibe
     // computeGaugeFrame) para acotar el lado de la caja que el barrido del arco no alcanza.
-    const trendBox =
+    const autoTrendBox =
         trend && layout.footer ? computeInnerTrendBox(radius, settings.thickness, settings.startAngle, settings.endAngle, width, settings.showRanges) : null;
+    // 0.4.0.0: la tarjeta «Gráfico de tendencia» puede sobreescribir posición/tamaño eje por eje; sin
+    // tocarla (los 4 undefined) el resultado es idéntico a `autoTrendBox` (ver applyTrendBoxOverrides).
+    const trendBox = applyTrendBoxOverrides(autoTrendBox, {
+        x: settings.trendPosX,
+        y: settings.trendPosY,
+        width: settings.trendWidth,
+        height: settings.trendHeight,
+    });
 
     return (
       // A3 Keyboard Navigation: el SVG recibe el foco (supportsKeyboardFocus) y se anuncia como imagen.
@@ -243,6 +255,16 @@ export default class Gauge extends React.Component<Props> {
               colors={settings}
               programmedColor={settings.programmedColor}
               format={format}
+              chartType={settings.trendChartType as TrendChartType | undefined}
+              angle={settings.trendAngle}
+              yScaleMode={settings.trendYScaleMode as YScaleMode | undefined}
+              yMin={settings.trendYMin}
+              yMax={settings.trendYMax}
+              showProgrammed={settings.trendShowProgrammed}
+              useSemaphoreColors={settings.trendUseSemaphoreColors}
+              fixedColor={settings.trendFixedColor}
+              lineWidth={settings.trendLineWidth}
+              pointSize={settings.trendPointSize}
             />
           </g>
         )}

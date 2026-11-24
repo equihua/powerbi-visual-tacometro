@@ -38,6 +38,12 @@ export interface GaugeSettings {
   thickness: number;
   startAngle: number;
   endAngle: number;
+  /** 0.4.0.0: aire reservado arriba del vértice del arco (ver computeGaugeFrame en layout.ts). */
+  topMargin: number;
+  /** 0.4.0.0: % del radio máximo seguro que ocupa el arco (100 = sin cambio, ver computeGaugeFrame). */
+  arcScale: number;
+  /** 0.4.0.0: desplazamiento vertical (px) del centro del medidor tras el resto del encuadre. */
+  offsetY: number;
   showRanges: boolean;
   lowColor: string;
   mediumColor: string;
@@ -58,6 +64,31 @@ export interface GaugeSettings {
   previousMonthColor: string;
   /** A3: presente sólo en modo alto contraste (colores del host). */
   highContrast?: HighContrastColors;
+
+  // 0.4.0.0 — tarjeta «Gráfico de tendencia» (TrendSparkline.tsx); todas opcionales y retrocompatibles
+  // (sin tocar la tarjeta, Gauge.tsx aplica los mismos valores por omisión que TrendSparkline: ver sus
+  // defaults de props). Ver settings.ts (TrendCardSettings) y layout.ts (applyTrendBoxOverrides).
+  /** Tipo de gráfico de Real; sin valor usa el default de TrendSparkline ("lineDots"). */
+  trendChartType?: string;
+  /** Posición/tamaño: sin valor se usa el cálculo automático de ESE eje (computeInnerTrendBox). */
+  trendPosX?: number;
+  trendPosY?: number;
+  trendWidth?: number;
+  trendHeight?: number;
+  /** Rotación (grados) de la serie; sin valor, 0 (horizontal). */
+  trendAngle?: number;
+  /** Modo de escala Y; sin valor usa el default de TrendSparkline ("auto"). */
+  trendYScaleMode?: string;
+  /** Límites manuales; sólo con trendYScaleMode === "manual". */
+  trendYMin?: number;
+  trendYMax?: number;
+  /** Mostrar/ocultar la línea de Programado; sin valor, true. */
+  trendShowProgrammed?: boolean;
+  /** Colores por semáforo (true) o color fijo (false); sin valor, true. */
+  trendUseSemaphoreColors?: boolean;
+  trendFixedColor?: string;
+  trendLineWidth?: number;
+  trendPointSize?: number;
 }
 
 export interface HighContrastColors {

@@ -130,6 +130,25 @@
                     "type": {
                         "numeric": true
                     }
+                },
+                "topMargin": {
+                    "displayName": "Margen Superior",
+                    "description": "Aire reservado arriba del vértice del arco, bajo la banda de título",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "arcScale": {
+                    "displayName": "Escala del Arco (%)",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "offsetY": {
+                    "displayName": "Desplazamiento Vertical (px)",
+                    "type": {
+                        "numeric": true
+                    }
                 }
             }
         },
@@ -297,6 +316,116 @@
                                 "color": true
                             }
                         }
+                    }
+                }
+            }
+        },
+        "trend": {
+            "displayName": "Gráfico de tendencia",
+            "properties": {
+                "chartType": {
+                    "displayName": "Tipo de gráfico",
+                    "type": {
+                        "enumeration": [
+                            { "value": "lineDots", "displayName": "Línea con puntos" },
+                            { "value": "line", "displayName": "Sólo línea" },
+                            { "value": "bars", "displayName": "Barras" },
+                            { "value": "area", "displayName": "Área" }
+                        ]
+                    }
+                },
+                "posX": {
+                    "displayName": "Posición X",
+                    "description": "Sin valor, se usa la posición horizontal calculada automáticamente",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "posY": {
+                    "displayName": "Posición Y",
+                    "description": "Sin valor, se usa la posición vertical calculada automáticamente",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "width": {
+                    "displayName": "Ancho",
+                    "description": "Sin valor, se usa el ancho calculado automáticamente",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "height": {
+                    "displayName": "Alto",
+                    "description": "Sin valor, se usa el alto calculado automáticamente",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "angle": {
+                    "displayName": "Ángulo (grados)",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "yScaleMode": {
+                    "displayName": "Escala Y",
+                    "type": {
+                        "enumeration": [
+                            { "value": "auto", "displayName": "Automática al rango" },
+                            { "value": "zero", "displayName": "Desde cero" },
+                            { "value": "manual", "displayName": "Mín-máx manual" }
+                        ]
+                    }
+                },
+                "yMin": {
+                    "displayName": "Y Mínimo",
+                    "description": "Sólo con Escala Y = Mín-máx manual",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "yMax": {
+                    "displayName": "Y Máximo",
+                    "description": "Sólo con Escala Y = Mín-máx manual",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "showProgrammed": {
+                    "displayName": "Mostrar Programado",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "useSemaphoreColors": {
+                    "displayName": "Colores por semáforo",
+                    "description": "Activado: cada punto/segmento/barra usa el color de su semáforo. Desactivado: usa el color fijo",
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "fixedColor": {
+                    "displayName": "Color fijo",
+                    "description": "Sólo con Colores por semáforo desactivado",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "lineWidth": {
+                    "displayName": "Grosor de línea",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "pointSize": {
+                    "displayName": "Tamaño de punto",
+                    "type": {
+                        "numeric": true
                     }
                 }
             }

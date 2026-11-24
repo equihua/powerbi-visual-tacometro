@@ -284,6 +284,29 @@ export function computeInnerTrendBox(
     return { x: -(halfLeft + TREND_PADDING), y, width, height };
 }
 
+/**
+ * 0.4.0.0 — aplica las sobreescrituras de posición/tamaño de la tarjeta «Gráfico de tendencia» sobre la
+ * caja calculada automáticamente por `computeInnerTrendBox`. Cada eje es independiente: un valor
+ * `undefined` (el panel sin tocar, NumUpDown sin valor) conserva el cálculo automático de ESE eje;
+ * con los cuatro `undefined` el resultado es idéntico a `auto` (retrocompatible con 0.3.5.0). Si `auto`
+ * es null (la caja no cabe, ver `computeInnerTrendBox`) no hay caja que desplazar/redimensionar y se
+ * sigue devolviendo null — las sobreescrituras ajustan la caja automática, no crean una desde cero.
+ */
+export function applyTrendBoxOverrides(
+    auto: Box | null,
+    overrides: { x?: number; y?: number; width?: number; height?: number }
+): Box | null {
+    if (!auto) {
+        return null;
+    }
+    return {
+        x: overrides.x ?? auto.x,
+        y: overrides.y ?? auto.y,
+        width: overrides.width ?? auto.width,
+        height: overrides.height ?? auto.height,
+    };
+}
+
 export interface GaugeFrame {
     /** Radio que recibe el dibujo del medidor (mismo significado que en 0.2.0.0). */
     radius: number;
@@ -307,6 +330,27 @@ function containsAngle(lo: number, hi: number, target: number): boolean {
  * y el arco sin salirse por arriba. El dibujo es el mismo; sólo cambian radio y centro.
  * `centerTextHeight` (alto del número central, que va justo sobre el centro) sólo limita con arcos
  * que no pasan por las 12 en punto (p. ej. invertidos), donde la banda no llega más arriba que él.
+ *
+ * 0.4.0.0 — tres parámetros nuevos, todos opcionales y retrocompatibles (con sus valores por omisión el
+ * resultado es IDÉNTICO al de 0.3.5.0; así ningún test anterior que no los pase cambia de valor):
+ *  - `topMargin` (default 0): aire real reservado ARRIBA del vértice del arco, análogo a FOOTER_GAP pero
+ *    en el otro extremo. Causa raíz del bug "el arco toca la banda de título": `available` (todo el
+ *    cálculo de radio máximo) asumía que el arco podía llegar hasta y=0 (el borde superior del propio
+ *    viewport del medidor, justo debajo de la banda de título nativa de Power BI) sin ningún margen —
+ *    por eso aumentar `spacing.spaceAbovePlotArea` (una propiedad nativa de Power BI, fuera de este
+ *    cálculo) no bastaba: el arco seguía dibujándose hasta el borde de SU viewport. La fórmula resta
+ *    `topMargin` de `available` (como si `gaugeHeight` fuera topMargin px más chico) y luego SUMA
+ *    `topMargin` al `cy` final — equivalente a resolver el mismo sistema de restricciones con una caja
+ *    topMargin px más baja y desplazar el resultado hacia abajo esa misma distancia. El panel de formato
+ *    (gaugeCard.topMargin) usa como valor por omisión FOOTER_GAP (ver settings.ts), para quedar
+ *    visualmente simétrico con el margen inferior existente; el parámetro de esta función por sí solo
+ *    sigue en 0 (comportamiento 0.3.5.0) si no se pasa explícitamente.
+ *  - `arcScale` (default 100, %): multiplica el radio FINAL ya calculado como el máximo seguro. Con
+ *    100 no cambia nada; con menos de 100 el arco se encoge desde ese máximo seguro — nunca puede
+ *    introducir una colisión nueva (sólo añade holgura), así que no se re-valida contra las restricciones.
+ *  - `offsetY` (default 0): desplazamiento vertical final aplicado a `cy` después de todo lo anterior.
+ *    A diferencia de `topMargin`/`arcScale`, SÍ puede introducir solapes si el usuario lo usa de forma
+ *    agresiva (documentado en el panel); con 0 el resultado es exacto al de 0.3.5.0.
  */
 export function computeGaugeFrame(
     width: number,
@@ -315,11 +359,15 @@ export function computeGaugeFrame(
     startAngle: number,
     endAngle: number,
     footer: boolean,
-    centerTextHeight: number = 0
+    centerTextHeight: number = 0,
+    topMargin: number = 0,
+    arcScale: number = 100,
+    offsetY: number = 0
 ): GaugeFrame {
     const widthRadius = width / 2 / BAND_FACTOR - thickness / 2;
     if (!footer) {
-        return { radius: Math.min(width, gaugeHeight) / 2 / BAND_FACTOR - thickness / 2, cx: width / 2, cy: gaugeHeight / 2 };
+        const radius = (Math.min(width, gaugeHeight) / 2 / BAND_FACTOR - thickness / 2) * (arcScale / 100);
+        return { radius, cx: width / 2, cy: gaugeHeight / 2 + offsetY };
     }
     const lo = Math.min(startAngle, endAngle);
     const hi = Math.max(startAngle, endAngle);
@@ -328,7 +376,7 @@ export function computeGaugeFrame(
     const top = containsAngle(lo, hi, 0) ? 1 : Math.max(0, cosAt(lo), cosAt(hi));
     const bottom = containsAngle(lo, hi, 180) ? 1 : Math.max(0, -cosAt(lo), -cosAt(hi));
     const trendBottom = TREND_TOP_FACTOR + TREND_HEIGHT_FACTOR;
-    const available = gaugeHeight - FOOTER_GAP;
+    const available = gaugeHeight - FOOTER_GAP - topMargin;
     const widthOuter = bandRadii(widthRadius, thickness).outerRadius;
     // Radio exterior máximo: cada término superior (banda o número) más cada inferior (banda + marcadores
     // o sparkline) cabe en `available`. Un divisor 0 da Infinity (ese término no limita).
@@ -346,9 +394,10 @@ export function computeGaugeFrame(
         textLimit
     );
     const contentBottom = Math.max(0, bottom * (outer + MARKER_OVERHANG), trendBottom * (outer - thickness));
+    const safeRadius = outer === widthOuter ? widthRadius : (outer - thickness / 2) / BAND_FACTOR;
     return {
-        radius: outer === widthOuter ? widthRadius : (outer - thickness / 2) / BAND_FACTOR,
+        radius: safeRadius * (arcScale / 100),
         cx: width / 2,
-        cy: available - contentBottom,
+        cy: topMargin + (available - contentBottom) + offsetY,
     };
 }

@@ -3,6 +3,91 @@
 Formato basado en *Keep a Changelog*. La versión del visual la define `pbiviz.json`
 (`visual.version`, 4 partes exigidas por `powerbi-visuals-tools` 7.2.1).
 
+## [0.4.0.0] — 2026-11-24 (margen superior/arco/offset configurables + nueva tarjeta «Gráfico de tendencia», pre-1.0, sin validación en Power BI)
+
+### Versión
+
+- `pbiviz.json`, `package.json` y la raíz + el paquete `""` de `package-lock.json` (4 apariciones en total):
+  `0.3.5.0` → **`0.4.0.0`** (`tests/version.test.ts`). Tercer dígito: nueva tarjeta de formato completa
+  (`trend`) y 3 propiedades nuevas en la tarjeta `gauge`, ambas retrocompatibles (ningún default cambia el
+  resultado visual salvo lo documentado abajo).
+
+### Agregado
+
+- **Geometría del arco del medidor (tarjeta «Configuración del Medidor», `gauge`) — 3 propiedades nuevas:**
+  - `topMargin` («Margen Superior», `NumUpDown`, default **`FOOTER_GAP`** = 4 px): aire real reservado arriba
+    del vértice del arco, bajo la banda de título nativa de Power BI. Con el default el medidor queda
+    simétrico (margen superior == margen inferior, el mismo `FOOTER_GAP` que ya separaba el pie por abajo)
+    sin que quien formatea el reporte tenga que calcularlo a mano. `0` reproduce el comportamiento de
+    0.3.5.0 (arco pegado al borde superior de su viewport).
+  - `arcScale` («Escala del Arco (%)», `NumUpDown`, default **`100`**): porcentaje del radio máximo seguro
+    (el que ya calcula `computeGaugeFrame`) que ocupa el arco. `100` no cambia nada (comportamiento
+    0.3.5.0); un valor menor lo encoge desde ese máximo sin poder introducir una colisión nueva (sólo añade
+    holgura con la sparkline/semáforo).
+  - `offsetY` («Desplazamiento Vertical (px)», `NumUpDown`, default **`0`**): desplazamiento vertical
+    aplicado al centro del medidor después de `topMargin`/`arcScale`. A diferencia de esos dos, un valor
+    agresivo sí puede introducir solapes con el pie o la banda de título — queda a criterio de quien
+    formatea el reporte. `0` reproduce 0.3.5.0.
+  - Separación tendencia-arco garantizada: con los 3 defaults (retrocompatibles) `computeInnerTrendBox`
+    sigue calculando la caja de la sparkline sin tocar la banda/anillo del semáforo, igual que en 0.3.5.0;
+    `Gauge.tsx` propaga los 3 valores al mismo cálculo de encuadre que ya usaba `width`/`thickness`/
+    `startAngle`/`endAngle`.
+
+- **Nueva tarjeta de formato «Gráfico de tendencia» (`trend`), 14 propiedades:**
+  1. `chartType` («Tipo de gráfico», `ItemDropdown`: Línea con puntos/`lineDots`, Sólo línea/`line`,
+     Barras/`bars`, Área/`area`; default **`"lineDots"`** — comportamiento de 0.3.5.0).
+  2. `posX` («Posición X», `NumUpDown`; default **sin valor/automático**).
+  3. `posY` («Posición Y», `NumUpDown`; default **sin valor/automático**).
+  4. `width` («Ancho», `NumUpDown`; default **sin valor/automático**).
+  5. `height` («Alto», `NumUpDown`; default **sin valor/automático**) — 2–5 sobreescriben, eje por eje, la
+     caja que calcula automáticamente `computeInnerTrendBox` (`applyTrendBoxOverrides`, `layout.ts`); sin
+     ninguna, el resultado es idéntico al automático.
+  6. `angle` («Ángulo (grados)», `NumUpDown`; default **`0`**, horizontal): rota el grupo de la serie
+     alrededor del centro de su caja (`width/2, height/2`).
+  7. `yScaleMode` («Escala Y», `ItemDropdown`: Automática al rango/`auto`, Desde cero/`zero`, Mín-máx
+     manual/`manual`; default **`"auto"`**).
+  8. `yMin` («Y Mínimo», `NumUpDown`; default **sin valor**) — sólo efectivo con `yScaleMode = "manual"`.
+  9. `yMax` («Y Máximo», `NumUpDown`; default **sin valor**) — idem.
+  10. `showProgrammed` («Mostrar Programado», `ToggleSwitch`; default **`true`** — comportamiento de
+      0.3.5.0).
+  11. `useSemaphoreColors` («Colores por semáforo», `ToggleSwitch`; default **`true`**): cada punto/segmento/
+      barra usa el color de SU semáforo (`statusColor`), igual que 0.3.5.0.
+  12. `fixedColor` («Color fijo», `ColorPicker`; default **`"#4472C4"`**) — sólo efectivo con
+      `useSemaphoreColors = false`; cede ante el `foreground` de alto contraste con la misma precedencia que
+      el resto del medidor.
+  13. `lineWidth` («Grosor de línea», `NumUpDown`; default **`1.5`** — valor de 0.3.5.0).
+  14. `pointSize` («Tamaño de punto», `NumUpDown`; default **`2.5`** — valor de 0.3.5.0; el punto del periodo
+      actual conserva el mismo margen por encima, +1.5 px, que ya tenía en 0.3.5.0).
+
+  Con los 14 defaults el resultado es idéntico al de 0.3.5.0 (línea con puntos, caja/escala automáticas,
+  Programado visible, colores por semáforo). `capabilities.json` declara el objeto `trend` con las mismas
+  14 propiedades/tipos que `settings.ts`; `visual.ts` las lee todas hacia `GaugeSettings`
+  (`trendChartType`…`trendPointSize`).
+
+- **Escala Y automática con margen del 10 % del rango combinado Real+Programado** (`computeTrendYDomain`,
+  modo `"auto"`, `trend.ts`): el dominio siempre combina Real + Programado aunque «Mostrar Programado» esté
+  apagado (así ocultar esa línea no reescala Real de forma sorpresiva). Casos de borde documentados con
+  prueba: rango > 0 → margen = 10 % del rango a cada lado; rango = 0 con valor ≠ 0 → margen = 10 % del valor
+  absoluto; rango = 0 con valor = 0 o sin ningún valor finito → dominio fijo `[-1, 1]` (evita un dominio
+  `[0, 0]` degenerado). El modo `"zero"` mantiene el origen dentro del dominio sin margen adicional; el modo
+  `"manual"` usa `yMin`/`yMax` tal cual y cae a `"auto"` si falta alguno o están invertidos.
+
+### Verificación
+
+- `npx vitest run --coverage`: **335 pruebas** en 25 archivos (0.3.5.0: 333/25), 0 fallos. Cobertura
+  Stmts 99.81 % · Branch 96.91 % · Funcs 99.25 % · Lines 99.80 % (0.3.5.0, medido de nuevo sobre HEAD limpio
+  en un *worktree* aparte: 99.79 / 96.35 / 99.15 / 99.77 — sin regresión en ninguna de las 4 métricas; las 2
+  pruebas nuevas en `tests/trendCard.test.ts` cierran las 2 ramas de `singleStatusColor` —
+  `useSemaphoreColors=false` e `index < 0`/sin ningún punto con Real— que había dejado sin cubrir el tipo de
+  gráfico `"area"` de la Parte B).
+- `npx tsc -p tsconfig.test.json` y `npx tsc -p tsconfig.json --noEmit`: exit 0. `npx eslint .`: exit 0.
+
+### Pendiente / fuera de alcance
+
+- `arcUtils.ts` línea 23 (rama `arcGenerator(geometry) ?? ""` cuando el generador de d3-shape devuelve
+  `null`) y `visual.ts` `getFormattingModel()` siguen sin cobertura — ya lo estaban en 0.3.5.0 (no es
+  regresión de esta parte; documentado aquí para no repetir el análisis).
+
 ## [0.3.5.0] — 2026-11-23 (sparkline: medio ancho por lado, cierra la brecha entre layouts 4-en-fila y 1-grande, pre-1.0, sin validación en Power BI)
 
 ### Versión

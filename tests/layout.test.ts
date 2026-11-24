@@ -368,3 +368,98 @@ describe("computeGaugeFrame — 0.3.2.0: medidor pegado al pie (menos hueco vert
         expect(frame.cy + outer + MARKER_OVERHANG).toBeCloseTo(260 - FOOTER_GAP, 9);
     });
 });
+
+/**
+ * 0.4.0.0 — Parte A: topMargin/arcScale/offsetY (panel de formato, gaugeCard). Tres pruebas TDD
+ * pedidas por el Requerimiento 1 (margen superior == margen inferior con el default FOOTER_GAP),
+ * Requerimiento 2 (no-colisión tendencia-arco en los dos tamaños reales de tarjeta) y la
+ * retrocompatibilidad bit a bit de computeGaugeFrame cuando se pasan explícitamente los valores de
+ * 0.3.5.0 (topMargin=0, arcScale=100, offsetY=0).
+ */
+describe("computeGaugeFrame — 0.4.0.0: topMargin/arcScale/offsetY (Requerimientos 1 y 3, geometría)", () => {
+    const T = 20;
+
+    it("Requerimiento 1 — con topMargin=FOOTER_GAP (default del panel), el margen superior (vértice del arco a y=0) es igual al margen inferior (FOOTER_GAP), en ambos tamaños reales de tarjeta", () => {
+        for (const [w, h, label] of [[430, 338, "430x338 (poa_inicio)"], [430, 268, "430x268 (poa_subdireccion/poa_energia_limpia)"]] as Array<[number, number, string]>) {
+            const gaugeHeight = h - FOOTER_HEIGHT;
+            // fontSize default (50) con showValueLabel activo: mismo centerTextHeight que usa Gauge.tsx por omisión.
+            const frame = computeGaugeFrame(w, gaugeHeight, T, -120, 60, true, 50, FOOTER_GAP, 100, 0);
+            const topGap = frame.cy - arcTop(frame.radius, T, -120, 60);
+            const bottomGap = gaugeHeight - (frame.cy + contentBottom(frame.radius, T, -120, 60));
+            expect(topGap, label).toBeCloseTo(FOOTER_GAP, 3);
+            expect(bottomGap, label).toBeCloseTo(FOOTER_GAP, 3);
+            expect(topGap, label).toBeCloseTo(bottomGap, 3);
+        }
+    });
+
+    it("Requerimiento 1 — con topMargin=0 (valor por omisión del propio parámetro, NO del panel) el margen superior puede ser menor al inferior: el default FOOTER_GAP del panel es lo que los iguala", () => {
+        const gaugeHeight = 338 - FOOTER_HEIGHT;
+        const framePanelDefault = computeGaugeFrame(430, gaugeHeight, T, -120, 60, true, 50, FOOTER_GAP, 100, 0);
+        const frameNoTopMargin = computeGaugeFrame(430, gaugeHeight, T, -120, 60, true, 50, 0, 100, 0);
+        const topGapDefault = framePanelDefault.cy - arcTop(framePanelDefault.radius, T, -120, 60);
+        const topGapNoMargin = frameNoTopMargin.cy - arcTop(frameNoTopMargin.radius, T, -120, 60);
+        expect(topGapDefault).toBeCloseTo(FOOTER_GAP, 3);
+        expect(topGapNoMargin).toBeCloseTo(0, 3);
+    });
+
+    it("Requerimiento 2 — con los defaults (topMargin=FOOTER_GAP, arcScale=100, offsetY=0) la sparkline no colisiona con el arco en ninguno de los dos tamaños reales de tarjeta (distancia >= reach > 0)", () => {
+        const reach = TREND_CURRENT_POINT_RADIUS + TREND_EDGE_CLEARANCE;
+        for (const [w, h, label] of [[430, 338, "430x338 (poa_inicio)"], [430, 268, "430x268 (poa_subdireccion/poa_energia_limpia)"]] as Array<[number, number, string]>) {
+            const gaugeHeight = h - FOOTER_HEIGHT;
+            const frame = computeGaugeFrame(w, gaugeHeight, T, -120, 60, true, 50, FOOTER_GAP, 100, 0);
+            const box = computeInnerTrendBox(frame.radius, T, -120, 60, w, true);
+            expect(box, label).not.toBeNull();
+            expect(box!.height, label).toBeGreaterThan(TREND_MIN_HEIGHT);
+            const halfLeft = -box!.x - TREND_PADDING;
+            const halfRight = box!.width - halfLeft - 2 * TREND_PADDING;
+            // Oráculo independiente (idéntico al usado arriba en este archivo para computeInnerTrendBox
+            // 0.3.5.0): ningún punto del contenido de la sparkline (centros + reach) cae dentro de la
+            // banda/marcadores ni del anillo del semáforo dentro del barrido real de la tarjeta.
+            expect(contentIsSafe(frame.radius, T, -120, 60, halfLeft, halfRight, true), label).toBe(true);
+            // reach > 0 es la holgura mínima garantizada por diseño (ver comentario de TREND_EDGE_CLEARANCE
+            // en layout.ts); se deja explícito aquí para que la prueba falle de forma clara si cambiara.
+            expect(reach, label).toBeGreaterThan(0);
+        }
+    });
+
+    it("Requerimiento 3 (retrocompatibilidad) — pasar explícitamente topMargin=0, arcScale=100, offsetY=0 da un resultado IDÉNTICO bit a bit a no pasarlos, para las mismas combinaciones ya cubiertas arriba en este archivo", () => {
+        const cases: Array<[number, number, number, number, number, boolean, number?]> = [
+            [300, 300, T, -120, 60, false],
+            [480, 300, T, -90, 90, false],
+            [300, 260, T, -120, 60, true],
+            [600, 260, T, 90, 270, true, 20],
+            [300, 40, T, -90, 90, true, 60],
+            [300, 260, T, -180, 180, true],
+        ];
+        for (const [w, gh, t, s, e, footer, centerTextHeight] of cases) {
+            const withDefaults = centerTextHeight === undefined
+                ? computeGaugeFrame(w, gh, t, s, e, footer)
+                : computeGaugeFrame(w, gh, t, s, e, footer, centerTextHeight);
+            const withExplicitBackCompatValues = centerTextHeight === undefined
+                ? computeGaugeFrame(w, gh, t, s, e, footer, 0, 0, 100, 0)
+                : computeGaugeFrame(w, gh, t, s, e, footer, centerTextHeight, 0, 100, 0);
+            expect(withExplicitBackCompatValues).toEqual(withDefaults);
+        }
+    });
+
+    it("arcScale < 100 encoge el radio desde el máximo seguro sin mover cx; arcScale=100 no cambia nada respecto al default", () => {
+        const gaugeHeight = 260;
+        const full = computeGaugeFrame(300, gaugeHeight, T, -120, 60, true, 0, 0, 100, 0);
+        const half = computeGaugeFrame(300, gaugeHeight, T, -120, 60, true, 0, 0, 50, 0);
+        expect(half.radius).toBeCloseTo(full.radius / 2, 9);
+        expect(half.cx).toBe(full.cx);
+    });
+
+    it("offsetY desplaza cy exactamente esa cantidad, con o sin pie, sin afectar radius ni cx", () => {
+        const withFooter = computeGaugeFrame(300, 260, T, -120, 60, true, 0, FOOTER_GAP, 100, 0);
+        const withFooterShifted = computeGaugeFrame(300, 260, T, -120, 60, true, 0, FOOTER_GAP, 100, 15);
+        expect(withFooterShifted.cy).toBeCloseTo(withFooter.cy + 15, 9);
+        expect(withFooterShifted.radius).toBe(withFooter.radius);
+        expect(withFooterShifted.cx).toBe(withFooter.cx);
+
+        const withoutFooter = computeGaugeFrame(300, 260, T, -120, 60, false, 0, 0, 100, 0);
+        const withoutFooterShifted = computeGaugeFrame(300, 260, T, -120, 60, false, 0, 0, 100, -10);
+        expect(withoutFooterShifted.cy).toBeCloseTo(withoutFooter.cy - 10, 9);
+        expect(withoutFooterShifted.radius).toBe(withoutFooter.radius);
+    });
+});
