@@ -262,6 +262,45 @@ describe("arcRepresentativePoint — punto siempre dentro (o en el límite) de l
         expect(Number.isFinite(p.x)).toBe(true);
         expect(Number.isFinite(p.y)).toBe(true);
     });
+
+    /**
+     * Falso negativo reportado por Reviewer: `(startAngle + endAngle) / 2` sólo da el ángulo medio
+     * correcto cuando `endAngle > startAngle` (orden "directo"). `inSweep` (y `segmentDistanceToAnnularSector`,
+     * que SÍ se usa para el chequeo por borde) definen el barrido real como [lo, lo + normalizeTo360(hi−lo)]
+     * — es decir, recorriendo desde `lo` en sentido horario hasta `hi`, sin asumir `hi > lo`. Con
+     * startAngle=90/endAngle=-90 ese barrido real es [90°,270°] (mitad inferior), pero el promedio
+     * aritmético da 0° (arriba): un punto FUERA de la corona real, que `pointInConvexPolygon` puede
+     * fallar en detectar como encerrado → falso negativo de colisión (`fits: true` cuando debería ser
+     * `false`). El ángulo medio correcto es `startAngle + normalizeTo360(endAngle − startAngle) / 2`.
+     */
+    it("barrido con ángulos invertidos (startAngle > endAngle, p.ej. 90→−90): el ángulo medio es el del barrido REAL, no el promedio aritmético", () => {
+        const reversed = arcRepresentativePoint({ center: { x: 0, y: 0 }, innerRadius: 50, outerRadius: 60, startAngle: 90, endAngle: -90 });
+        // Barrido real [90°,270°]: ángulo medio 180° → dirección (0, +ρ), NO (0, −ρ) (eso sería el
+        // promedio aritmético ingenuo, (90 + (-90))/2 = 0°, que cae fuera de este barrido).
+        expect(reversed.x).toBeCloseTo(0, 9);
+        expect(reversed.y).toBeCloseTo(55, 9);
+        expect(pointDistanceToAnnularSector(reversed, 50, 60, 90, -90)).toBe(0);
+
+        // Control equivalente con orden directo (mismo barrido real, sin inversión): debe coincidir.
+        const direct = arcRepresentativePoint({ center: { x: 0, y: 0 }, innerRadius: 50, outerRadius: 60, startAngle: 90, endAngle: 270 });
+        expect(direct.x).toBeCloseTo(reversed.x, 9);
+        expect(direct.y).toBeCloseTo(reversed.y, 9);
+    });
+
+    it("barrido que cruza 0°/360° (p.ej. 350°→10°, típico de un medidor que arranca cerca de las 12): el ángulo medio cae DENTRO del barrido corto, no en el lado opuesto", () => {
+        const p = arcRepresentativePoint({ center: { x: 0, y: 0 }, innerRadius: 50, outerRadius: 60, startAngle: 350, endAngle: 10 });
+        // Barrido real [350°,360°]∪[0°,10°] (20° de ancho): ángulo medio 0°/360° → dirección (0, −ρ).
+        // El promedio aritmético ingenuo, (350+10)/2 = 180°, caería en el lado opuesto (0,+ρ), fuera
+        // de este barrido de 20°.
+        expect(p.x).toBeCloseTo(0, 9);
+        expect(p.y).toBeCloseTo(-55, 9);
+        expect(pointDistanceToAnnularSector(p, 50, 60, 350, 10)).toBe(0);
+    });
+
+    it("barrido completo con offsets grandes (múltiplos de 360, p.ej. 720°→1080°): usa startAngle directo, sin que el fix de ángulo invertido lo altere (regresión de la rama fullSweep, intacta)", () => {
+        const p = arcRepresentativePoint({ center: { x: 0, y: 0 }, innerRadius: 10, outerRadius: 20, startAngle: 720, endAngle: 1080 });
+        expect(pointDistanceToAnnularSector(p, 10, 20, 720, 1080)).toBe(0);
+    });
 });
 
 describe("fitTrendScale — colisión por ENCIERRO con la corona del arco (Reviewer O1): la corona entera cae dentro de la caja sin que ningún borde la cruce", () => {
@@ -300,5 +339,33 @@ describe("fitTrendScale — colisión por ENCIERRO con la corona del arco (Revie
             arc: { center: { x: 1000, y: 1000 }, innerRadius: 50, outerRadius: 60, startAngle: -10, endAngle: 10 },
         });
         expect(result).toEqual({ scale: 1, fits: true });
+    });
+
+    /**
+     * Repro exacto de Reviewer (falso negativo de `arcRepresentativePoint` con barrido invertido,
+     * motor del fix de este commit): caja 300×150 en (150,145), ángulo 0, escala 1; arco centrado en
+     * (300,150), corona [90,140], barrido startAngle=90/endAngle=-90 (orden invertido). El barrido REAL
+     * (recorriendo desde 90° en sentido horario hasta −90°≡270°) es la mitad INFERIOR de la corona,
+     * que esta caja envuelve por completo — igual que el control con orden directo (90→270), que ya
+     * detectaba el encierro antes del fix. Con el bug, el ángulo medio aritmético ((90+(-90))/2 = 0°)
+     * caía en la mitad SUPERIOR (fuera del barrido real), su punto representativo quedaba fuera de la
+     * caja, y `cornersClear` reportaba `fits: true` pese al encierro real.
+     */
+    it("barrido invertido (startAngle=90, endAngle=-90) y su control directo (startAngle=90, endAngle=270) deben coincidir: ambos detectan el encierro (fits:false)", () => {
+        const base = {
+            viewportWidth: 1000,
+            viewportHeight: 1000,
+            arc: { center: { x: 300, y: 150 }, innerRadius: 90, outerRadius: 140 },
+        };
+        const reversed = fitTrendScale(300, 150, { x: 150, y: 145 }, 0, 1, {
+            ...base,
+            arc: { ...base.arc, startAngle: 90, endAngle: -90 },
+        });
+        const control = fitTrendScale(300, 150, { x: 150, y: 145 }, 0, 1, {
+            ...base,
+            arc: { ...base.arc, startAngle: 90, endAngle: 270 },
+        });
+        expect(control).toEqual({ scale: TREND_MIN_SCALE, fits: false });
+        expect(reversed).toEqual(control);
     });
 });

@@ -241,11 +241,19 @@ export function pointInConvexPolygon(point: Point, corners: Point[]): boolean {
  * DENTRO o FUERA de la caja — no puede quedar "a medias" sin que algún borde la cruce (eso sería cruzar
  * la frontera de la caja, detectado por ese mismo chequeo). Por eso UN SOLO punto representativo basta
  * para decidir el caso que el chequeo por borde no cubre: la corona entera encerrada dentro de la caja.
+ *
+ * El ángulo medio NO es el promedio aritmético `(startAngle + endAngle) / 2` (fix de Reviewer, falso
+ * negativo reportado): ese promedio sólo coincide con el barrido real cuando `endAngle > startAngle`.
+ * El resto del módulo (`inSweep`, usada por el chequeo por borde de arriba) define el barrido real como
+ * [startAngle, startAngle + normalizeTo360(endAngle − startAngle)] — recorriendo desde `startAngle` en
+ * sentido horario hasta `endAngle`, sin asumir ningún orden entre ambos (p. ej. startAngle=90°,
+ * endAngle=−90° barre la mitad INFERIOR, no la superior que daría el promedio aritmético). Usar
+ * `normalizeTo360` aquí también mantiene el punto representativo consistente con ese mismo barrido.
  */
 export function arcRepresentativePoint(arc: TrendArcObstacle): Point {
     const midRadius = (arc.innerRadius + arc.outerRadius) / 2;
     const fullSweep = arc.endAngle - arc.startAngle >= 360;
-    const midAngle = fullSweep ? arc.startAngle : (arc.startAngle + arc.endAngle) / 2;
+    const midAngle = fullSweep ? arc.startAngle : arc.startAngle + normalizeTo360(arc.endAngle - arc.startAngle) / 2;
     const dir = direction(midAngle);
     return { x: arc.center.x + dir.x * midRadius, y: arc.center.y + dir.y * midRadius };
 }
