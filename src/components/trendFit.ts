@@ -206,13 +206,64 @@ export function segmentDistanceToAnnularSector(p: Point, q: Point, r0: number, r
 }
 
 /**
+ * ¿Cae `point` dentro (o en el borde) del polígono CONVEXO `corners` (cualquier orden consistente,
+ * horario o antihorario — no asume ejes alineados: sirve igual para la caja rotada)? Se recorre cada
+ * arista y se compara el signo del cruz (edge × (point − a)); si todos los signos no-nulos coinciden,
+ * `point` queda del mismo lado de las 4 aristas, o sea dentro. Un cruz exactamente 0 (punto sobre la
+ * recta de la arista) no desempata — así un punto justo en el borde no produce un falso "fuera" por
+ * redondeo.
+ */
+export function pointInConvexPolygon(point: Point, corners: Point[]): boolean {
+    let sign = 0;
+    for (let i = 0; i < corners.length; i++) {
+        const a = corners[i];
+        const b = corners[(i + 1) % corners.length];
+        const cr = cross(sub(b, a), sub(point, a));
+        if (cr === 0) continue;
+        const s = cr > 0 ? 1 : -1;
+        if (sign === 0) {
+            sign = s;
+        } else if (s !== sign) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * Punto SIEMPRE dentro de la corona (radio medio, ángulo medio del barrido) — o, en los casos
+ * degenerados (r0 === r1 o barrido de 0°), sobre su único límite posible, sin dividir entre 0 ni
+ * generar NaN. Barrido completo (hi − lo >= 360): cualquier ángulo vale, así que se usa `startAngle`
+ * directo (ya no hay "medio" que calcular, todos están dentro).
+ *
+ * Motor del fix de Reviewer O1 (`cornersClear`, abajo): la corona es una región CONEXA, así que si
+ * ningún borde de la caja la cruza (chequeo de Reviewer B1, por segmento), la corona entera debe quedar
+ * DENTRO o FUERA de la caja — no puede quedar "a medias" sin que algún borde la cruce (eso sería cruzar
+ * la frontera de la caja, detectado por ese mismo chequeo). Por eso UN SOLO punto representativo basta
+ * para decidir el caso que el chequeo por borde no cubre: la corona entera encerrada dentro de la caja.
+ */
+export function arcRepresentativePoint(arc: TrendArcObstacle): Point {
+    const midRadius = (arc.innerRadius + arc.outerRadius) / 2;
+    const fullSweep = arc.endAngle - arc.startAngle >= 360;
+    const midAngle = fullSweep ? arc.startAngle : (arc.startAngle + arc.endAngle) / 2;
+    const dir = direction(midAngle);
+    return { x: arc.center.x + dir.x * midRadius, y: arc.center.y + dir.y * midRadius };
+}
+
+/**
  * ¿Las 4 esquinas, ya en coordenadas absolutas, libran los 3 obstáculos (con la holgura pedida)?
  *
  * Viewport y pie son semiplanos (restricciones lineales): convexos, así que basta revisar las 4
  * esquinas — si todas quedan del lado correcto, cualquier punto del rectángulo (combinación convexa de
  * sus esquinas) también. La corona del arco, en cambio, es un sector anular NO convexo: un borde puede
- * atravesarla aunque sus 2 extremos queden limpios (Reviewer B1) — por eso la corona se evalúa por
- * BORDE (`segmentDistanceToAnnularSector`, los 4 lados del rectángulo ya transformado), no por esquina.
+ * atravesarla aunque sus 2 extremos queden limpios (Reviewer B1) — por eso la corona se evalúa primero
+ * por BORDE (`segmentDistanceToAnnularSector`, los 4 lados del rectángulo ya transformado).
+ *
+ * Pero el chequeo por borde, por sí solo, no basta (Reviewer O1): la corona puede quedar ENTERA dentro
+ * de la caja sin que ningún borde la toque (la caja simplemente la envuelve por completo). Por eso, tras
+ * confirmar que ningún borde cruza la corona, se evalúa además si su punto representativo
+ * (`arcRepresentativePoint`) cae dentro de la caja (`pointInConvexPolygon`) — si cae dentro, la corona
+ * entera está encerrada (región conexa, ver razonamiento en `arcRepresentativePoint`).
  */
 function cornersClear(corners: Point[], obstacles: TrendFitObstacles): boolean {
     const clearance = obstacles.clearance ?? 0;
@@ -225,13 +276,15 @@ function cornersClear(corners: Point[], obstacles: TrendFitObstacles): boolean {
     if (!cornersOk) return false;
     if (!obstacles.arc) return true;
     const arc = obstacles.arc;
-    return corners.every((corner, i) => {
+    const edgesClear = corners.every((corner, i) => {
         const next = corners[(i + 1) % corners.length];
         const p: Point = { x: corner.x - arc.center.x, y: corner.y - arc.center.y };
         const q: Point = { x: next.x - arc.center.x, y: next.y - arc.center.y };
         const distance = segmentDistanceToAnnularSector(p, q, arc.innerRadius, arc.outerRadius, arc.startAngle, arc.endAngle);
         return distance > clearance;
     });
+    if (!edgesClear) return false;
+    return !pointInConvexPolygon(arcRepresentativePoint(arc), corners);
 }
 
 /**

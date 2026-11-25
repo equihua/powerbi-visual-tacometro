@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { fitTrendScale, pointDistanceToAnnularSector, segmentDistanceToAnnularSector, TREND_MIN_SCALE } from "../src/components/trendFit";
+import {
+    arcRepresentativePoint,
+    fitTrendScale,
+    pointDistanceToAnnularSector,
+    pointInConvexPolygon,
+    segmentDistanceToAnnularSector,
+    TREND_MIN_SCALE,
+} from "../src/components/trendFit";
 
 /**
  * Homotecia automática anticolisión: reduce la escala de la caja de tendencia (nunca su posición ni su
@@ -184,5 +191,114 @@ describe("segmentDistanceToAnnularSector — distancia exacta segmento→sector 
     it("dentro del barrido, segmento entero más lejos del centro que r1: distancia = ρmin − r1 (no colisión)", () => {
         const d = segmentDistanceToAnnularSector({ x: 0, y: -70 }, { x: 10, y: -75 }, 50, 60, -90, 90);
         expect(d).toBeCloseTo(10, 9);
+    });
+});
+
+/**
+ * Reviewer O1 — bug de colisión encontrado en revisión independiente, distinto del de Reviewer B1: la
+ * corona del arco (sector anular) puede quedar ENTERA dentro de la caja de tendencia sin que NINGÚN
+ * borde de la caja la cruce — el chequeo por borde (`segmentDistanceToAnnularSector`, fix de B1) sólo
+ * detecta cruces, no encierro completo. Caso documentado en la revisión: `fitTrendScale(300, 150,
+ * {x:150,y:5}, 0, 1, …)` con un arco centrado en (300,150), corona [90,140] y barrido [-90°,90°] — la
+ * caja (absoluta: x en [150,450], y en [5,155]) envuelve por completo la corona (que ocupa x en
+ * [160,440], y en [10,150] aprox.) sin que ninguno de sus 4 bordes la atraviese, pero el punto (300,35)
+ * cae dentro de ambas: colisión real que `cornersClear` reportaba como libre (`fits:true` a escala 1).
+ *
+ * El fix se apoya en que la corona es una región CONEXA: si ya se confirmó que ningún borde de la caja
+ * la cruza (chequeo de B1), la corona entera debe quedar DENTRO o FUERA de la caja — no puede quedar "a
+ * medias" sin que algún borde la cruce. Por eso un único punto representativo (`arcRepresentativePoint`,
+ * radio medio/ángulo medio del barrido) basta: si ese punto cae dentro de la caja (`pointInConvexPolygon`,
+ * válido para cualquier rectángulo convexo, rotado o no), la corona entera está encerrada.
+ *
+ * Valores esperados verificados con un oráculo independiente (muestreo denso punto-en-sector +
+ * punto-en-caja + bisección en Python, fuera de este repo, ver bitácora).
+ */
+describe("pointInConvexPolygon — punto dentro de un polígono convexo arbitrario (motor del fix de Reviewer O1)", () => {
+    it("punto claramente dentro de un rectángulo axis-aligned: true", () => {
+        const corners = [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }, { x: 0, y: 10 }];
+        expect(pointInConvexPolygon({ x: 5, y: 5 }, corners)).toBe(true);
+    });
+
+    it("punto claramente fuera: false", () => {
+        const corners = [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }, { x: 0, y: 10 }];
+        expect(pointInConvexPolygon({ x: 50, y: 50 }, corners)).toBe(false);
+    });
+
+    it("rectángulo rotado (el chequeo no depende de que esté alineado a los ejes): detecta dentro/fuera igual", () => {
+        // Rombo (cuadrado girado 45°) centrado en el origen, vértices a distancia 10 de los ejes.
+        const corners = [{ x: 0, y: -10 }, { x: 10, y: 0 }, { x: 0, y: 10 }, { x: -10, y: 0 }];
+        expect(pointInConvexPolygon({ x: 0, y: 0 }, corners)).toBe(true);
+        expect(pointInConvexPolygon({ x: 9, y: 9 }, corners)).toBe(false); // cerca del rombo, pero fuera
+    });
+
+    it("punto exactamente sobre un borde: se considera dentro (sin falso negativo por el signo 0 del cruz)", () => {
+        const corners = [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }, { x: 0, y: 10 }];
+        expect(pointInConvexPolygon({ x: 5, y: 0 }, corners)).toBe(true);
+    });
+});
+
+describe("arcRepresentativePoint — punto siempre dentro (o en el límite) de la corona (motor del fix de Reviewer O1)", () => {
+    it("barrido parcial: radio medio, ángulo medio del barrido — cae en la corona por construcción", () => {
+        const p = arcRepresentativePoint({ center: { x: 0, y: 0 }, innerRadius: 50, outerRadius: 60, startAngle: -10, endAngle: 10 });
+        expect(pointDistanceToAnnularSector(p, 50, 60, -10, 10)).toBe(0);
+        expect(p.x).toBeCloseTo(0, 9); // ángulo medio 0° → (0, −ρ)
+        expect(p.y).toBeCloseTo(-55, 9);
+    });
+
+    it("barrido completo (360°+): el ángulo elegido no importa, cualquiera cae dentro de la corona", () => {
+        const p = arcRepresentativePoint({ center: { x: 0, y: 0 }, innerRadius: 10, outerRadius: 20, startAngle: -400, endAngle: 400 });
+        expect(pointDistanceToAnnularSector(p, 10, 20, -400, 400)).toBe(0);
+    });
+
+    it("degenerado: r0 === r1 (corona de ancho 0) — no crashea; el punto cae sobre el único radio posible", () => {
+        const p = arcRepresentativePoint({ center: { x: 0, y: 0 }, innerRadius: 50, outerRadius: 50, startAngle: -10, endAngle: 10 });
+        expect(Number.isFinite(p.x)).toBe(true);
+        expect(Number.isFinite(p.y)).toBe(true);
+        expect(Math.hypot(p.x, p.y)).toBeCloseTo(50, 9);
+    });
+
+    it("degenerado: barrido de 0° (lo === hi) — no crashea; el ángulo medio coincide con el único ángulo posible", () => {
+        const p = arcRepresentativePoint({ center: { x: 0, y: 0 }, innerRadius: 50, outerRadius: 60, startAngle: 30, endAngle: 30 });
+        expect(Number.isFinite(p.x)).toBe(true);
+        expect(Number.isFinite(p.y)).toBe(true);
+    });
+});
+
+describe("fitTrendScale — colisión por ENCIERRO con la corona del arco (Reviewer O1): la corona entera cae dentro de la caja sin que ningún borde la cruce", () => {
+    it("caja 300x150 en (150,5), ángulo 0, escala 1: envuelve por completo la corona [90,140]@[-90°,90°] centrada en (300,150) — ni siquiera TREND_MIN_SCALE la libra", () => {
+        const result = fitTrendScale(300, 150, { x: 150, y: 5 }, 0, 1, {
+            viewportWidth: 1000,
+            viewportHeight: 1000,
+            arc: { center: { x: 300, y: 150 }, innerRadius: 90, outerRadius: 140, startAngle: -90, endAngle: 90 },
+        });
+        expect(result).toEqual({ scale: TREND_MIN_SCALE, fits: false });
+    });
+
+    it("barrido completo (360°+): un anillo diminuto pegado al pivote queda encerrado por la caja incluso en TREND_MIN_SCALE", () => {
+        const result = fitTrendScale(100, 100, { x: 0, y: 0 }, 0, 1, {
+            viewportWidth: 1000,
+            viewportHeight: 1000,
+            arc: { center: { x: 10, y: 95 }, innerRadius: 1, outerRadius: 3, startAngle: -400, endAngle: 400 },
+        });
+        expect(result).toEqual({ scale: TREND_MIN_SCALE, fits: false });
+    });
+
+    it("caja 40x150 en (280,5): la corona sólo queda PARCIALMENTE encerrada (se sale por los lados); la homotecia la libra reduciendo a ~0.618", () => {
+        const result = fitTrendScale(40, 150, { x: 280, y: 5 }, 0, 1, {
+            viewportWidth: 1000,
+            viewportHeight: 1000,
+            arc: { center: { x: 300, y: 150 }, innerRadius: 90, outerRadius: 140, startAngle: -90, endAngle: 90 },
+        });
+        expect(result.fits).toBe(true);
+        expect(result.scale).toBeCloseTo(0.618, 2);
+    });
+
+    it("sin falso positivo: corona lejana (sin tocar ni encerrar la caja) no fuerza ninguna reducción", () => {
+        const result = fitTrendScale(10, 10, { x: 0, y: 0 }, 0, 1, {
+            viewportWidth: 2000,
+            viewportHeight: 2000,
+            arc: { center: { x: 1000, y: 1000 }, innerRadius: 50, outerRadius: 60, startAngle: -10, endAngle: 10 },
+        });
+        expect(result).toEqual({ scale: 1, fits: true });
     });
 });
