@@ -189,6 +189,21 @@ export function computeTrendYDomain(
 }
 
 /**
+ * 0.4.1.0 — `pointSize` (tamaño de punto de la sparkline) pasa de un valor fijo (2.5, 0.3.5.0/0.4.0.0)
+ * a «auto» (sin valor por omisión, settings.ts): cuando el panel no lo toca, el tamaño EFECTIVO es
+ * proporcional al grosor de línea configurado (`lineWidth`), en vez de un número fijo independiente —
+ * así ajustar el grosor de la línea escala también los puntos, de forma coherente, sin que el usuario
+ * tenga que tocar dos controles por separado. `TREND_POINT_SIZE_RATIO` preserva EXACTO el resultado de
+ * 0.3.5.0/0.4.0.0 en el caso por omisión: lineWidth 1.5 → pointSize 2.5 (2.5 / 1.5).
+ */
+export const TREND_POINT_SIZE_RATIO = 2.5 / 1.5;
+
+/** Tamaño de punto efectivo (redondeado a centésimas) para un `lineWidth` dado; ver `TREND_POINT_SIZE_RATIO`. */
+export function computeEffectivePointSize(lineWidth: number): number {
+    return round(lineWidth * TREND_POINT_SIZE_RATIO);
+}
+
+/**
  * Geometría pura de la sparkline: meses repartidos en el ancho y Real/Programado en una
  * misma escala vertical (min abajo, max arriba), dentro de un margen `padding`.
  *

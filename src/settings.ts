@@ -27,11 +27,26 @@
 "use strict";
 
 import { formattingSettings } from "powerbi-visuals-utils-formattingmodel";
+import powerbi from "powerbi-visuals-api";
 import { FOOTER_GAP } from "./components/layout";
 
 import FormattingSettingsCard = formattingSettings.SimpleCard;
 import FormattingSettingsSlice = formattingSettings.Slice;
 import FormattingSettingsModel = formattingSettings.Model;
+
+/**
+ * 0.4.1.0 — límites 0..100 y sufijo "%" para posX/posY/width/height de la tarjeta «Gráfico de
+ * tendencia» (ver TrendCardSettings.posX/posY/width/height): «type» usa el literal numérico del
+ * validador (0 = Min, 1 = Max, powerbi.visuals.ValidatorType) en vez de importar el const enum como
+ * VALOR — los enums numéricos de TypeScript son asignables desde un literal plano sin cast, y así se
+ * evita cualquier riesgo de que un bundler basado en esbuild (Vitest/Vite) no inline un const enum
+ * importado desde una dependencia externa (powerbi-visuals-api).
+ */
+const PERCENT_BOUNDS: powerbi.visuals.NumUpDownFormat = {
+    unitSymbol: "%",
+    minValue: { type: 0, value: 0 },
+    maxValue: { type: 1, value: 100 },
+};
 
 /**
  * Gauge Formatting Card
@@ -271,31 +286,63 @@ class TrendCardSettings extends FormattingSettingsCard {
     });
 
     // Posición y tamaño: sin valor (por omisión) se usa la caja calculada automáticamente
-    // (computeInnerTrendBox + applyTrendBoxOverrides, layout.ts); cada eje se sobreescribe por separado.
-    posX = new formattingSettings.NumUpDown({
-        name: "posX",
-        displayName: "Posición X",
-        value: undefined
+    // (computeInnerTrendBox + resolveTrendBoxFromPercentOverrides, layout.ts/trendBoxPercent.ts); cada
+    // eje se sobreescribe por separado.
+    //
+    // 0.4.1.0 — posXPct/posYPct/widthPct/heightPct son % (0..100) del VIEWPORT completo de la tarjeta
+    // (no px relativos al centro del medidor, como `posX`/`posY`/`width`/`height` en 0.4.0.0):
+    // `posXPct`/`posYPct` ubican el PIVOTE inferior-izquierdo de la caja (el punto que un ángulo o una
+    // escala distintos de los valores por omisión NUNCA mueven, ver trendTransform.ts), medido desde el
+    // borde IZQUIERDO (X) y SUPERIOR (Y) del viewport. `widthPct`/`heightPct` son % del ancho/alto del
+    // viewport.
+    //
+    // REVISIÓN B2 — por qué NO se reutilizan los nombres `posX`/`posY`/`width`/`height` de 0.4.0.0: esas
+    // 4 propiedades eran px relativos al centro del medidor; reutilizar el mismo nombre de propiedad con
+    // un significado distinto (%) haría que Power BI reinterprete SILENCIOSAMENTE, en cualquier reporte
+    // guardado con 0.4.0.0, un valor en px como si fuera un % (p. ej. 60 px pasaría a leerse como 60%) —
+    // sin ningún aviso ni fallo visible, sólo un medidor mal posicionado. Las 4 propiedades nuevas usan
+    // nombre distinto (sufijo Pct) para que la lectura de un dataView objeto antiguo (`trend.posX`, etc.)
+    // simplemente no encuentre coincidencia (`setPropertiesValues` busca por `slice.name`, ver
+    // FormattingSettingsComponents.js) y el panel se comporte como si nunca se hubiera tocado (auto). Las
+    // 4 propiedades legadas siguen declaradas en capabilities.json (numéricas, displayName marcado
+    // «heredado»/«obsoleto») SIN slice aquí — no aparecen en el panel ni se leen nunca — únicamente para
+    // que Power BI no borre ese valor heredado al volver a guardar el reporte (inventario/migración
+    // manual futura; ver bitácora de este cambio).
+    posXPct = new formattingSettings.NumUpDown({
+        name: "posXPct",
+        displayName: "Posición X (%)",
+        description: "0-100% del ancho del viewport desde el borde izquierdo; ubica el pivote inferior-izquierdo de la caja (el punto fijo al rotar/escalar). Sin valor, se usa el % calculado automáticamente.",
+        value: undefined,
+        options: PERCENT_BOUNDS,
     });
 
-    posY = new formattingSettings.NumUpDown({
-        name: "posY",
-        displayName: "Posición Y",
-        value: undefined
+    posYPct = new formattingSettings.NumUpDown({
+        name: "posYPct",
+        displayName: "Posición Y (%)",
+        description: "0-100% del alto del viewport desde el borde superior; ubica el pivote inferior-izquierdo de la caja (el punto fijo al rotar/escalar). Sin valor, se usa el % calculado automáticamente.",
+        value: undefined,
+        options: PERCENT_BOUNDS,
     });
 
-    width = new formattingSettings.NumUpDown({
-        name: "width",
-        displayName: "Ancho",
-        value: undefined
+    widthPct = new formattingSettings.NumUpDown({
+        name: "widthPct",
+        displayName: "Ancho (%)",
+        description: "0-100% del ancho del viewport. Sin valor, se usa el % calculado automáticamente.",
+        value: undefined,
+        options: PERCENT_BOUNDS,
     });
 
-    height = new formattingSettings.NumUpDown({
-        name: "height",
-        displayName: "Alto",
-        value: undefined
+    heightPct = new formattingSettings.NumUpDown({
+        name: "heightPct",
+        displayName: "Alto (%)",
+        description: "0-100% del alto del viewport. Sin valor, se usa el % calculado automáticamente.",
+        value: undefined,
+        options: PERCENT_BOUNDS,
     });
 
+    // B4 — el valor vivo puede llegar no finito (NaN/Infinity) si el dataView objeto fue escrito fuera
+    // del panel (bookmark/API/reporte corrupto): `extractSettings()` (visual.ts) lo sanea con
+    // `finiteAngle` (cae a 0°, horizontal, sin rotación) antes de que llegue a GaugeSettings.
     angle = new formattingSettings.NumUpDown({
         name: "angle",
         displayName: "Ángulo (grados)",
@@ -313,16 +360,21 @@ class TrendCardSettings extends FormattingSettingsCard {
         value: { displayName: "Automática al rango", value: "auto" }
     });
 
-    // Sólo tienen efecto con yScaleMode = "manual" (ver computeTrendYDomain en trend.ts).
+    // Sólo tienen efecto con yScaleMode = "manual" (ver computeTrendYDomain en trend.ts). 0.4.1.0: sin
+    // valor, el panel muestra el dominio automático efectivo (Real/Programado ± 10%, el mismo cálculo
+    // que el modo "auto") en vez de dejarlo en blanco — así "manual" arranca desde ese mismo valor en
+    // vez de 0.
     yMin = new formattingSettings.NumUpDown({
         name: "yMin",
         displayName: "Y Mínimo",
+        description: "Sólo con Escala Y = Mín-máx manual. Sin valor, se muestra el mínimo del dominio automático Real/Programado ± 10%.",
         value: undefined
     });
 
     yMax = new formattingSettings.NumUpDown({
         name: "yMax",
         displayName: "Y Máximo",
+        description: "Sólo con Escala Y = Mín-máx manual. Sin valor, se muestra el máximo del dominio automático Real/Programado ± 10%.",
         value: undefined
     });
 
@@ -351,20 +403,24 @@ class TrendCardSettings extends FormattingSettingsCard {
         value: 1.5
     });
 
+    // 0.4.1.0 — sin valor por omisión (antes 2.5, fijo): el tamaño EFECTIVO es proporcional al grosor
+    // de línea (ver computeEffectivePointSize en trend.ts) para que ajustar lineWidth escale también
+    // los puntos; con lineWidth 1.5 (su propio default) da exactamente 2.5, idéntico a 0.3.5.0/0.4.0.0.
     pointSize = new formattingSettings.NumUpDown({
         name: "pointSize",
         displayName: "Tamaño de punto",
-        value: 2.5
+        description: "Sin valor, es proporcional al grosor de línea (×1.67, igual que el default 0.3.5.0: 1.5 → 2.5).",
+        value: undefined
     });
 
     name: string = "trend";
     displayName: string = "Gráfico de tendencia";
     slices: Array<FormattingSettingsSlice> = [
         this.chartType,
-        this.posX,
-        this.posY,
-        this.width,
-        this.height,
+        this.posXPct,
+        this.posYPct,
+        this.widthPct,
+        this.heightPct,
         this.angle,
         this.yScaleMode,
         this.yMin,

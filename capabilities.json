@@ -334,30 +334,30 @@
                         ]
                     }
                 },
-                "posX": {
-                    "displayName": "Posición X",
-                    "description": "Sin valor, se usa la posición horizontal calculada automáticamente",
+                "posXPct": {
+                    "displayName": "Posición X (%)",
+                    "description": "0-100% del ancho del viewport desde el borde izquierdo; ubica el pivote inferior-izquierdo de la caja (el punto fijo al rotar/escalar). Sin valor, se usa el % calculado automáticamente.",
                     "type": {
                         "numeric": true
                     }
                 },
-                "posY": {
-                    "displayName": "Posición Y",
-                    "description": "Sin valor, se usa la posición vertical calculada automáticamente",
+                "posYPct": {
+                    "displayName": "Posición Y (%)",
+                    "description": "0-100% del alto del viewport desde el borde superior; ubica el pivote inferior-izquierdo de la caja (el punto fijo al rotar/escalar). Sin valor, se usa el % calculado automáticamente.",
                     "type": {
                         "numeric": true
                     }
                 },
-                "width": {
-                    "displayName": "Ancho",
-                    "description": "Sin valor, se usa el ancho calculado automáticamente",
+                "widthPct": {
+                    "displayName": "Ancho (%)",
+                    "description": "0-100% del ancho del viewport. Sin valor, se usa el % calculado automáticamente.",
                     "type": {
                         "numeric": true
                     }
                 },
-                "height": {
-                    "displayName": "Alto",
-                    "description": "Sin valor, se usa el alto calculado automáticamente",
+                "heightPct": {
+                    "displayName": "Alto (%)",
+                    "description": "0-100% del alto del viewport. Sin valor, se usa el % calculado automáticamente.",
                     "type": {
                         "numeric": true
                     }
@@ -380,14 +380,14 @@
                 },
                 "yMin": {
                     "displayName": "Y Mínimo",
-                    "description": "Sólo con Escala Y = Mín-máx manual",
+                    "description": "Sólo con Escala Y = Mín-máx manual. Sin valor, se muestra el mínimo del dominio automático Real/Programado ± 10%.",
                     "type": {
                         "numeric": true
                     }
                 },
                 "yMax": {
                     "displayName": "Y Máximo",
-                    "description": "Sólo con Escala Y = Mín-máx manual",
+                    "description": "Sólo con Escala Y = Mín-máx manual. Sin valor, se muestra el máximo del dominio automático Real/Programado ± 10%.",
                     "type": {
                         "numeric": true
                     }
@@ -424,6 +424,35 @@
                 },
                 "pointSize": {
                     "displayName": "Tamaño de punto",
+                    "description": "Sin valor, es proporcional al grosor de línea (×1.67, igual que el default 0.3.5.0: 1.5 → 2.5).",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "posX": {
+                    "displayName": "Posición X (px, heredado — no se usa desde 0.4.1.0)",
+                    "description": "OBSOLETO. Hasta 0.4.0.0 este valor eran píxeles relativos al centro del medidor; el panel de formato ya NO lo muestra ni lo lee (usar «Posición X (%)», posXPct). Se mantiene declarado únicamente para que Power BI conserve, sin reinterpretar ni borrar, el valor de reportes guardados con 0.4.0.0 (inventario/migración manual).",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "posY": {
+                    "displayName": "Posición Y (px, heredado — no se usa desde 0.4.1.0)",
+                    "description": "OBSOLETO. Hasta 0.4.0.0 este valor eran píxeles relativos al centro del medidor; el panel de formato ya NO lo muestra ni lo lee (usar «Posición Y (%)», posYPct). Se mantiene declarado únicamente para que Power BI conserve, sin reinterpretar ni borrar, el valor de reportes guardados con 0.4.0.0 (inventario/migración manual).",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "width": {
+                    "displayName": "Ancho (px, heredado — no se usa desde 0.4.1.0)",
+                    "description": "OBSOLETO. Hasta 0.4.0.0 este valor eran píxeles relativos al centro del medidor; el panel de formato ya NO lo muestra ni lo lee (usar «Ancho (%)», widthPct). Se mantiene declarado únicamente para que Power BI conserve, sin reinterpretar ni borrar, el valor de reportes guardados con 0.4.0.0 (inventario/migración manual).",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "height": {
+                    "displayName": "Alto (px, heredado — no se usa desde 0.4.1.0)",
+                    "description": "OBSOLETO. Hasta 0.4.0.0 este valor eran píxeles relativos al centro del medidor; el panel de formato ya NO lo muestra ni lo lee (usar «Alto (%)», heightPct). Se mantiene declarado únicamente para que Power BI conserve, sin reinterpretar ni borrar, el valor de reportes guardados con 0.4.0.0 (inventario/migración manual).",
                     "type": {
                         "numeric": true
                     }

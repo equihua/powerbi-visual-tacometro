@@ -3,6 +3,112 @@
 Formato basado en *Keep a Changelog*. La versión del visual la define `pbiviz.json`
 (`visual.version`, 4 partes exigidas por `powerbi-visuals-tools` 7.2.1).
 
+## [0.4.1.0] — 2026-11-24 (compatibilidad px/% legado de «Gráfico de tendencia» + guards angle/rango, pre-1.0, sin validación en Power BI)
+
+### Versión
+
+- `pbiviz.json`, `package.json` y la raíz + el paquete `""` de `package-lock.json` (4 apariciones en
+  total): `0.4.0.0` → **`0.4.1.0`** (`tests/version.test.ts`). Cuarto dígito: corrección de
+  compatibilidad sobre la tarjeta «Gráfico de tendencia» publicada en 0.4.0.0 (ningún rol ni objeto se
+  quita; las 4 propiedades `posX`/`posY`/`width`/`height` de 0.4.0.0 quedan declaradas, obsoletas e
+  ignoradas — no hay cambio visual con los defaults).
+
+### Corregido (Reviewer B2 — colisión de nombre px/% entre 0.4.0.0 y el WIP de esta tarjeta)
+
+- Las 4 propiedades de posición/tamaño de la tarjeta «Gráfico de tendencia» que introdujo **0.4.0.0**
+  (`posX`/`posY`/`width`/`height`, **píxeles** relativos al centro del medidor) se **renombran** a
+  `posXPct`/`posYPct`/`widthPct`/`heightPct` (**% 0-100 del viewport completo de la tarjeta**, no del
+  medidor). Motivo: reutilizar el mismo nombre de propiedad con otra unidad habría hecho que Power BI
+  reinterprete en silencio, en cualquier reporte guardado con 0.4.0.0, un valor en px como si fuera un %
+  (p. ej. 60 px pasaría a leerse como 60 %) — sin aviso ni fallo visible, sólo un medidor mal
+  posicionado.
+- Las 4 propiedades legadas (`posX`/`posY`/`width`/`height`) **siguen declaradas tal cual** en
+  `capabilities.json` (mismo tipo `numeric`), movidas al final del objeto `trend` y con
+  `displayName`/`description` marcados «heredado»/«obsoleto, no se usa desde 0.4.1.0». **Sin slice** en
+  `settings.ts`: no aparecen en el panel de formato y nada en el código las lee. Power BI las sigue
+  reconociendo (no las descarta al re-guardar el reporte), pero quedan huérfanas — sólo para inventario
+  o **migración manual** futura (quien necesite recuperar un valor fijado en 0.4.0.0 debe volver a
+  ajustarlo a mano con las nuevas propiedades `*Pct`; no hay migración automática).
+- Guards nuevos en `extractSettings()` (`visual.ts`): `finitePercent` (un valor `*Pct` no finito o fuera
+  de `[0,100]` cae a `undefined`, es decir al cálculo automático de ese eje) y `finiteAngle` (un `angle`
+  no finito cae a `0°` en vez de propagar `NaN` a la matriz de transformación SVG). Ambos cubren el caso
+  de un dataView escrito fuera del panel (bookmark, API, reporte editado a mano).
+
+### Verificación
+
+- `npx tsc -p tsconfig.test.json` y `npx tsc -p tsconfig.json --noEmit`: exit 0. `npx eslint .`: exit 0.
+- `npx vitest run --coverage`: **≥ 436 pruebas**, 0 fallos. Cobertura Stmts 100 % · Branch ≥ 96.91 % ·
+  Funcs 100 % · Lines 100 % (sin regresión frente a 0.4.0.0; ninguna rama nueva queda sin cubrir).
+- Nueva prueba de regresión (`tests/trendCard.test.ts`, `computeTrendYDomain`): con la escala Y «auto»
+  (por omisión) el rango propio de Real ocupa **≥ 60 %** del alto del dominio resultante (10 % de margen
+  por lado → 1/1.2 ≈ 83.33 %), para detectar antes de publicar cualquier cambio futuro al margen que
+  reduzca la prominencia visual de Real por omisión.
+
+### Referencia — todas las propiedades de las tarjetas «Configuración del Medidor» (`gauge`) y «Gráfico de tendencia» (`trend`)
+
+#### Tarjeta `gauge` — «Configuración del Medidor»
+
+| Propiedad | Control | Unidad | Default | Relación / notas |
+|---|---|---|---|---|
+| `min` | NumUpDown | — | `0` | Mínimo de la escala angular; una medida enlazada en el rol «Mínimo» tiene prioridad sobre el panel. |
+| `max` | NumUpDown | — | `100` | Máximo de la escala; medida «Máximo» tiene prioridad. |
+| `target` | NumUpDown | — | sin valor | Marcador «Objetivo»; medida «Objetivo» tiene prioridad. |
+| `startAngle` | NumUpDown | grados | `-120` | Ángulo inicial del arco. Convención: `0` = 12 en punto, sentido horario. |
+| `endAngle` | NumUpDown | grados | `60` | Ángulo final del arco; junto con `startAngle` define el barrido que usan banda, marcadores y la caja de tendencia. |
+| `thickness` | NumUpDown | px | `20` | Grosor de la banda del arco; el anillo del semáforo usa `max(3, 0.3·thickness)`. |
+| `topMargin` | NumUpDown | px | `FOOTER_GAP` = `4` | Aire reservado arriba del vértice del arco, bajo la banda de título nativa. `0` = comportamiento 0.3.5.0 (arco pegado al borde superior). |
+| `arcScale` | NumUpDown | % | `100` | % del radio máximo seguro (`computeGaugeFrame`) que ocupa el arco. `100` no cambia nada; menor lo encoge sin introducir colisión nueva. |
+| `offsetY` | NumUpDown | px | `0` | Desplazamiento vertical del centro, aplicado **después** de `topMargin`/`arcScale`. A diferencia de esos dos, un valor agresivo sí puede solapar con el pie o el título. |
+
+#### Tarjeta `trend` — «Gráfico de tendencia»
+
+| Propiedad | Control | Unidad | Default | Relación / notas |
+|---|---|---|---|---|
+| `chartType` | ItemDropdown | — | `"lineDots"` (Línea con puntos) | Alternativas: `"line"` (sólo línea), `"bars"` (barras), `"area"` (área). |
+| `posXPct` | NumUpDown | % (0-100) | sin valor → **auto** | X del pivote inferior-izquierdo de la caja, medido desde el borde IZQUIERDO del viewport. Sin tocar, usa la caja automática (`computeInnerTrendBox`) convertida a %. **Reemplaza** al legado `posX` (px, 0.4.0.0; ver abajo). |
+| `posYPct` | NumUpDown | % (0-100) | sin valor → **auto** | Y del mismo pivote, medido desde el borde SUPERIOR. Reemplaza a `posY` (px, legado). |
+| `widthPct` | NumUpDown | % (0-100) | sin valor → **auto** | Ancho como % del ancho del viewport. Reemplaza a `width` (px, legado). |
+| `heightPct` | NumUpDown | % (0-100) | sin valor → **auto** | Alto como % del alto del viewport. Reemplaza a `height` (px, legado). |
+| `posX`/`posY`/`width`/`height` *(legado, 0.4.0.0)* | NumUpDown (sin slice en el panel) | px | — | **Obsoletos desde 0.4.1.0**: declarados en `capabilities.json` únicamente para que Power BI conserve el valor de un reporte guardado en 0.4.0.0 **sin reinterpretarlo ni borrarlo**; el panel ya no los muestra y ningún código los lee — quedan **ignorados**, no migrados automáticamente a `*Pct`. Migración manual: volver a fijar el valor equivalente con las propiedades `*Pct`. |
+| `angle` | NumUpDown | grados | `0` | Rota el grupo de la serie alrededor del pivote (esquina inferior-izquierda LOCAL de la caja, `trendTransform.ts`). Un ángulo **positivo gira en sentido visualmente ANTIHORARIO (CCW)** en pantalla (la fórmula compensa la inversión del eje Y de SVG). Guard: un valor no finito (NaN/±Infinity, sólo alcanzable fuera del panel) cae a `0` (matriz identidad, sin rotación). |
+| `yScaleMode` | ItemDropdown | — | `"auto"` | Alternativas: `"zero"` (desde cero, sin margen) y `"manual"` (usa `yMin`/`yMax`). |
+| `yMin` | NumUpDown | — | sin valor → **auto** | Sólo tiene efecto con `yScaleMode = "manual"`; incompleto o invertido (`yMin >= yMax`) cae a `"auto"`. Sin tocar, el panel muestra el mínimo EFECTIVO del dominio automático (Real+Programado −10 % de margen), no en blanco (`applyEffectiveDisplayDefaults`). |
+| `yMax` | NumUpDown | — | sin valor → **auto** | Idem, máximo efectivo (+10 %). |
+| `showProgrammed` | ToggleSwitch | — | `true` | Oculta/muestra la línea de Programado; el dominio Y «auto» sigue combinando Real+Programado aunque esté oculta (no reescala Real al alternar). |
+| `useSemaphoreColors` | ToggleSwitch | — | `true` | `true`: cada punto/segmento/barra usa el color de SU semáforo (`statusColor`). `false`: todos usan `fixedColor`. |
+| `fixedColor` | ColorPicker | — | `#4472C4` | Sólo tiene efecto con `useSemaphoreColors = false`; cede ante el `foreground` de alto contraste con la misma precedencia que el resto del medidor. |
+| `lineWidth` | NumUpDown | px | `1.5` | Grosor de la línea/contorno de barras. Relación: ver `pointSize`. |
+| `pointSize` | NumUpDown | px | sin valor → **auto** `= lineWidth × (2.5/1.5)` | Tamaño del punto; proporcional a `lineWidth` cuando no se fija (con el default de `lineWidth`, 1.5, da exactamente 2.5 — idéntico a 0.3.5.0/0.4.0.0). Ajustar `lineWidth` reescala también el punto si `pointSize` no se tocó. |
+
+**Mínimo de escala / comportamiento sin ajuste (`fits: false`, `trendFit.ts`):** cuando la caja de
+tendencia (ya rotada por `angle`) no libra los obstáculos (viewport, pie, corona del arco) ni siquiera
+reduciendo su escala, `fitTrendScale` la encoge hasta un **piso documentado de `TREND_MIN_SCALE = 0.3`
+(30 %)** — nunca más abajo, porque por debajo de ese piso el contenido (puntos/barras/línea) deja de ser
+legible — y reporta `fits: false` de forma explícita. El visual **nunca** recorta (`clip-path`) el
+contenido para disimular la colisión: con `fits: false` la caja queda en el piso del 30 % tal cual, visible
+aunque invada el obstáculo, para que quien formatea el reporte lo note y ajuste posición/ángulo/tamaño.
+
+**Pivote y transformación (`trendTransform.ts`):** `angle`/escala rotan y escalan la caja de tendencia
+pivotando siempre en la esquina **inferior-izquierda LOCAL** de la caja (punto `(0, height)` en
+coordenadas SVG de la propia caja) — el único punto que un ángulo o escala distintos de los valores por
+omisión **nunca mueven**. `posXPct`/`posYPct` fijan ESE mismo pivote (no el origen superior-izquierdo que
+usa `Box` internamente) precisamente para que rotar o reducir la caja no la desplace de la posición que el
+usuario configuró.
+
+**«Restablecer a predeterminado» / reinicio a auto:** limpiar el valor de cualquiera de las 7 propiedades
+«auto» (`posXPct`/`posYPct`/`widthPct`/`heightPct`/`yMin`/`yMax`/`pointSize`) desde el panel de formato de
+Power BI (`getRevertToDefaultDescriptor`) la deja sin valor en el dataView; `extractSettings()` vuelve a
+usar el cálculo automático de ese eje y el panel vuelve a mostrar, en su siguiente apertura, el valor
+EFECTIVO auto-calculado (`applyEffectiveDisplayDefaults`, nunca en blanco) — nunca un override real
+«fantasma» que sobreviva al reinicio.
+
+**Tooltip por punto (`tooltips.ts`, sin cambios en 0.4.1.0, documentado para esta tabla):** al pasar el
+mouse (o con foco de teclado) sobre un punto de la sparkline, `buildTrendPointTooltipItems` muestra
+**Periodo**, **Real** (del punto bajo el cursor, no del periodo actual del medidor), **Programado** (si
+esa serie trae valor en ese periodo) y **Semáforo** (si el punto lo tiene) — con el mismo formateador que
+la etiqueta central. Fuera de los puntos, el tooltip del medidor completo (valor/mín/máx/marcadores/
+semáforo del periodo actual) sigue aplicando sin cambios.
+
 ## [0.4.0.0] — 2026-11-24 (margen superior/arco/offset configurables + nueva tarjeta «Gráfico de tendencia», pre-1.0, sin validación en Power BI)
 
 ### Versión

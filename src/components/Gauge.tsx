@@ -12,9 +12,11 @@ import { comparisonColor, createAngleScale, createPerformanceColorScale, rangeBa
 import { resolveSemaphoreColor } from "./semaphore";
 import { GaugeData, GaugeSettings } from "./types";
 import { buildAriaLabel } from "../tooltips";
-import { applyTrendBoxOverrides, computeGaugeFrame, computeGaugeLayout, computeInnerTrendBox } from "./layout";
+import { computeGaugeFrame, computeGaugeLayout, computeInnerTrendBox, MARKER_OVERHANG } from "./layout";
 import { TrendChartType, TrendSparkline } from "./TrendSparkline";
 import { YScaleMode } from "./trend";
+import { fitTrendScale } from "./trendFit";
+import { resolveTrendBoxFromPercentOverrides } from "./trendBoxPercent";
 import { GaugeFooter } from "./GaugeFooter";
 
 /** Colores del pie (texto oscuro / gris secundario, como los títulos de Power BI). */
@@ -138,14 +140,45 @@ export default class Gauge extends React.Component<Props> {
     // computeGaugeFrame) para acotar el lado de la caja que el barrido del arco no alcanza.
     const autoTrendBox =
         trend && layout.footer ? computeInnerTrendBox(radius, settings.thickness, settings.startAngle, settings.endAngle, width, settings.showRanges) : null;
-    // 0.4.0.0: la tarjeta «Gráfico de tendencia» puede sobreescribir posición/tamaño eje por eje; sin
-    // tocarla (los 4 undefined) el resultado es idéntico a `autoTrendBox` (ver applyTrendBoxOverrides).
-    const trendBox = applyTrendBoxOverrides(autoTrendBox, {
-        x: settings.trendPosX,
-        y: settings.trendPosY,
-        width: settings.trendWidth,
-        height: settings.trendHeight,
-    });
+    // 0.4.1.0: la tarjeta «Gráfico de tendencia» puede sobreescribir posición/tamaño eje por eje, en %
+    // (0..100) del viewport completo (pivote inferior-izquierdo, ver trendBoxPercent.ts) — ya NO son px
+    // relativos al centro del medidor (0.4.0.0). Sin tocarla (los 4 undefined) el resultado sigue siendo
+    // idéntico a `autoTrendBox` (misma referencia, ver resolveTrendBoxFromPercentOverrides).
+    const trendBox = resolveTrendBoxFromPercentOverrides(
+        autoTrendBox,
+        {
+            posX: settings.trendPosX,
+            posY: settings.trendPosY,
+            width: settings.trendWidth,
+            height: settings.trendHeight,
+        },
+        { x: centerX, y: centerY },
+        { width, height: viewportHeight }
+    );
+
+    // 0.4.x — homotecia automática anticolisión (reducir escala sin mover X/Y ni cambiar el ángulo,
+    // ver trendFit.ts): la posición/tamaño de la caja (trendBox, sin tocar) y el ángulo (settings.trendAngle,
+    // sin tocar) siguen exactamente igual que antes; sólo se calcula la escala máxima segura (<= 1) frente
+    // al viewport, el pie y la corona del arco (banda + sobresaliente de marcadores). Con ángulo 0 la caja
+    // ya es segura por construcción (computeInnerTrendBox) y el resultado es 1 (sin cambio, regresión
+    // visual exacta). Si ni TREND_MIN_SCALE libra los 3 obstáculos, fitTrendScale lo reporta explícito
+    // (`fits: false`) y usa ese piso igualmente — no hay recorte (clip-path) en ningún caso.
+    const trendBoxOrigin = trendBox ? { x: round2(centerX + trendBox.x), y: round2(centerY + trendBox.y) } : null;
+    const trendScale =
+        trend && trendBox && trendBoxOrigin
+            ? fitTrendScale(trendBox.width, trendBox.height, trendBoxOrigin, settings.trendAngle ?? 0, 1, {
+                  viewportWidth: width,
+                  viewportHeight,
+                  footerTop: layout.footer ? layout.footer.y : undefined,
+                  arc: {
+                      center: { x: centerX, y: centerY },
+                      innerRadius: bandRadii(radius, settings.thickness).innerRadius,
+                      outerRadius: bandRadii(radius, settings.thickness).outerRadius + MARKER_OVERHANG,
+                      startAngle: settings.startAngle,
+                      endAngle: settings.endAngle,
+                  },
+              }).scale
+            : 1;
 
     return (
       // A3 Keyboard Navigation: el SVG recibe el foco (supportsKeyboardFocus) y se anuncia como imagen.
@@ -257,6 +290,7 @@ export default class Gauge extends React.Component<Props> {
               format={format}
               chartType={settings.trendChartType as TrendChartType | undefined}
               angle={settings.trendAngle}
+              scale={trendScale}
               yScaleMode={settings.trendYScaleMode as YScaleMode | undefined}
               yMin={settings.trendYMin}
               yMax={settings.trendYMax}

@@ -10,6 +10,7 @@ import {
     TrendVertex,
     YScaleMode,
 } from './trend';
+import { trendTransformAttribute } from './trendTransform';
 import { isFiniteNumber } from './scales';
 import { TREND_CURRENT_POINT_RADIUS as CURRENT_POINT_RADIUS, TREND_PADDING as PADDING, TREND_POINT_RADIUS as POINT_RADIUS } from './layout';
 
@@ -35,8 +36,18 @@ export interface TrendSparklineProps {
     format: (value: number) => string;
     /** 0.4.0.0 — tipo de gráfico de Real; por omisión "lineDots" (comportamiento 0.3.5.0). */
     chartType?: TrendChartType;
-    /** 0.4.0.0 — rotación (grados) de toda la serie alrededor del centro de la caja; por omisión 0. */
+    /**
+     * 0.4.x — rotación (grados) de toda la serie; por omisión 0. Pivote FIJO en la esquina inferior
+     * izquierda de la caja (no el centro: ver `trendTransform.ts`); ángulo positivo = apariencia
+     * ANTIHORARIA en pantalla (p' = R(ángulo)·S(escala)·p, compensando la inversión de Y del SVG).
+     */
     angle?: number;
+    /**
+     * 0.4.x — homotecia (escala uniforme) sobre el mismo pivote que `angle`; por omisión 1 (sin
+     * cambio). Pensada para la reducción automática anticolisión (`fitTrendScale`, trendFit.ts):
+     * nunca mueve el pivote ni cambia el ángulo, sólo el tamaño.
+     */
+    scale?: number;
     /** 0.4.0.0 — modo de escala Y; por omisión "auto" (ver computeTrendYDomain en trend.ts). */
     yScaleMode?: YScaleMode;
     /** 0.4.0.0 — límites manuales; sólo tienen efecto con yScaleMode === "manual". */
@@ -102,6 +113,7 @@ export const TrendSparkline: React.FC<TrendSparklineProps> = ({
     format,
     chartType = "lineDots",
     angle = 0,
+    scale = 1,
     yScaleMode = "auto",
     yMin,
     yMax,
@@ -281,7 +293,7 @@ export const TrendSparkline: React.FC<TrendSparklineProps> = ({
     }
 
     return (
-        <g className="trend-sparkline" transform={angle ? `rotate(${angle}, ${width / 2}, ${height / 2})` : undefined}>
+        <g className="trend-sparkline" transform={trendTransformAttribute(height, angle, scale)}>
             {programmedLine}
             {realContent}
         </g>

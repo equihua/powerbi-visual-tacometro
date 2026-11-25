@@ -29,6 +29,10 @@ export default defineConfig({
                 "src/components/trend.ts",
                 "src/components/TrendSparkline.tsx",
                 "src/components/GaugeFooter.tsx",
+                // 0.4.x: geometría pura del transform de la serie (rotación/escala, pivote fijo) y de la
+                // homotecia automática anticolisión (reducir escala sin mover X/Y ni cambiar el ángulo).
+                "src/components/trendTransform.ts",
+                "src/components/trendFit.ts",
                 "src/highContrast.ts",
                 "src/tooltips.ts",
                 "src/visual.ts",

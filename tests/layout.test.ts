@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-    computeGaugeFrame, computeGaugeLayout, computeInnerTrendBox, FOOTER_GAP, FOOTER_HEIGHT, MARKER_OVERHANG, TREND_MIN_HEIGHT,
+    computeGaugeFrame, computeGaugeGeometry, computeGaugeLayout, computeInnerTrendBox, FOOTER_GAP, FOOTER_HEIGHT, MARKER_OVERHANG, TREND_MIN_HEIGHT,
     TREND_CURRENT_POINT_RADIUS, TREND_EDGE_CLEARANCE, TREND_PADDING,
 } from "../src/components/layout";
 import { bandRadii, semaphoreIndicatorRing } from "../src/components/arcUtils";
@@ -461,5 +461,58 @@ describe("computeGaugeFrame — 0.4.0.0: topMargin/arcScale/offsetY (Requerimien
         const withoutFooterShifted = computeGaugeFrame(300, 260, T, -120, 60, false, 0, 0, 100, -10);
         expect(withoutFooterShifted.cy).toBeCloseTo(withoutFooter.cy - 10, 9);
         expect(withoutFooterShifted.radius).toBe(withoutFooter.radius);
+    });
+});
+
+/**
+ * 0.4.1.0 — `computeGaugeGeometry`: refactor puro que empaqueta la secuencia que Gauge.tsx ya
+ * ejecutaba en línea (computeGaugeLayout → computeGaugeFrame → computeInnerTrendBox), para que
+ * visual.ts pueda reproducir EXACTAMENTE la misma geometría (sin duplicar la fórmula) al calcular los
+ * valores efectivos que se muestran en el panel de formato (posX/posY/width/height en %, ver
+ * trendBoxPercent.ts). Estas pruebas son el seguro de regresión del refactor: deben dar un resultado
+ * IDÉNTICO bit a bit a componer las 3 funciones a mano, para cualquier combinación de entradas.
+ */
+describe("computeGaugeGeometry — 0.4.1.0: empaqueta computeGaugeLayout + computeGaugeFrame + computeInnerTrendBox", () => {
+    const T = 20;
+
+    function manual(
+        width: number, viewportHeight: number, startAngle: number, endAngle: number,
+        hasFooter: boolean, centerTextHeight: number, showRanges: boolean
+    ) {
+        const layout = computeGaugeLayout(width, viewportHeight, { footer: hasFooter });
+        const frame = computeGaugeFrame(width, layout.gaugeHeight, T, startAngle, endAngle, layout.footer !== null, centerTextHeight, FOOTER_GAP, 100, 0);
+        const autoTrendBox = layout.footer
+            ? computeInnerTrendBox(frame.radius, T, startAngle, endAngle, width, showRanges)
+            : null;
+        return { layout, frame, autoTrendBox };
+    }
+
+    for (const [width, viewportHeight, startAngle, endAngle, hasFooter, centerTextHeight, showRanges] of [
+        [300, 300, -120, 60, true, 50, true],
+        [430, 338, -120, 60, true, 50, true],
+        [430, 268, -90, 90, true, 0, false],
+        [300, 300, -120, 60, false, 0, true],
+        [600, 260, 90, 270, true, 20, true],
+    ] as Array<[number, number, number, number, boolean, number, boolean]>) {
+        it(`${width}x${viewportHeight} ${startAngle}°..${endAngle}° footer=${hasFooter} showRanges=${showRanges}: idéntico a componer las 3 funciones a mano`, () => {
+            const expected = manual(width, viewportHeight, startAngle, endAngle, hasFooter, centerTextHeight, showRanges);
+            const actual = computeGaugeGeometry({
+                width, viewportHeight, thickness: T, startAngle, endAngle,
+                topMargin: FOOTER_GAP, arcScale: 100, offsetY: 0,
+                centerTextHeight, showRanges, hasFooter,
+            });
+            expect(actual.layout).toEqual(expected.layout);
+            expect(actual.frame).toEqual(expected.frame);
+            expect(actual.autoTrendBox).toEqual(expected.autoTrendBox);
+        });
+    }
+
+    it("hasFooter=false nunca calcula autoTrendBox (null), igual que el camino manual (layout.footer null)", () => {
+        const geometry = computeGaugeGeometry({
+            width: 300, viewportHeight: 300, thickness: T, startAngle: -120, endAngle: 60,
+            topMargin: FOOTER_GAP, arcScale: 100, offsetY: 0, centerTextHeight: 0, showRanges: true, hasFooter: false,
+        });
+        expect(geometry.layout.footer).toBeNull();
+        expect(geometry.autoTrendBox).toBeNull();
     });
 });

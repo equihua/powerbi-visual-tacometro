@@ -70,12 +70,21 @@ export interface GaugeSettings {
   // defaults de props). Ver settings.ts (TrendCardSettings) y layout.ts (applyTrendBoxOverrides).
   /** Tipo de gráfico de Real; sin valor usa el default de TrendSparkline ("lineDots"). */
   trendChartType?: string;
-  /** Posición/tamaño: sin valor se usa el cálculo automático de ESE eje (computeInnerTrendBox). */
+  /**
+   * 0.4.1.0 — posición/tamaño de la caja en % (0..100) del viewport completo (pivote inferior-
+   * izquierdo; ver trendBoxPercent.ts). Sin valor se usa el cálculo automático de ESE eje
+   * (computeInnerTrendBox). Antes de 0.4.1.0 eran px relativos al centro del medidor (propiedades
+   * `posX`/`posY`/`width`/`height`, capabilities.json); por eso 0.4.1.0 lee de las propiedades nuevas
+   * `posXPct`/`posYPct`/`widthPct`/`heightPct` (settings.ts/visual.ts) — nunca de las legadas, que
+   * capabilities.json sigue declarando (marcadas obsoletas) sólo para no perder su valor en reportes
+   * guardados con 0.4.0.0 (ver REVISIÓN B2 en settings.ts). También saneados a [0,100]/finito en
+   * `extractSettings()` (finitePercent) antes de llegar aquí.
+   */
   trendPosX?: number;
   trendPosY?: number;
   trendWidth?: number;
   trendHeight?: number;
-  /** Rotación (grados) de la serie; sin valor, 0 (horizontal). */
+  /** Rotación (grados) de la serie; sin valor, 0 (horizontal). Siempre finita (saneada en extractSettings, finiteAngle). */
   trendAngle?: number;
   /** Modo de escala Y; sin valor usa el default de TrendSparkline ("auto"). */
   trendYScaleMode?: string;

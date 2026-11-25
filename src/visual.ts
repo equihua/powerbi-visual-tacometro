@@ -18,11 +18,119 @@ import ISelectionId = powerbi.visuals.ISelectionId;
 import { VisualFormattingSettingsModel } from "./settings";
 import Gauge from "./components/Gauge";
 import { GaugeSettings, GaugeData, DataFormat } from "./components/types";
-import { findCurrentPosition, lastIndexWithReal, orderPeriodRows, periodSortKey, TrendPoint } from "./components/trend";
+import {
+  computeEffectivePointSize, computeTrendYDomain, findCurrentPosition, lastIndexWithReal, orderPeriodRows, periodSortKey, TrendPoint,
+} from "./components/trend";
 import { isFiniteNumber, resolveRange, resolveThresholds } from "./components/scales";
 import { formatGaugeValue } from "./components/CenterText";
 import { applyHighContrast } from "./highContrast";
 import { buildTrendPointTooltipItems, TooltipItem } from "./tooltips";
+import { computeGaugeGeometry } from "./components/layout";
+import { boxToPercent, PercentBox } from "./components/trendBoxPercent";
+
+/** Redondeo a centésimas para los valores efectivos que se muestran en el panel de formato. */
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+/**
+ * B4 — `posXPct`/`posYPct`/`widthPct`/`heightPct` (tarjeta «Gráfico de tendencia») declaran 0-100 en
+ * capabilities.json/settings.ts (`NumUpDownFormat.options`), pero ese límite sólo lo hace cumplir la UI
+ * del panel de formato: un valor fuera de [0,100] o no finito (NaN/Infinity) puede llegar igual al
+ * dataView si se escribió fuera del panel (bookmark, API, reporte editado a mano/corrupto —
+ * `setPropertiesValues` en FormattingSettingsComponents.js copia el valor crudo sin validar). Fuera de
+ * ese rango (o no finito) se trata igual que "sin valor": undefined, cae al cálculo automático de ESE
+ * eje — nunca se deja pasar un % inválido a `resolveTrendBoxFromPercentOverrides`/`percentToBox`.
+ */
+function finitePercent(value: number | undefined): number | undefined {
+  return isFiniteNumber(value) && value >= 0 && value <= 100 ? value : undefined;
+}
+
+/**
+ * B4 — `angle` (tarjeta «Gráfico de tendencia») no tiene límites 0-100 (es una rotación en grados, sin
+ * tope), pero sí debe ser siempre un número finito: un NaN/Infinity llegado por la misma vía que
+ * `finitePercent` documenta (fuera del panel) rompería `trendTransformCoefficients`
+ * (Math.cos/Math.sin de un ángulo no finito es NaN, propagándose a toda la matriz del SVG). Fuera de
+ * ese caso cae a 0° (horizontal, sin rotación — la matriz identidad, ver trendTransformAttribute).
+ */
+function finiteAngle(value: number | undefined): number {
+  return isFiniteNumber(value) ? value : 0;
+}
+
+/**
+ * 0.4.1.0 — insumos (calculados en el último `render()`) para mostrar, en `getFormattingModel()`, el
+ * valor EFECTIVO (nunca en blanco) de las propiedades "auto" de la tarjeta «Gráfico de tendencia»
+ * (posX/posY/width/height en %, yMin/yMax, pointSize) cuando el panel no las ha tocado. Ver
+ * `applyEffectiveDisplayDefaults`.
+ */
+interface TrendDisplayDefaults {
+  /** Valores Real + Programado de toda la serie mensual (o [] sin serie); para el dominio Y automático. */
+  trendValues: number[];
+  /** Caja automática (computeInnerTrendBox) del ÚLTIMO render, en % del viewport; null sin caja que mostrar. */
+  autoBoxPercent: PercentBox | null;
+}
+
+/** uid (objectName-propertyName, ver FormattingSettingsService) de las 7 propiedades "auto" de la tarjeta «Gráfico de tendencia». */
+const TREND_AUTO_SLICE_UIDS = [
+  "trend-posXPct", "trend-posYPct", "trend-widthPct", "trend-heightPct", "trend-yMin", "trend-yMax", "trend-pointSize",
+] as const;
+type TrendAutoSliceUid = typeof TREND_AUTO_SLICE_UIDS[number];
+
+/**
+ * 0.4.1.0 — rellena, SOLO en el `FormattingModel` ya construido por `buildFormattingModel` (nunca en
+ * `this.formattingSettings`: así no se escribe ningún override real en el documento, ni se altera
+ * `extractSettings()` del siguiente render — `getRevertToDefaultDescriptor` tampoco depende de este
+ * valor, ver FormattingSettingsService.js), el valor EFECTIVO de las 7 propiedades "auto" de la
+ * tarjeta «Gráfico de tendencia» cuando el panel las deja sin tocar (slice NumUpDown sin
+ * `control.properties.value`):
+ *  - posXPct/posYPct/widthPct/heightPct: la caja automática del ÚLTIMO render convertida a %
+ *    (`defaults.autoBoxPercent`, boxToPercent/computeDisplayDefaults). Sin caja que mostrar (null: sin
+ *    serie, sin pie o no cabe) las 4 quedan en blanco — no hay nada razonable que ofrecer.
+ *  - yMin/yMax: dominio AUTOMÁTICO (computeTrendYDomain en modo "auto" sobre Real+Programado completos,
+ *    el mismo criterio documentado en el `description` de esas 2 propiedades en settings.ts),
+ *    INDEPENDIENTE de la «Escala Y» (yScaleMode) seleccionada en el panel.
+ *  - pointSize: proporcional al grosor de línea configurado (computeEffectivePointSize), igual fallback
+ *    que ya usa `extractSettings()` para el valor REAL del medidor.
+ */
+function applyEffectiveDisplayDefaults(
+  model: powerbi.visuals.FormattingModel,
+  defaults: TrendDisplayDefaults | null,
+  lineWidth: number | undefined
+): void {
+  const box = defaults?.autoBoxPercent ?? null;
+  const [yMin, yMax] = computeTrendYDomain(defaults?.trendValues ?? [], "auto");
+  const effective: Record<TrendAutoSliceUid, number | undefined> = {
+    "trend-posXPct": box ? round2(box.posX) : undefined,
+    "trend-posYPct": box ? round2(box.posY) : undefined,
+    "trend-widthPct": box ? round2(box.width) : undefined,
+    "trend-heightPct": box ? round2(box.height) : undefined,
+    "trend-yMin": round2(yMin),
+    "trend-yMax": round2(yMax),
+    "trend-pointSize": isFiniteNumber(lineWidth) ? computeEffectivePointSize(lineWidth) : undefined,
+  };
+  const trendCard = model.cards.find(
+    (card): card is powerbi.visuals.FormattingCard => "uid" in card && card.uid === "trend-card"
+  );
+  trendCard?.groups?.forEach((group) => {
+    // Defensivo: TrendCardSettings es un SimpleCard con slices, buildFormattingModel SIEMPRE le da
+    // `groups: [{ slices: [...] }]` (ver FormattingSettingsService.js); un FormattingGroupPlaceholder
+    // (sin `slices`) es estructuralmente inalcanzable para esta tarjeta.
+    /* v8 ignore next 3 */
+    if (!("slices" in group)) {
+      return;
+    }
+    group.slices?.forEach((slice) => {
+      if (!("control" in slice) || slice.control.type !== "NumUpDown") {
+        return;
+      }
+      const uid = slice.uid as TrendAutoSliceUid;
+      const value = effective[uid];
+      if (value !== undefined && slice.control.properties.value === undefined) {
+        slice.control.properties.value = value;
+      }
+    });
+  });
+}
 
 export class Visual implements IVisual {
   private target: HTMLElement;
@@ -36,6 +144,8 @@ export class Visual implements IVisual {
   private tooltipExtras: TooltipItem[] = [];
   /** Fila del DataView que muestra el medidor (0 sin periodo; -1 si el periodo actual no existe). */
   private currentRow = 0;
+  /** 0.4.1.0: insumos del último render() para mostrar defaults efectivos en getFormattingModel(). */
+  private displayDefaults: TrendDisplayDefaults | null = null;
 
   constructor(options: VisualConstructorOptions) {
     this.formattingSettingsService = new FormattingSettingsService();
@@ -76,6 +186,7 @@ export class Visual implements IVisual {
     const gaugeData: GaugeData = this.extractGaugeData(dataView);
     this.currentData = gaugeData.hasValidData ? gaugeData : null;
     this.tooltipExtras = this.extractTooltipExtras(dataView, this.currentRow);
+    this.displayDefaults = this.computeDisplayDefaults(settings, gaugeData, viewport);
 
     this.reactRoot.render(
       React.createElement(Gauge, {
@@ -85,6 +196,33 @@ export class Visual implements IVisual {
         onRendered,
       })
     );
+  }
+
+  /**
+   * 0.4.1.0 — reproduce, con `computeGaugeGeometry` (misma fuente que Gauge.tsx, ver layout.ts), la
+   * caja automática de la sparkline del render actual, convertida a % del viewport (trendBoxPercent.ts),
+   * y la serie Real+Programado completa; insumos de `applyEffectiveDisplayDefaults` (getFormattingModel).
+   */
+  private computeDisplayDefaults(settings: GaugeSettings, gaugeData: GaugeData, viewport: IViewport): TrendDisplayDefaults {
+    const hasFooter = gaugeData.trend !== undefined && gaugeData.trend.length >= 2;
+    const geometry = computeGaugeGeometry({
+      width: viewport.width,
+      viewportHeight: viewport.height,
+      thickness: settings.thickness,
+      startAngle: settings.startAngle,
+      endAngle: settings.endAngle,
+      topMargin: settings.topMargin,
+      arcScale: settings.arcScale,
+      offsetY: settings.offsetY,
+      centerTextHeight: settings.showValueLabel ? settings.fontSize : 0,
+      showRanges: settings.showRanges,
+      hasFooter,
+    });
+    const autoBoxPercent = geometry.autoTrendBox
+      ? boxToPercent(geometry.autoTrendBox, { x: geometry.frame.cx, y: geometry.frame.cy }, { width: viewport.width, height: viewport.height })
+      : null;
+    const trendValues = (gaugeData.trend ?? []).flatMap((point) => [point.real, point.programmed]).filter(isFiniteNumber);
+    return { trendValues, autoBoxPercent };
   }
 
   /** A3 Allow Interactions: en hosts sin interacción (p. ej. mosaicos) no hay tooltip ni menú. */
@@ -207,11 +345,11 @@ export class Visual implements IVisual {
       programmedColor: this.formattingSettings.markersCard.programmedColor.value.value,
       previousMonthColor: this.formattingSettings.markersCard.previousMonthColor.value.value,
       trendChartType: this.formattingSettings.trendCard.chartType.value.value as string,
-      trendPosX: isFiniteNumber(this.formattingSettings.trendCard.posX.value) ? this.formattingSettings.trendCard.posX.value : undefined,
-      trendPosY: isFiniteNumber(this.formattingSettings.trendCard.posY.value) ? this.formattingSettings.trendCard.posY.value : undefined,
-      trendWidth: isFiniteNumber(this.formattingSettings.trendCard.width.value) ? this.formattingSettings.trendCard.width.value : undefined,
-      trendHeight: isFiniteNumber(this.formattingSettings.trendCard.height.value) ? this.formattingSettings.trendCard.height.value : undefined,
-      trendAngle: this.formattingSettings.trendCard.angle.value,
+      trendPosX: finitePercent(this.formattingSettings.trendCard.posXPct.value),
+      trendPosY: finitePercent(this.formattingSettings.trendCard.posYPct.value),
+      trendWidth: finitePercent(this.formattingSettings.trendCard.widthPct.value),
+      trendHeight: finitePercent(this.formattingSettings.trendCard.heightPct.value),
+      trendAngle: finiteAngle(this.formattingSettings.trendCard.angle.value),
       trendYScaleMode: this.formattingSettings.trendCard.yScaleMode.value.value as string,
       trendYMin: isFiniteNumber(this.formattingSettings.trendCard.yMin.value) ? this.formattingSettings.trendCard.yMin.value : undefined,
       trendYMax: isFiniteNumber(this.formattingSettings.trendCard.yMax.value) ? this.formattingSettings.trendCard.yMax.value : undefined,
@@ -219,7 +357,9 @@ export class Visual implements IVisual {
       trendUseSemaphoreColors: this.formattingSettings.trendCard.useSemaphoreColors.value,
       trendFixedColor: this.formattingSettings.trendCard.fixedColor.value.value,
       trendLineWidth: this.formattingSettings.trendCard.lineWidth.value,
-      trendPointSize: this.formattingSettings.trendCard.pointSize.value,
+      trendPointSize: isFiniteNumber(this.formattingSettings.trendCard.pointSize.value)
+        ? this.formattingSettings.trendCard.pointSize.value
+        : computeEffectivePointSize(this.formattingSettings.trendCard.lineWidth.value),
     };
   }
 
@@ -451,9 +591,11 @@ export class Visual implements IVisual {
   }
 
   public getFormattingModel(): powerbi.visuals.FormattingModel {
-    return this.formattingSettingsService.buildFormattingModel(
+    const model = this.formattingSettingsService.buildFormattingModel(
       this.formattingSettings
     );
+    applyEffectiveDisplayDefaults(model, this.displayDefaults, this.formattingSettings?.trendCard.lineWidth.value);
+    return model;
   }
 
   clear(onRendered?: () => void) {

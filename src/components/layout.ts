@@ -401,3 +401,54 @@ export function computeGaugeFrame(
         cy: topMargin + (available - contentBottom) + offsetY,
     };
 }
+
+/** Entradas de `computeGaugeGeometry`: exactamente lo que Gauge.tsx ya tenía disponible antes de calcular su geometría. */
+export interface GaugeGeometryInputs {
+    width: number;
+    viewportHeight: number;
+    thickness: number;
+    startAngle: number;
+    endAngle: number;
+    topMargin: number;
+    arcScale: number;
+    offsetY: number;
+    centerTextHeight: number;
+    showRanges: boolean;
+    /** Equivalente a `trend !== null` en Gauge.tsx: hay serie mensual (>= 2 puntos) que mostrar. */
+    hasFooter: boolean;
+}
+
+export interface GaugeGeometry {
+    layout: GaugeLayout;
+    frame: GaugeFrame;
+    /** Caja automática de la sparkline (computeInnerTrendBox); null sin pie o si no cabe. */
+    autoTrendBox: Box | null;
+}
+
+/**
+ * 0.4.1.0 — empaqueta la secuencia computeGaugeLayout → computeGaugeFrame → computeInnerTrendBox que
+ * Gauge.tsx ya ejecutaba en línea, SIN cambiar ninguna fórmula (refactor puro, ver prueba de
+ * equivalencia en layout.test.ts): única fuente de la geometría del medidor, para que visual.ts pueda
+ * calcular los valores efectivos que muestra el panel de formato (posX/posY/width/height en %, ver
+ * trendBoxPercent.ts) con EXACTAMENTE la misma geometría que Gauge.tsx usa para dibujar, sin duplicar
+ * la fórmula en dos archivos (riesgo de que diverjan).
+ */
+export function computeGaugeGeometry(inputs: GaugeGeometryInputs): GaugeGeometry {
+    const layout = computeGaugeLayout(inputs.width, inputs.viewportHeight, { footer: inputs.hasFooter });
+    const frame = computeGaugeFrame(
+        inputs.width,
+        layout.gaugeHeight,
+        inputs.thickness,
+        inputs.startAngle,
+        inputs.endAngle,
+        layout.footer !== null,
+        inputs.centerTextHeight,
+        inputs.topMargin,
+        inputs.arcScale,
+        inputs.offsetY
+    );
+    const autoTrendBox = layout.footer
+        ? computeInnerTrendBox(frame.radius, inputs.thickness, inputs.startAngle, inputs.endAngle, inputs.width, inputs.showRanges)
+        : null;
+    return { layout, frame, autoTrendBox };
+}

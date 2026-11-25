@@ -5,7 +5,7 @@ import powerbi from "powerbi-visuals-api";
 import * as capabilities from "../capabilities.json";
 import { VisualFormattingSettingsModel } from "../src/settings";
 import { TrendSparkline, TrendSparklineProps, TrendChartType } from "../src/components/TrendSparkline";
-import { TrendPoint, YScaleMode, computeTrendYDomain } from "../src/components/trend";
+import { TrendPoint, YScaleMode, computeTrendYDomain, computeEffectivePointSize } from "../src/components/trend";
 import { applyTrendBoxOverrides, Box } from "../src/components/layout";
 import { GaugeData, GaugeSettings } from "../src/components/types";
 
@@ -38,10 +38,10 @@ describe("TrendCardSettings — defaults de la tarjeta «Gráfico de tendencia»
     });
 
     it("posición/tamaño sin valor por omisión (se usa el cálculo automático)", () => {
-        expect(trendCard.posX.value).toBeUndefined();
-        expect(trendCard.posY.value).toBeUndefined();
-        expect(trendCard.width.value).toBeUndefined();
-        expect(trendCard.height.value).toBeUndefined();
+        expect(trendCard.posXPct.value).toBeUndefined();
+        expect(trendCard.posYPct.value).toBeUndefined();
+        expect(trendCard.widthPct.value).toBeUndefined();
+        expect(trendCard.heightPct.value).toBeUndefined();
     });
 
     it("ángulo 0° por omisión (horizontal)", () => {
@@ -59,17 +59,33 @@ describe("TrendCardSettings — defaults de la tarjeta «Gráfico de tendencia»
         expect(trendCard.useSemaphoreColors.value).toBe(true);
     });
 
-    it("grosor de línea y tamaño de punto con los valores de 0.3.5.0 (1.5 y 2.5)", () => {
+    it("grosor de línea con el valor de 0.3.5.0 (1.5); tamaño de punto sin valor por omisión (0.4.1.0: ahora es «auto», proporcional al grosor de línea — ver computeEffectivePointSize)", () => {
         expect(trendCard.lineWidth.value).toBe(1.5);
-        expect(trendCard.pointSize.value).toBe(2.5);
+        expect(trendCard.pointSize.value).toBeUndefined();
     });
 
-    it("declara las 14 propiedades esperadas, en la tarjeta «trend»", () => {
+    it("declara las 14 propiedades esperadas, en la tarjeta «trend» (0.4.1.0: posXPct/posYPct/widthPct/heightPct, no posX/posY/width/height)", () => {
         expect(trendCard.name).toBe("trend");
         expect(trendCard.slices.map((slice) => (slice as { name: string }).name)).toEqual([
-            "chartType", "posX", "posY", "width", "height", "angle", "yScaleMode", "yMin", "yMax",
+            "chartType", "posXPct", "posYPct", "widthPct", "heightPct", "angle", "yScaleMode", "yMin", "yMax",
             "showProgrammed", "useSemaphoreColors", "fixedColor", "lineWidth", "pointSize",
         ]);
+    });
+
+    it("0.4.1.0 — posXPct/posYPct/widthPct/heightPct declaran límites 0..100 y el sufijo % en el panel (NumUpDownFormat.options)", () => {
+        for (const slice of [trendCard.posXPct, trendCard.posYPct, trendCard.widthPct, trendCard.heightPct]) {
+            expect(slice.options?.unitSymbol).toBe("%");
+            expect(slice.options?.minValue?.value).toBe(0);
+            expect(slice.options?.maxValue?.value).toBe(100);
+        }
+    });
+
+    it("revisión B2 — ninguna propiedad visible del panel se llama posX/posY/width/height (los nombres legados de 0.4.0.0, px): evita que la lectura de un dataView guardado con 0.4.0.0 se reinterprete silenciosamente como %", () => {
+        const names = trendCard.slices.map((slice) => (slice as { name: string }).name);
+        expect(names).not.toContain("posX");
+        expect(names).not.toContain("posY");
+        expect(names).not.toContain("width");
+        expect(names).not.toContain("height");
     });
 });
 
@@ -79,11 +95,12 @@ describe("TrendCardSettings — defaults de la tarjeta «Gráfico de tendencia»
 describe("capabilities.json — objeto «trend»", () => {
     const trendObject = (capabilities as any).objects.trend;
 
-    it("existe con displayName «Gráfico de tendencia» y las 14 propiedades de la tarjeta", () => {
+    it("existe con displayName «Gráfico de tendencia» y las 14 propiedades activas + las 4 legadas (0.4.0.0, px, deprecadas) al final", () => {
         expect(trendObject.displayName).toBe("Gráfico de tendencia");
         expect(Object.keys(trendObject.properties)).toEqual([
-            "chartType", "posX", "posY", "width", "height", "angle", "yScaleMode", "yMin", "yMax",
+            "chartType", "posXPct", "posYPct", "widthPct", "heightPct", "angle", "yScaleMode", "yMin", "yMax",
             "showProgrammed", "useSemaphoreColors", "fixedColor", "lineWidth", "pointSize",
+            "posX", "posY", "width", "height",
         ]);
     });
 
@@ -100,6 +117,47 @@ describe("capabilities.json — objeto «trend»", () => {
         expect(trendObject.properties.fixedColor.type).toEqual({ fill: { solid: { color: true } } });
         expect(trendObject.properties.showProgrammed.type).toEqual({ bool: true });
         expect(trendObject.properties.useSemaphoreColors.type).toEqual({ bool: true });
+    });
+
+    it("0.4.1.0 — posXPct/posYPct/widthPct/heightPct declaran explícitamente que son % (0-100) del viewport, con el pivote inferior-izquierdo documentado en posXPct/posYPct", () => {
+        for (const name of ["posXPct", "posYPct", "widthPct", "heightPct"]) {
+            const property = trendObject.properties[name];
+            expect(property.displayName, name).toMatch(/%/);
+            expect(property.description, name).toMatch(/%/);
+            expect(property.description, name).toMatch(/viewport/i);
+        }
+        expect(trendObject.properties.posXPct.description).toMatch(/pivote|inferior.izquierd/i);
+        expect(trendObject.properties.posYPct.description).toMatch(/pivote|inferior.izquierd/i);
+    });
+
+    it("0.4.1.0 — yMin/yMax documentan el dominio automático efectivo (Real/Programado ±10%) que se muestra cuando no se fijan", () => {
+        expect(trendObject.properties.yMin.description).toMatch(/autom/i);
+        expect(trendObject.properties.yMax.description).toMatch(/autom/i);
+    });
+
+    // -----------------------------------------------------------------------------------------------
+    // Revisión B2 — compatibilidad con reportes guardados en 0.4.0.0 (posX/posY/width/height eran PX
+    // relativos al centro del medidor): deben seguir declaradas (mismo nombre exacto, numéricas, para
+    // que Power BI las conserve al volver a guardar el reporte) pero marcadas obsoletas/heredadas, y
+    // SIN ningún slice vivo en settings.ts que las lea — ver más abajo, sección 3.
+    // -----------------------------------------------------------------------------------------------
+    it("revisión B2 — posX/posY/width/height (0.4.0.0, px) siguen declaradas tal cual, marcadas obsoletas/heredadas, numéricas (para que Power BI conserve el valor guardado sin reinterpretarlo ni borrarlo)", () => {
+        for (const name of ["posX", "posY", "width", "height"]) {
+            const property = trendObject.properties[name];
+            expect(property, name).toBeDefined();
+            expect(property.type, name).toEqual({ numeric: true });
+            expect(property.displayName, name).toMatch(/heredad|obsolet/i);
+            expect(property.description, name).toMatch(/obsolet/i);
+            expect(property.description, name).toMatch(/0\.4\.0\.0/);
+        }
+    });
+
+    it("revisión B2 — las 4 propiedades legadas (posX/posY/width/height) son DISTINTAS de las 4 nuevas (posXPct/posYPct/widthPct/heightPct): nunca comparten nombre de propiedad", () => {
+        const legacy = ["posX", "posY", "width", "height"];
+        const current = ["posXPct", "posYPct", "widthPct", "heightPct"];
+        for (const name of legacy) {
+            expect(current).not.toContain(name);
+        }
     });
 });
 
@@ -150,10 +208,10 @@ describe("Visual — lectura de la tarjeta «Gráfico de tendencia» hacia Gauge
         expect(settings.trendPointSize).toBe(2.5);
     });
 
-    it("con el panel configurado, cada propiedad llega con su valor (tipo de gráfico, posición/tamaño, ángulo, escala manual, Programado, color fijo, grosor/tamaño)", () => {
+    it("con el panel configurado, cada propiedad llega con su valor (tipo de gráfico, posición/tamaño en %, ángulo, escala manual, Programado, color fijo, grosor/tamaño)", () => {
         const settings = settingsOf(setupVisual(), dataViewWithTrendObject({
             chartType: "bars",
-            posX: 5, posY: 6, width: 120, height: 40,
+            posXPct: 5, posYPct: 95, widthPct: 40, heightPct: 12,
             angle: 15,
             yScaleMode: "manual", yMin: 10, yMax: 90,
             showProgrammed: false,
@@ -164,9 +222,9 @@ describe("Visual — lectura de la tarjeta «Gráfico de tendencia» hacia Gauge
         }));
         expect(settings.trendChartType).toBe("bars");
         expect(settings.trendPosX).toBe(5);
-        expect(settings.trendPosY).toBe(6);
-        expect(settings.trendWidth).toBe(120);
-        expect(settings.trendHeight).toBe(40);
+        expect(settings.trendPosY).toBe(95);
+        expect(settings.trendWidth).toBe(40);
+        expect(settings.trendHeight).toBe(12);
         expect(settings.trendAngle).toBe(15);
         expect(settings.trendYScaleMode).toBe("manual");
         expect(settings.trendYMin).toBe(10);
@@ -176,6 +234,85 @@ describe("Visual — lectura de la tarjeta «Gráfico de tendencia» hacia Gauge
         expect(settings.trendFixedColor).toBe("#112233");
         expect(settings.trendLineWidth).toBe(3);
         expect(settings.trendPointSize).toBe(6);
+    });
+
+    it("0.4.1.0 — pointSize sin tocar el panel es proporcional al lineWidth configurado (computeEffectivePointSize), no el valor fijo de 0.3.5.0", () => {
+        const settings = settingsOf(setupVisual(), dataViewWithTrendObject({ lineWidth: 3 }));
+        expect(settings.trendLineWidth).toBe(3);
+        expect(settings.trendPointSize).toBe(computeEffectivePointSize(3));
+        expect(settings.trendPointSize).toBeCloseTo(5, 6); // 3 * (2.5/1.5)
+    });
+
+    // -------------------------------------------------------------------------------------------
+    // Revisión B2 — un reporte guardado con 0.4.0.0 trae `trend.posX/posY/width/height` en PX
+    // (relativos al centro del medidor). Tras renombrar las propiedades vivas a `posXPct`/etc., estos
+    // 4 valores NUNCA deben leerse ni reinterpretarse como %: deben ignorarse por completo (undefined,
+    // cae al cálculo automático), exactamente igual que si el panel nunca hubiera tocado la tarjeta.
+    // -------------------------------------------------------------------------------------------
+    it("revisión B2 — overrides LEGADOS (posX/posY/width/height, px de 0.4.0.0) en el dataView se IGNORAN por completo: GaugeSettings usa el cálculo automático, nunca los reinterpreta como %", () => {
+        const settings = settingsOf(setupVisual(), dataViewWithTrendObject({
+            // Simula un objeto `trend` tal cual lo guardó un reporte en 0.4.0.0 (antes del rename).
+            posX: 60, posY: 80, width: 30, height: 15,
+        }));
+        expect(settings.trendPosX).toBeUndefined();
+        expect(settings.trendPosY).toBeUndefined();
+        expect(settings.trendWidth).toBeUndefined();
+        expect(settings.trendHeight).toBeUndefined();
+    });
+
+    it("revisión B2 — con overrides legados Y nuevos a la vez en el mismo dataView, sólo se aplican los nuevos (posXPct/etc.); los legados (posX/etc.) siguen sin efecto", () => {
+        const settings = settingsOf(setupVisual(), dataViewWithTrendObject({
+            posX: 60, posY: 80, width: 30, height: 15, // legado, px 0.4.0.0 — debe ignorarse
+            posXPct: 11, posYPct: 22, widthPct: 33, heightPct: 44, // vivo, % 0.4.1.0 — debe aplicarse
+        }));
+        expect(settings.trendPosX).toBe(11);
+        expect(settings.trendPosY).toBe(22);
+        expect(settings.trendWidth).toBe(33);
+        expect(settings.trendHeight).toBe(44);
+    });
+
+    // -------------------------------------------------------------------------------------------
+    // B4 — validación defensiva: un valor fuera de [0,100] o no finito en *Pct, o no finito en
+    // `angle`, puede llegar sin pasar por la UI del panel (bookmark/API/reporte corrupto — ver
+    // `finitePercent`/`finiteAngle` en visual.ts). Debe degradar a "automático"/0°, nunca propagar
+    // NaN/Infinity ni un % fuera de rango a la geometría (resolveTrendBoxFromPercentOverrides,
+    // trendTransformCoefficients).
+    // -------------------------------------------------------------------------------------------
+    it("B4 — posXPct/posYPct/widthPct/heightPct fuera de [0,100] se ignoran (caen al cálculo automático)", () => {
+        const settings = settingsOf(setupVisual(), dataViewWithTrendObject({
+            posXPct: -5, posYPct: 150, widthPct: 101, heightPct: -0.01,
+        }));
+        expect(settings.trendPosX).toBeUndefined();
+        expect(settings.trendPosY).toBeUndefined();
+        expect(settings.trendWidth).toBeUndefined();
+        expect(settings.trendHeight).toBeUndefined();
+    });
+
+    it("B4 — posXPct/posYPct/widthPct/heightPct no finitos (NaN/Infinity) se ignoran (caen al cálculo automático)", () => {
+        const settings = settingsOf(setupVisual(), dataViewWithTrendObject({
+            posXPct: NaN, posYPct: Infinity, widthPct: -Infinity, heightPct: NaN,
+        }));
+        expect(settings.trendPosX).toBeUndefined();
+        expect(settings.trendPosY).toBeUndefined();
+        expect(settings.trendWidth).toBeUndefined();
+        expect(settings.trendHeight).toBeUndefined();
+    });
+
+    it("B4 — los límites 0 y 100 SÍ son válidos para posXPct/posYPct/widthPct/heightPct (rango cerrado)", () => {
+        const settings = settingsOf(setupVisual(), dataViewWithTrendObject({
+            posXPct: 0, posYPct: 100, widthPct: 0, heightPct: 100,
+        }));
+        expect(settings.trendPosX).toBe(0);
+        expect(settings.trendPosY).toBe(100);
+        expect(settings.trendWidth).toBe(0);
+        expect(settings.trendHeight).toBe(100);
+    });
+
+    it("B4 — angle no finito (NaN/Infinity) cae a 0° (horizontal, sin rotación); angle normal pasa intacto", () => {
+        expect(settingsOf(setupVisual(), dataViewWithTrendObject({ angle: NaN })).trendAngle).toBe(0);
+        expect(settingsOf(setupVisual(), dataViewWithTrendObject({ angle: Infinity })).trendAngle).toBe(0);
+        expect(settingsOf(setupVisual(), dataViewWithTrendObject({ angle: -Infinity })).trendAngle).toBe(0);
+        expect(settingsOf(setupVisual(), dataViewWithTrendObject({ angle: 37 })).trendAngle).toBe(37);
     });
 });
 
@@ -214,6 +351,40 @@ describe("computeTrendYDomain — modos de escala Y", () => {
     it("manual incompleto o invertido cae a «auto» sobre los mismos valores", () => {
         expect(computeTrendYDomain([10, 40], "manual", undefined, 100)).toEqual(computeTrendYDomain([10, 40], "auto"));
         expect(computeTrendYDomain([10, 40], "manual", 100, 0)).toEqual(computeTrendYDomain([10, 40], "auto"));
+    });
+
+    // Regresión (release 0.4.1.0): con el modo "auto" (por omisión) el margen del 10% a cada lado deja
+    // el rango propio de Real ocupando ≥ 60% del alto del dominio (rango / (rango·1.2) ≈ 83.33%), para
+    // que la serie siga siendo la protagonista visual de la tarjeta por omisión. Si alguien ampliara el
+    // margen por encima de ~33% del rango, esta prueba fallaría antes de publicarlo.
+    it("auto (por omisión): el rango propio de Real ocupa al menos el 60% del alto del dominio (10% de margen por lado)", () => {
+        const real = [10, 40, 25, 18, 32];
+        const [low, high] = computeTrendYDomain(real, "auto");
+        const realRange = Math.max(...real) - Math.min(...real);
+        const domainRange = high - low;
+        const occupiedFraction = realRange / domainRange;
+        expect(occupiedFraction).toBeGreaterThanOrEqual(0.6);
+        expect(occupiedFraction).toBeCloseTo(1 / 1.2, 6); // 83.33%, exacto con el margen de 10% documentado arriba.
+    });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// 0.4.1.0 — computeEffectivePointSize: tamaño de punto efectivo, proporcional al grosor de línea
+// configurado, cuando el panel no fija uno propio (pointSize ahora es "auto" por omisión, settings.ts).
+// ---------------------------------------------------------------------------------------------------
+describe("computeEffectivePointSize — tamaño de punto proporcional al grosor de línea", () => {
+    it("con el grosor de línea por omisión (1.5), da exactamente 2.5 (el default fijo de 0.3.5.0/0.4.0.0, retrocompatible)", () => {
+        expect(computeEffectivePointSize(1.5)).toBe(2.5);
+    });
+
+    it("escala linealmente con el grosor de línea (misma proporción 2.5/1.5)", () => {
+        expect(computeEffectivePointSize(3)).toBeCloseTo(5, 6);
+        expect(computeEffectivePointSize(0.75)).toBeCloseTo(1.25, 6);
+    });
+
+    it("redondea a centésimas (sin arrastrar ruido de flotante al panel)", () => {
+        expect(computeEffectivePointSize(1)).toBeCloseTo(1.67, 2);
+        expect(Number.isInteger(computeEffectivePointSize(1) * 100)).toBe(true);
     });
 });
 
@@ -323,15 +494,32 @@ describe("TrendSparkline — 4 tipos de gráfico", () => {
     });
 });
 
-describe("TrendSparkline — rotación por ángulo", () => {
-    it("angle=0 (por omisión) no agrega transform al grupo de la serie", () => {
+describe("TrendSparkline — rotación por ángulo, pivote fijo en la esquina inferior izquierda", () => {
+    it("angle=0 y scale=1 (los valores por omisión) no agregan transform al grupo de la serie (regresión visual exacta)", () => {
         const markup = render_();
         expect(markup).toMatch(/<g class="trend-sparkline">/);
     });
 
-    it("angle != 0 rota el grupo alrededor del centro de la caja (width/2, height/2)", () => {
+    it("angle != 0 rota el grupo con una única matriz, pivotando en la esquina inferior izquierda (no en el centro)", () => {
         const markup = render_({ angle: 30, width: 300, height: 60 });
-        expect(markup).toContain('<g class="trend-sparkline" transform="rotate(30, 150, 30)">');
+        // matrix(cos30,-sin30,sin30,cos30, -height·sin30, height - height·cos30) con height=60.
+        expect(markup).toContain('<g class="trend-sparkline" transform="matrix(0.866,-0.5,0.5,0.866,-30,8.0385)">');
+    });
+
+    it("scale < 1 (homotecia) reduce el tamaño sin mover el pivote ni el ángulo: la matriz cambia pero sigue fijando (0,height) en sí mismo", () => {
+        const markup = render_({ angle: 0, scale: 0.5, width: 300, height: 60 });
+        // angle 0: matrix(scale,0,0,scale,0,height·(1-scale)).
+        expect(markup).toContain('<g class="trend-sparkline" transform="matrix(0.5,0,0,0.5,0,30)">');
+    });
+
+    it("rotación y tooltip/hit-testing siguen intactos: con ángulo != 0, los 4 tipos de gráfico conservan data-trend-index y ningún <title>", () => {
+        const chartTypes: TrendChartType[] = ["lineDots", "line", "bars", "area"];
+        for (const chartType of chartTypes) {
+            const markup = render_({ chartType, angle: 45 });
+            expect(markup, chartType).not.toContain("<title>");
+            const indices = [...markup.matchAll(/data-trend-index="(\d+)"/g)].map((m) => m[1]);
+            expect(indices, chartType).toEqual(expect.arrayContaining(["0", "1", "2"]));
+        }
     });
 });
 
