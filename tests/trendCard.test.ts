@@ -8,6 +8,7 @@ import { TrendSparkline, TrendSparklineProps, TrendChartType } from "../src/comp
 import { TrendPoint, YScaleMode, computeTrendYDomain, computeEffectivePointSize } from "../src/components/trend";
 import { applyTrendBoxOverrides, Box } from "../src/components/layout";
 import { GaugeData, GaugeSettings } from "../src/components/types";
+import { TREND_MAX_ANGLE_DEG } from "../src/components/trendFit";
 
 const render = vi.fn();
 vi.mock("react-dom/client", () => ({
@@ -46,6 +47,23 @@ describe("TrendCardSettings — defaults de la tarjeta «Gráfico de tendencia»
 
     it("ángulo 0° por omisión (horizontal)", () => {
         expect(trendCard.angle.value).toBe(0);
+    });
+
+    /**
+     * 0.4.1.1 — el panel valida/comunica el rango ±TREND_MAX_ANGLE_DEG (8°) determinado empíricamente
+     * (ver JSDoc de TREND_MAX_ANGLE_DEG en trendFit.ts): la etiqueta exacta lo incluye directamente
+     * (sin depender de que el usuario abra la descripción extendida), las opciones (NumUpDownFormat)
+     * declaran ese mismo mínimo/máximo para que la UI del panel lo haga cumplir, y la descripción sigue
+     * no vacía (documenta el PORQUÉ del límite).
+     */
+    it("0.4.1.1 — ángulo: etiqueta exacta con el rango ±A, opciones min/max = ±TREND_MAX_ANGLE_DEG (no vacías) y descripción no vacía", () => {
+        expect(trendCard.angle.displayName).toBe(`Ángulo (grados, −${TREND_MAX_ANGLE_DEG} a ${TREND_MAX_ANGLE_DEG})`);
+        expect(trendCard.angle.displayName).toBe("Ángulo (grados, −8 a 8)"); // literal exacto exigido (si TREND_MAX_ANGLE_DEG cambia, AMBAS aserciones deben actualizarse juntas).
+        expect(trendCard.angle.options).toBeDefined();
+        expect(trendCard.angle.options?.minValue?.value).toBe(-TREND_MAX_ANGLE_DEG);
+        expect(trendCard.angle.options?.maxValue?.value).toBe(TREND_MAX_ANGLE_DEG);
+        expect(trendCard.angle.description).toBeTruthy();
+        expect((trendCard.angle.description as string).length).toBeGreaterThan(0);
     });
 
     it("escala Y automática al rango por omisión, sin límites manuales", () => {
@@ -133,6 +151,17 @@ describe("capabilities.json — objeto «trend»", () => {
     it("0.4.1.0 — yMin/yMax documentan el dominio automático efectivo (Real/Programado ±10%) que se muestra cuando no se fijan", () => {
         expect(trendObject.properties.yMin.description).toMatch(/autom/i);
         expect(trendObject.properties.yMax.description).toMatch(/autom/i);
+    });
+
+    /**
+     * 0.4.1.1 — `angle` declara el mismo rango ±8° que settings.ts (NumUpDown + ANGLE_BOUNDS), no la
+     * estimación inicial de ~15° (ver JSDoc de TREND_MAX_ANGLE_DEG en trendFit.ts: 8° es el valor
+     * EMPÍRICO real, documentado en vez de forzar la cifra estimada a ojo).
+     */
+    it("0.4.1.1 — angle: displayName exacto con el rango ±8 y descripción que documenta 8° (nunca 15°)", () => {
+        expect(trendObject.properties.angle.displayName).toBe("Ángulo (grados, −8 a 8)");
+        expect(trendObject.properties.angle.description).toMatch(/8°/);
+        expect(trendObject.properties.angle.description).not.toMatch(/15°/);
     });
 
     // -----------------------------------------------------------------------------------------------

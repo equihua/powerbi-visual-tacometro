@@ -1,4 +1,5 @@
-import { Point, transformedTrendBoxCorners } from "./trendTransform";
+import { Point, applyTrendTransform, trendBoxCorners } from "./trendTransform";
+import { TrendDrawnShapes } from "./trend";
 
 /**
  * Homotecia automática anticolisión de la caja de tendencia: reduce `desiredScale` (nunca por debajo
@@ -11,6 +12,55 @@ import { Point, transformedTrendBoxCorners } from "./trendTransform";
  * visual (clip-path) sobre el contenido para disimularlo.
  */
 export const TREND_MIN_SCALE = 0.3;
+
+/**
+ * 0.4.1.1 (fix final QA rotación 30°/Barras, DICTAMEN-QA.md) — el usuario autorizó LIMITAR el ángulo de
+ * la serie («Gráfico de tendencia») cuando la homotecia de escala (`fitTrendScaleForShapes`, arriba) no
+ * basta para separarla del arco, en vez de tolerar la colisión documentada a ±30°/45°/90° (versión
+ * anterior de esta rama, `tests/trendRotationMatrixIndependentCollision.test.ts`) o de forzar un recorte
+ * visual (clip-path, prohibido en todo este módulo).
+ *
+ * Valor determinado EMPÍRICAMENTE, no estimado: se barrieron las 16 combinaciones de posición/tamaño
+ * AUTOMÁTICOS (2 tamaños de tarjeta reales del reporte, 430×338/430×268 × 4 `TrendChartType` ×
+ * `trendShowProgrammed` true/false) a cada ángulo entero de 0° a 45° (ambos signos), verificando colisión
+ * con la MISMA implementación independiente (no `fitTrendScaleForShapes`, para no heredar un posible bug
+ * de cableado) que `tests/trendRotationMatrixIndependentCollision.test.ts` usa. Resultado:
+ *  - +21° es el primer entero POSITIVO que colisiona (chartType "area", ambos tamaños de tarjeta).
+ *  - −9° es el primer entero NEGATIVO que colisiona (chartType "area" primero; "line"/"lineDots" se unen
+ *    a partir de magnitudes mayores). La asimetría viene de que el barrido del arco por omisión
+ *    (−120°..60°, NO simétrico respecto al vertical) combinado con que "area" dibuja un polígono a TODO
+ *    el ancho de la caja hasta su borde superior (el contenido con mayor brazo de palanca respecto al
+ *    pivote, la esquina inferior izquierda) hace que una rotación negativa acerque esa esquina lejana al
+ *    arco antes que una positiva de la misma magnitud.
+ * El máximo SIMÉTRICO (±A con 0 colisiones en AMBOS signos, las 16 combinaciones) es
+ * min(20, 8) = 8 — confirmado idéntico aplicando `TREND_SAFETY_CLEARANCE` (abajo) en el fitter: el margen
+ * no desplaza esta frontera (los casos que colisionan ya agotan el piso `TREND_MIN_SCALE`, no son un
+ * artefacto de redondeo que el margen pudiera evitar). Queda por DEBAJO de una expectativa inicial de
+ * ~15° porque esa cifra no consideraba el signo negativo ni el chartType "area"; se documenta el valor
+ * real (8°) en vez de forzarlo. Si se cambia cualquier parámetro que afecte esta geometría (barrido del
+ * arco por omisión, TREND_MIN_SCALE, el padding/holgura de la caja automática), este valor debe
+ * RE-verificarse con el mismo barrido — nunca ajustarse a ojo.
+ */
+export const TREND_MAX_ANGLE_DEG = 8;
+
+/**
+ * 0.4.1.1 — margen mínimo de seguridad (px) que el FITTER de producción (Gauge.tsx, vía `clearance` en
+ * `TrendFitObstacles`) exige de más frente al pie y al arco, por encima de la holgura geométrica exacta:
+ * cubre el redondeo de precisión del `matrix(...)` emitido (`MATRIX_PRECISION`, trendTransform.ts — ver
+ * los 3 casos de redondeo documentados en la versión anterior de
+ * `tests/trendRotationMatrixIndependentCollision.test.ts`) sin necesidad de enumerar casos por redondeo
+ * uno a uno. El VERIFICADOR independiente de colisión (ese mismo archivo de pruebas) sigue evaluando con
+ * `clearance = 0` (sin ningún margen): este valor sólo entra al FITTER que decide la escala/ángulo
+ * efectivos, nunca a la medición de si el resultado final realmente colisiona.
+ */
+export const TREND_SAFETY_CLEARANCE = 0.5;
+
+/** Recorta `angleDeg` a ±TREND_MAX_ANGLE_DEG, preservando el signo — mismo criterio que
+ * `fitTrendAngleAndScaleForShapes` aplica antes de buscar una escala/ángulo seguros, y que
+ * settings.ts/visual.ts usan para validar/mostrar el panel y sanear el valor en tiempo de ejecución. */
+export function clampTrendAngle(angleDeg: number): number {
+    return Math.max(-TREND_MAX_ANGLE_DEG, Math.min(TREND_MAX_ANGLE_DEG, angleDeg));
+}
 
 export interface TrendArcObstacle {
     /** Centro del medidor, en el mismo sistema de coordenadas absoluto que `boxOrigin`. */
@@ -27,8 +77,17 @@ export interface TrendFitObstacles {
     viewportHeight: number;
     /** Borde superior del pie (si existe); la caja no debe descender más allá. */
     footerTop?: number;
-    /** Corona del arco del medidor (banda + sobresaliente de marcadores); se omite si no aplica. */
-    arc?: TrendArcObstacle;
+    /**
+     * Corona(s) del arco del medidor a evitar: normalmente la banda (+ sobresaliente de marcadores) y,
+     * cuando «Mostrar Rangos» está activo, TAMBIÉN el anillo delgado del indicador del semáforo
+     * (`semaphore-indicator`/PerformanceArc, `semaphoreIndicatorRing` en arcUtils.ts) — un sector anular
+     * DISTINTO, de radio MENOR (vive por dentro del radio interior de la banda, nunca se superpone con
+     * ella; ver su JSDoc). `computeInnerTrendBox` (layout.ts) ya exige esa doble holgura al dimensionar
+     * la caja a ángulo 0; esta lista generaliza el mismo chequeo a la geometría YA rotada/escalada (fix
+     * QA rotación 30°/Barras, DICTAMEN-QA.md: una rotación puede acercar el contenido al anillo sin que
+     * la banda sola lo detecte). Un único objeto sigue aceptado; se omite si no aplica ningún arco.
+     */
+    arc?: TrendArcObstacle | TrendArcObstacle[];
     /** Holgura mínima (px) exigida frente al pie y al arco (el viewport es un límite físico, sin holgura). */
     clearance?: number;
 }
@@ -259,31 +318,17 @@ export function arcRepresentativePoint(arc: TrendArcObstacle): Point {
 }
 
 /**
- * ¿Las 4 esquinas, ya en coordenadas absolutas, libran los 3 obstáculos (con la holgura pedida)?
- *
- * Viewport y pie son semiplanos (restricciones lineales): convexos, así que basta revisar las 4
- * esquinas — si todas quedan del lado correcto, cualquier punto del rectángulo (combinación convexa de
- * sus esquinas) también. La corona del arco, en cambio, es un sector anular NO convexo: un borde puede
- * atravesarla aunque sus 2 extremos queden limpios (Reviewer B1) — por eso la corona se evalúa primero
- * por BORDE (`segmentDistanceToAnnularSector`, los 4 lados del rectángulo ya transformado).
- *
- * Pero el chequeo por borde, por sí solo, no basta (Reviewer O1): la corona puede quedar ENTERA dentro
- * de la caja sin que ningún borde la toque (la caja simplemente la envuelve por completo). Por eso, tras
- * confirmar que ningún borde cruza la corona, se evalúa además si su punto representativo
- * (`arcRepresentativePoint`) cae dentro de la caja (`pointInConvexPolygon`) — si cae dentro, la corona
- * entera está encerrada (región conexa, ver razonamiento en `arcRepresentativePoint`).
+ * ¿El polígono (esquinas absolutas, orden consistente) libra la corona de un arco (con la holgura
+ * pedida)? La corona del arco es un sector anular NO convexo: un borde puede atravesarla aunque sus 2
+ * extremos queden limpios (Reviewer B1) — por eso se evalúa primero por BORDE
+ * (`segmentDistanceToAnnularSector`). Eso solo, por sí mismo, no basta (Reviewer O1): la corona puede
+ * quedar ENTERA dentro del polígono sin que ningún borde la toque; por eso, tras confirmar que ningún
+ * borde cruza la corona, se evalúa además si su punto representativo (`arcRepresentativePoint`) cae
+ * dentro del polígono (`pointInConvexPolygon` — válido para cualquier polígono CONVEXO, p. ej. una barra
+ * rectangular o la caja nominal, rotados o no; las formas que construye `buildTrendDrawnShapes` son
+ * siempre convexas: rectángulos de barra/segmento engrosado, o la caja nominal).
  */
-function cornersClear(corners: Point[], obstacles: TrendFitObstacles): boolean {
-    const clearance = obstacles.clearance ?? 0;
-    const cornersOk = corners.every((corner) => {
-        if (corner.x < 0 || corner.x > obstacles.viewportWidth) return false;
-        if (corner.y < 0 || corner.y > obstacles.viewportHeight) return false;
-        if (obstacles.footerTop !== undefined && corner.y > obstacles.footerTop - clearance) return false;
-        return true;
-    });
-    if (!cornersOk) return false;
-    if (!obstacles.arc) return true;
-    const arc = obstacles.arc;
+function polygonClearsArc(corners: Point[], arc: TrendArcObstacle, clearance: number): boolean {
     const edgesClear = corners.every((corner, i) => {
         const next = corners[(i + 1) % corners.length];
         const p: Point = { x: corner.x - arc.center.x, y: corner.y - arc.center.y };
@@ -295,27 +340,99 @@ function cornersClear(corners: Point[], obstacles: TrendFitObstacles): boolean {
     return !pointInConvexPolygon(arcRepresentativePoint(arc), corners);
 }
 
+/** ¿El círculo (centro absoluto, radio ya escalado) libra la corona de un arco (con la holgura pedida)?
+ * Un círculo es convexo: basta que la distancia de su centro al sector anular (`pointDistanceToAnnularSector`,
+ * ya exacta — 0 si el centro cae dentro) exceda su radio — no hace falta un chequeo de encierro aparte
+ * (ver razonamiento en `fitTrendScaleForShapes`). */
+function circleClearsArc(circle: { center: Point; radius: number }, arc: TrendArcObstacle, clearance: number): boolean {
+    const relative: Point = { x: circle.center.x - arc.center.x, y: circle.center.y - arc.center.y };
+    const distance = pointDistanceToAnnularSector(relative, arc.innerRadius, arc.outerRadius, arc.startAngle, arc.endAngle);
+    return distance > clearance + circle.radius;
+}
+
+/** ¿El polígono (esquinas absolutas) libra el viewport y el pie (semiplanos convexos: basta revisar las
+ * esquinas — si todas quedan del lado correcto, cualquier punto del polígono, combinación convexa de
+ * sus esquinas, también)? */
+function polygonClearsViewportAndFooter(corners: Point[], obstacles: TrendFitObstacles): boolean {
+    const clearance = obstacles.clearance ?? 0;
+    return corners.every((corner) => {
+        if (corner.x < 0 || corner.x > obstacles.viewportWidth) return false;
+        if (corner.y < 0 || corner.y > obstacles.viewportHeight) return false;
+        if (obstacles.footerTop !== undefined && corner.y > obstacles.footerTop - clearance) return false;
+        return true;
+    });
+}
+
+/** ¿El círculo (centro absoluto, radio ya escalado) libra el viewport y el pie? */
+function circleClearsViewportAndFooter(circle: { center: Point; radius: number }, obstacles: TrendFitObstacles): boolean {
+    const clearance = obstacles.clearance ?? 0;
+    const { center, radius } = circle;
+    if (center.x - radius < 0 || center.x + radius > obstacles.viewportWidth) return false;
+    if (center.y - radius < 0 || center.y + radius > obstacles.viewportHeight) return false;
+    if (obstacles.footerTop !== undefined && center.y + radius > obstacles.footerTop - clearance) return false;
+    return true;
+}
+
+function normalizeArcs(arc: TrendFitObstacles["arc"]): TrendArcObstacle[] {
+    if (!arc) return [];
+    return Array.isArray(arc) ? arc : [arc];
+}
+
 /**
- * Escala máxima (entre TREND_MIN_SCALE y `desiredScale`) para la que las 4 esquinas de la caja
- * width×height, colocada en `boxOrigin` (esquina superior izquierda, mismo sistema que Gauge.tsx usa
- * hoy para `trendBox`) y rotada `angleDeg` (fijo), libran los 3 obstáculos. Si `desiredScale` ya libra
- * todo, se devuelve tal cual (nunca se reduce de más). Si ni TREND_MIN_SCALE libra todo, se devuelve
- * `{ scale: TREND_MIN_SCALE, fits: false }`.
+ * ¿El conjunto de formas (ya en coordenadas absolutas, geometría REAL transformada — no una
+ * aproximación por caja) libra el viewport, el pie y cada arco de `obstacles.arc`? Un círculo nunca
+ * necesita el chequeo de "encierro" que sí hace falta para polígonos (Reviewer O1): es convexo y su
+ * intersección con el sector anular (otro conjunto, no necesariamente convexo) es no vacía si y solo si
+ * la distancia de su centro al sector es <= su radio — exactamente lo que `circleClearsArc` evalúa; no
+ * hay un caso "la corona cae entera dentro del círculo sin tocar su borde" que ese chequeo no cubra ya
+ * (la distancia centro→sector ya captura cualquier solapamiento, sea parcial o total).
  */
-export function fitTrendScale(
-    width: number,
+function shapesClear(shapes: TrendDrawnShapes, obstacles: TrendFitObstacles): boolean {
+    const polysOk = shapes.polygons.every((polygon) => polygonClearsViewportAndFooter(polygon, obstacles));
+    const circlesOk = shapes.circles.every((circle) => circleClearsViewportAndFooter(circle, obstacles));
+    if (!polysOk || !circlesOk) return false;
+    const clearance = obstacles.clearance ?? 0;
+    const arcs = normalizeArcs(obstacles.arc);
+    return arcs.every(
+        (arc) =>
+            shapes.polygons.every((polygon) => polygonClearsArc(polygon, arc, clearance)) &&
+            shapes.circles.every((circle) => circleClearsArc(circle, arc, clearance))
+    );
+}
+
+/**
+ * Escala máxima (entre TREND_MIN_SCALE y `desiredScale`) para la que la geometría REAL dibujada
+ * (`shapes`, en coordenadas LOCALES — polígonos y círculos de `buildTrendDrawnShapes`, trend.ts), ya
+ * rotada `angleDeg` (fijo) y escalada, y colocada en `boxOrigin` (mismo pivote/sistema que `fitTrendScale`
+ * usa para la caja — esquina inferior izquierda LOCAL en (0, height)), libra los obstáculos (viewport,
+ * pie y cada arco de `obstacles.arc`). Si `desiredScale` ya libra todo, se devuelve tal cual (nunca se
+ * reduce de más). Si ni TREND_MIN_SCALE libra todo, se devuelve `{ scale: TREND_MIN_SCALE, fits: false }`.
+ *
+ * Fix QA rotación 30°/Barras (DICTAMEN-QA.md): a diferencia de `fitTrendScale` (que prueba sólo las 4
+ * esquinas del rectángulo NOMINAL de la caja — válido para "lineDots"/"line"/"area", cuyo contenido real
+ * nunca sale de ese rectángulo, pero NO para "bars", cuyas barras extremas pueden sobresalir en X), esta
+ * función prueba la geometría REAL de cada forma — nunca puede pasar por alto un sobresaliente real. El
+ * radio de cada círculo también se escala (mismo factor que sus coordenadas: un `transform` SVG de
+ * rotación+escala uniforme escala el trazo/radio renderizado igual que las posiciones).
+ */
+export function fitTrendScaleForShapes(
     height: number,
     boxOrigin: Point,
     angleDeg: number,
     desiredScale: number,
+    shapes: TrendDrawnShapes,
     obstacles: TrendFitObstacles
 ): TrendFitResult {
+    const transformPoint = (point: Point, scale: number): Point => {
+        const transformed = applyTrendTransform(point, height, angleDeg, scale);
+        return { x: boxOrigin.x + transformed.x, y: boxOrigin.y + transformed.y };
+    };
     const clearsAt = (scale: number): boolean => {
-        const absoluteCorners = transformedTrendBoxCorners(width, height, angleDeg, scale).map((corner) => ({
-            x: boxOrigin.x + corner.x,
-            y: boxOrigin.y + corner.y,
-        }));
-        return cornersClear(absoluteCorners, obstacles);
+        const absolute: TrendDrawnShapes = {
+            polygons: shapes.polygons.map((polygon) => polygon.map((corner) => transformPoint(corner, scale))),
+            circles: shapes.circles.map((circle) => ({ center: transformPoint(circle.center, scale), radius: circle.radius * scale })),
+        };
+        return shapesClear(absolute, obstacles);
     };
 
     if (clearsAt(desiredScale)) {
@@ -335,4 +452,100 @@ export function fitTrendScale(
         }
     }
     return { scale: safe, fits: true };
+}
+
+/**
+ * Escala máxima (entre TREND_MIN_SCALE y `desiredScale`) para la que las 4 esquinas de la caja
+ * width×height, colocada en `boxOrigin` (esquina superior izquierda, mismo sistema que Gauge.tsx usa
+ * hoy para `trendBox`) y rotada `angleDeg` (fijo), libran los 3 obstáculos. Si `desiredScale` ya libra
+ * todo, se devuelve tal cual (nunca se reduce de más). Si ni TREND_MIN_SCALE libra todo, se devuelve
+ * `{ scale: TREND_MIN_SCALE, fits: false }`.
+ *
+ * Caso particular de `fitTrendScaleForShapes` (un único polígono: la caja NOMINAL completa, sin
+ * círculos) — delega en ella, nunca un cálculo paralelo. Válido tal cual para "lineDots"/"line"/"area"
+ * (su contenido real nunca sale de ese rectángulo, por construcción de `computeInnerTrendBox`/
+ * TREND_PADDING); para "bars" (que SÍ puede sobresalir en X) usar `fitTrendScaleForShapes` con la
+ * geometría real de `buildTrendDrawnShapes` (trend.ts) — ver Gauge.tsx.
+ */
+export function fitTrendScale(
+    width: number,
+    height: number,
+    boxOrigin: Point,
+    angleDeg: number,
+    desiredScale: number,
+    obstacles: TrendFitObstacles
+): TrendFitResult {
+    return fitTrendScaleForShapes(height, boxOrigin, angleDeg, desiredScale, { polygons: [trendBoxCorners(width, height)], circles: [] }, obstacles);
+}
+
+/** Resultado de `fitTrendAngleAndScaleForShapes`: además de la escala, el ÁNGULO efectivamente usado
+ * (puede ser menor en magnitud que el pedido — nunca mayor, nunca cambia de signo). */
+export interface TrendAngleFitResult {
+    angle: number;
+    scale: number;
+    /** false: ni siquiera el ángulo 0° libra los obstáculos con TREND_MIN_SCALE; `angle` queda en 0° y
+     * `scale` en el piso igualmente — nunca se inventa una posición ni se fuerza un recorte visual. */
+    fits: boolean;
+}
+
+/**
+ * Generaliza `fitTrendScaleForShapes` para también limitar/ajustar el ÁNGULO de la serie, no sólo su
+ * escala — fix final QA rotación 30°/Barras (DICTAMEN-QA.md), autorizado por el usuario: LIMITAR el
+ * ángulo cuando la homotecia de escala por sí sola no basta para separar la geometría REAL dibujada del
+ * arco, en vez de tolerar la colisión o forzar un recorte visual (clip-path).
+ *
+ * Dos pasos, siempre en este orden, nunca mueve X/Y ni el pivote (esquina inferior izquierda LOCAL en
+ * (0, height), igual que `fitTrendScaleForShapes`):
+ *
+ * 1. Recorta `desiredAngleDeg` a ±TREND_MAX_ANGLE_DEG (`clampTrendAngle`) — el límite GLOBAL, válido para
+ *    la posición/tamaño AUTOMÁticos de la caja (ver JSDoc de TREND_MAX_ANGLE_DEG: con esos 16 escenarios,
+ *    ningún ángulo dentro de ±A colisiona, así que este paso por sí solo YA es suficiente la inmensa
+ *    mayoría de las veces — el 2º paso es un no-op en ese caso, `fitTrendScaleForShapes` encuentra una
+ *    escala válida al primer intento).
+ * 2. Si ese ángulo (ya recortado) NO libra los obstáculos ni con TREND_MIN_SCALE (`fitTrendScaleForShapes`
+ *    devuelve `fits:false`) — lo que SÍ puede ocurrir con posición/tamaño PERSONALIZADOS del panel, una
+ *    caja que el límite global no contempla — busca de forma DETERMINISTA (bisección en el valor
+ *    ABSOLUTO del ángulo, mismo patrón de 50 iteraciones que la bisección de escala, nunca aleatoria) el
+ *    mayor ángulo (mismo signo que el recortado, hacia 0°) para el que SÍ exista una escala válida en
+ *    [TREND_MIN_SCALE, desiredScale]. Si NI SIQUIERA 0° libra los obstáculos (p. ej. el propio pivote ya
+ *    colisiona, una caja personalizada mal ubicada), se documenta explícito: `{ angle: 0, scale:
+ *    TREND_MIN_SCALE, fits: false }` — nunca se inventa una posición distinta ni se recorta el contenido.
+ */
+export function fitTrendAngleAndScaleForShapes(
+    height: number,
+    boxOrigin: Point,
+    desiredAngleDeg: number,
+    desiredScale: number,
+    shapes: TrendDrawnShapes,
+    obstacles: TrendFitObstacles
+): TrendAngleFitResult {
+    const fitAt = (angle: number): TrendFitResult => fitTrendScaleForShapes(height, boxOrigin, angle, desiredScale, shapes, obstacles);
+
+    const clampedAngle = clampTrendAngle(desiredAngleDeg);
+    const atClamped = fitAt(clampedAngle);
+    if (atClamped.fits) {
+        return { angle: clampedAngle, scale: atClamped.scale, fits: true };
+    }
+
+    const atZero = fitAt(0);
+    if (!atZero.fits) {
+        // Ni siquiera el ángulo 0° libra los obstáculos con el piso de escala: se documenta explícito,
+        // nunca se fuerza un recorte (clip-path) ni se inventa una posición distinta.
+        return { angle: 0, scale: atZero.scale, fits: false };
+    }
+
+    // Búsqueda determinista hacia 0°: bisección en |ángulo|, preservando el signo de `clampedAngle`.
+    const sign = clampedAngle < 0 ? -1 : 1;
+    let safeMagnitude = 0; // atZero.fits === true, confirmado arriba.
+    let unsafeMagnitude = Math.abs(clampedAngle);
+    for (let i = 0; i < 50; i++) {
+        const midMagnitude = (safeMagnitude + unsafeMagnitude) / 2;
+        if (fitAt(sign * midMagnitude).fits) {
+            safeMagnitude = midMagnitude;
+        } else {
+            unsafeMagnitude = midMagnitude;
+        }
+    }
+    const finalAngle = sign * safeMagnitude;
+    return { angle: finalAngle, scale: fitAt(finalAngle).scale, fits: true };
 }

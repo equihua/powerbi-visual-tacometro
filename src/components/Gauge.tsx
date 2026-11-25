@@ -12,10 +12,10 @@ import { comparisonColor, createAngleScale, createPerformanceColorScale, rangeBa
 import { resolveSemaphoreColor } from "./semaphore";
 import { GaugeData, GaugeSettings } from "./types";
 import { buildAriaLabel } from "../tooltips";
-import { computeGaugeFrame, computeGaugeLayout, computeInnerTrendBox, MARKER_OVERHANG } from "./layout";
+import { computeGaugeFrame, computeGaugeLayout, MARKER_OVERHANG } from "./layout";
 import { TrendChartType, TrendSparkline } from "./TrendSparkline";
-import { YScaleMode } from "./trend";
-import { fitTrendScale } from "./trendFit";
+import { buildTrendDrawnShapes, computeInnerTrendBoxForChartType, YScaleMode } from "./trend";
+import { fitTrendAngleAndScaleForShapes, TREND_SAFETY_CLEARANCE, TrendArcObstacle } from "./trendFit";
 import { resolveTrendBoxFromPercentOverrides } from "./trendBoxPercent";
 import { GaugeFooter } from "./GaugeFooter";
 
@@ -138,8 +138,25 @@ export default class Gauge extends React.Component<Props> {
     // performance-arc de grosor completo), así que la sparkline no necesita evitarlo (más ancho).
     // 0.3.5.0: computeInnerTrendBox necesita el ancho real de la tarjeta (`width`, el mismo que recibe
     // computeGaugeFrame) para acotar el lado de la caja que el barrido del arco no alcanza.
+    // 0.4.1.1 — fix QA rotación 30°/Barras (DICTAMEN-QA.md): para chartType "bars" delega en
+    // `computeInnerTrendBoxForChartType` (trend.ts), que exige la holgura real de MEDIA BARRA (no sólo el
+    // radio de un punto) frente al arco — sin ella, la propia esquina de la caja (pivote fijo de la
+    // rotación, trendTransform.ts) puede quedar dentro de la corona y ninguna reducción de escala la
+    // salva (ver JSDoc de esa función). Para cualquier otro chartType el resultado es IDÉNTICO al de
+    // `computeInnerTrendBox` (regresión exacta).
     const autoTrendBox =
-        trend && layout.footer ? computeInnerTrendBox(radius, settings.thickness, settings.startAngle, settings.endAngle, width, settings.showRanges) : null;
+        trend && layout.footer
+            ? computeInnerTrendBoxForChartType(
+                  radius,
+                  settings.thickness,
+                  settings.startAngle,
+                  settings.endAngle,
+                  width,
+                  settings.showRanges,
+                  settings.trendChartType as TrendChartType | undefined,
+                  trend.length
+              )
+            : null;
     // 0.4.1.0: la tarjeta «Gráfico de tendencia» puede sobreescribir posición/tamaño eje por eje, en %
     // (0..100) del viewport completo (pivote inferior-izquierdo, ver trendBoxPercent.ts) — ya NO son px
     // relativos al centro del medidor (0.4.0.0). Sin tocarla (los 4 undefined) el resultado sigue siendo
@@ -156,29 +173,86 @@ export default class Gauge extends React.Component<Props> {
         { width, height: viewportHeight }
     );
 
-    // 0.4.x — homotecia automática anticolisión (reducir escala sin mover X/Y ni cambiar el ángulo,
-    // ver trendFit.ts): la posición/tamaño de la caja (trendBox, sin tocar) y el ángulo (settings.trendAngle,
-    // sin tocar) siguen exactamente igual que antes; sólo se calcula la escala máxima segura (<= 1) frente
-    // al viewport, el pie y la corona del arco (banda + sobresaliente de marcadores). Con ángulo 0 la caja
-    // ya es segura por construcción (computeInnerTrendBox) y el resultado es 1 (sin cambio, regresión
-    // visual exacta). Si ni TREND_MIN_SCALE libra los 3 obstáculos, fitTrendScale lo reporta explícito
-    // (`fits: false`) y usa ese piso igualmente — no hay recorte (clip-path) en ningún caso.
+    // 0.4.1.1 — fix QA rotación 30°/Barras (DICTAMEN-QA.md): la homotecia automática anticolisión ya NO
+    // prueba el rectángulo NOMINAL de la caja (insuficiente para "bars", cuyas barras extremas pueden
+    // sobresalir en X — causa raíz del defecto QA) sino la geometría REAL que de verdad se dibuja
+    // (`buildTrendDrawnShapes`, trend.ts: barras/área/línea+Programado ya engrosados por su medio grosor
+    // de trazo, y puntos como círculos con su radio real) frente a los MISMOS 2 arcos que Gauge.tsx dibuja
+    // de verdad: la banda (+ sobresaliente de marcadores) y, cuando «Mostrar Rangos» está activo con un
+    // semáforo resuelto, también el anillo delgado del indicador (un sector anular distinto, de radio
+    // menor — ver JSDoc de trendFit.ts). La posición/tamaño de la caja (trendBox, sin tocar) y el ángulo
+    // (settings.trendAngle, sin tocar) siguen exactamente igual que antes; sólo se calcula la escala
+    // máxima segura (<= 1). Con ángulo 0 la caja ya es segura por construcción (computeInnerTrendBox) y el
+    // resultado es 1 (sin cambio, regresión visual exacta). Si ni TREND_MIN_SCALE libra los obstáculos,
+    // fitTrendScaleForShapes lo reporta explícito (`fits: false`) y usa ese piso igualmente — no hay
+    // recorte (clip-path) en ningún caso.
+    // 0.4.1.1 — fix QA rotación 30°/Barras (DICTAMEN-QA.md), fix FINAL (autorizado por el usuario): la
+    // homotecia de escala (fitTrendScaleForShapes) por sí sola no basta a ±30°/45°/90° — el piso
+    // documentado TREND_MIN_SCALE (30%) agota la reducción posible sin lograr separar la geometría REAL
+    // del arco (ver JSDoc de TREND_MAX_ANGLE_DEG, trendFit.ts). En vez de tolerar esa colisión o forzar
+    // un recorte visual (clip-path), `fitTrendAngleAndScaleForShapes` también AJUSTA el ángulo:
+    //  1. Lo recorta a ±TREND_MAX_ANGLE_DEG (mismo límite validado/mostrado por el panel, settings.ts, y
+    //     saneado en tiempo de ejecución para cualquier valor fuera de rango que llegue sin pasar por el
+    //     panel — bookmark/API, igual criterio que `finiteAngle` en visual.ts).
+    //  2. Si ese ángulo (ya recortado) tampoco libra los obstáculos ni con TREND_MIN_SCALE — posible con
+    //     posición/tamaño PERSONALIZADOS del panel (trendPosX/trendPosY/trendWidth/trendHeight), una caja
+    //     que el límite global no contempla — busca de forma determinista, hacia 0°, el mayor ángulo
+    //     (mismo signo) para el que sí exista una escala válida, sin mover X/Y ni el pivote. Si ni
+    //     siquiera 0° cabe, se documenta explícito (`fits:false`) y se usa ese ángulo/escala igualmente.
+    // `TREND_SAFETY_CLEARANCE` (0.5px) exige un margen mínimo de más frente al pie/arco — cubre el
+    // redondeo de precisión del `matrix(...)` emitido sin enmascarar colisiones reales (ver su JSDoc).
     const trendBoxOrigin = trendBox ? { x: round2(centerX + trendBox.x), y: round2(centerY + trendBox.y) } : null;
-    const trendScale =
-        trend && trendBox && trendBoxOrigin
-            ? fitTrendScale(trendBox.width, trendBox.height, trendBoxOrigin, settings.trendAngle ?? 0, 1, {
-                  viewportWidth: width,
-                  viewportHeight,
-                  footerTop: layout.footer ? layout.footer.y : undefined,
-                  arc: {
+    const trendShapes =
+        trend && trendBox
+            ? buildTrendDrawnShapes({
+                  points: trend,
+                  width: trendBox.width,
+                  height: trendBox.height,
+                  chartType: settings.trendChartType as TrendChartType | undefined,
+                  currentIndex: gaugeData.trendCurrentIndex ?? -1,
+                  yScaleMode: settings.trendYScaleMode as YScaleMode | undefined,
+                  yMin: settings.trendYMin,
+                  yMax: settings.trendYMax,
+                  showProgrammed: settings.trendShowProgrammed,
+                  lineWidth: settings.trendLineWidth,
+                  pointSize: settings.trendPointSize,
+              })
+            : null;
+    // La banda (siempre dibujada, GaugeBackground) y, si aplica, el anillo del semáforo (dibujado sólo
+    // bajo la MISMA condición que lo renderiza más abajo: showRanges && semaphoreColor !== null) — nunca
+    // un obstáculo "fantasma" que en realidad no se dibuja en este render.
+    const trendArcObstacles: TrendArcObstacle[] = [
+        {
+            center: { x: centerX, y: centerY },
+            innerRadius: bandRadii(radius, settings.thickness).innerRadius,
+            outerRadius: bandRadii(radius, settings.thickness).outerRadius + MARKER_OVERHANG,
+            startAngle: settings.startAngle,
+            endAngle: settings.endAngle,
+        },
+        ...(settings.showRanges && semaphoreColor !== null
+            ? [
+                  {
                       center: { x: centerX, y: centerY },
-                      innerRadius: bandRadii(radius, settings.thickness).innerRadius,
-                      outerRadius: bandRadii(radius, settings.thickness).outerRadius + MARKER_OVERHANG,
+                      innerRadius: indicatorRing.innerRadius,
+                      outerRadius: indicatorRing.outerRadius,
                       startAngle: settings.startAngle,
                       endAngle: settings.endAngle,
                   },
-              }).scale
-            : 1;
+              ]
+            : []),
+    ];
+    const trendAngleFit =
+        trend && trendBox && trendBoxOrigin && trendShapes
+            ? fitTrendAngleAndScaleForShapes(trendBox.height, trendBoxOrigin, settings.trendAngle ?? 0, 1, trendShapes, {
+                  viewportWidth: width,
+                  viewportHeight,
+                  footerTop: layout.footer ? layout.footer.y : undefined,
+                  arc: trendArcObstacles,
+                  clearance: TREND_SAFETY_CLEARANCE,
+              })
+            : null;
+    const trendEffectiveAngle = trendAngleFit?.angle ?? 0;
+    const trendScale = trendAngleFit?.scale ?? 1;
 
     return (
       // A3 Keyboard Navigation: el SVG recibe el foco (supportsKeyboardFocus) y se anuncia como imagen.
@@ -289,7 +363,7 @@ export default class Gauge extends React.Component<Props> {
               programmedColor={settings.programmedColor}
               format={format}
               chartType={settings.trendChartType as TrendChartType | undefined}
-              angle={settings.trendAngle}
+              angle={trendEffectiveAngle}
               scale={trendScale}
               yScaleMode={settings.trendYScaleMode as YScaleMode | undefined}
               yMin={settings.trendYMin}

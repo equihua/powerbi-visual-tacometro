@@ -28,6 +28,7 @@
 
 import { formattingSettings } from "powerbi-visuals-utils-formattingmodel";
 import powerbi from "powerbi-visuals-api";
+import { TREND_MAX_ANGLE_DEG } from "./components/trendFit";
 import { FOOTER_GAP } from "./components/layout";
 
 import FormattingSettingsCard = formattingSettings.SimpleCard;
@@ -46,6 +47,22 @@ const PERCENT_BOUNDS: powerbi.visuals.NumUpDownFormat = {
     unitSymbol: "%",
     minValue: { type: 0, value: 0 },
     maxValue: { type: 1, value: 100 },
+};
+
+/**
+ * 0.4.1.1 — límites ±TREND_MAX_ANGLE_DEG para `angle` (tarjeta «Gráfico de tendencia»): el usuario
+ * autorizó LIMITAR el ángulo cuando la homotecia automática anticolisión (fitTrendScaleForShapes,
+ * trendFit.ts) no basta para separar la serie del arco incluso en TREND_MIN_SCALE — ver el JSDoc de
+ * `TREND_MAX_ANGLE_DEG` para la evidencia empírica (barrido de las 16 combinaciones de tamaño/chartType/
+ * Programado) que determinó este valor concreto (8, no un redondeo de la estimación inicial ~15).
+ * Mismo criterio que PERCENT_BOUNDS: esta validación sólo la hace cumplir la UI del panel; un valor fuera
+ * de rango que llegue sin pasar por el panel (bookmark/API) se sanea en tiempo de ejecución
+ * (`clampTrendAngle`, aplicado dentro de `fitTrendAngleAndScaleForShapes`/Gauge.tsx — nunca se propaga un
+ * ángulo fuera de ±A al render final).
+ */
+const ANGLE_BOUNDS: powerbi.visuals.NumUpDownFormat = {
+    minValue: { type: 0, value: -TREND_MAX_ANGLE_DEG },
+    maxValue: { type: 1, value: TREND_MAX_ANGLE_DEG },
 };
 
 /**
@@ -343,10 +360,21 @@ class TrendCardSettings extends FormattingSettingsCard {
     // B4 — el valor vivo puede llegar no finito (NaN/Infinity) si el dataView objeto fue escrito fuera
     // del panel (bookmark/API/reporte corrupto): `extractSettings()` (visual.ts) lo sanea con
     // `finiteAngle` (cae a 0°, horizontal, sin rotación) antes de que llegue a GaugeSettings.
+    // 0.4.1.1 — `options: ANGLE_BOUNDS` valida ±TREND_MAX_ANGLE_DEG en el panel (ver su JSDoc); el
+    // ÁNGULO EFECTIVO que de verdad se dibuja puede ser aún menor en magnitud si la caja (sobre todo con
+    // posición/tamaño PERSONALIZADOS) no libra el arco ni con el piso de escala — `getFormattingModel()`
+    // (visual.ts) sobreescribe el valor mostrado con `clampTrendAngle` cuando el guardado excede ±A.
+    // 0.4.1.1 — etiqueta exacta `Ángulo (grados, −A a A)` (A = TREND_MAX_ANGLE_DEG, 8°): comunica el
+    // rango válido directamente en el nombre del control, sin depender de que el usuario abra/lea la
+    // descripción extendida (que sigue documentando el PORQUÉ del límite). El signo usa el carácter
+    // MINUS SIGN (U+2212, −), no el guion ASCII (-), igual que el resto de literales matemáticos del
+    // panel en este repo.
     angle = new formattingSettings.NumUpDown({
         name: "angle",
-        displayName: "Ángulo (grados)",
-        value: 0
+        displayName: `Ángulo (grados, −${TREND_MAX_ANGLE_DEG} a ${TREND_MAX_ANGLE_DEG})`,
+        description: `Rotación de la serie, entre -${TREND_MAX_ANGLE_DEG}° y ${TREND_MAX_ANGLE_DEG}°. Más allá de ese rango la homotecia anticolisión no garantiza separarla del arco sin reducirla por debajo de un tamaño legible; el panel muestra siempre el ángulo EFECTIVO (recortado si el valor guardado excede el límite).`,
+        value: 0,
+        options: ANGLE_BOUNDS,
     });
 
     yScaleMode = new formattingSettings.ItemDropdown({

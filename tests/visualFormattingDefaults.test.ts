@@ -8,6 +8,9 @@ vi.mock("react-dom/client", () => ({
 }));
 
 import { Visual } from "../src/visual";
+import { computeGaugeFrame } from "../src/components/layout";
+import { computeInnerTrendBoxForChartType } from "../src/components/trend";
+import { boxToPercent } from "../src/components/trendBoxPercent";
 
 import DataView = powerbi.DataView;
 import VisualConstructorOptions = powerbi.extensibility.visual.VisualConstructorOptions;
@@ -94,6 +97,40 @@ describe("0.4.1.0 — getFormattingModel(): defaults efectivos de la tarjeta «G
         expect(trendValue(model, "trend-heightPct")).toBeCloseTo(13.05, 1);
     });
 
+    /**
+     * 0.4.1.1 — RED del desajuste panel vs render para chartType "bars": `computeDisplayDefaults`
+     * (visual.ts) calculaba la caja "auto" mostrada en el panel con `computeGaugeGeometry`
+     * (layout.ts → `computeInnerTrendBox` sin holgura de barra), mientras que Gauge.tsx YA renderiza
+     * con `computeInnerTrendBoxForChartType` (trend.ts, holgura = mitad del ancho real de la barra
+     * para "bars"). Con 3 meses a 300×300 la diferencia es grande (~32px de ancho, ~12%): el panel
+     * mostraba un "automático" más ancho/desplazado que la caja de verdad dibujada, engañoso para
+     * quien ajusta posX/width a mano partiendo de ese valor. El "expected" se calcula aquí con las
+     * MISMAS funciones que Gauge.tsx usa para dibujar (computeGaugeFrame + computeInnerTrendBoxForChartType),
+     * nunca un número mágico — así la prueba sigue siendo válida si cambia cualquier fórmula de layout.
+     */
+    it("chartType=\"bars\": posX/posY/width/height efectivos coinciden con la caja que Gauge.tsx REALMENTE dibuja (computeInnerTrendBoxForChartType), no con la caja nominal sin holgura de barra", () => {
+        const objects = { trend: { chartType: "bars" } };
+        const visual = createVisual();
+        update(visual, monthlyDataView(months, columns, objects));
+        const model = visual.getFormattingModel();
+
+        const viewport = { width: 300, height: 300 };
+        const gaugeHeight = viewport.height - 40; // FOOTER_HEIGHT (layout.ts)
+        const thickness = 20; // default settings.ts
+        const startAngle = -120;
+        const endAngle = 60;
+        const frame = computeGaugeFrame(viewport.width, gaugeHeight, thickness, startAngle, endAngle, true);
+        const renderedBox = computeInnerTrendBoxForChartType(
+            frame.radius, thickness, startAngle, endAngle, viewport.width, true, "bars", months.length
+        )!;
+        const expected = boxToPercent(renderedBox, { x: frame.cx, y: frame.cy }, viewport);
+
+        expect(trendValue(model, "trend-posXPct")).toBeCloseTo(expected.posX, 2);
+        expect(trendValue(model, "trend-posYPct")).toBeCloseTo(expected.posY, 2);
+        expect(trendValue(model, "trend-widthPct")).toBeCloseTo(expected.width, 2);
+        expect(trendValue(model, "trend-heightPct")).toBeCloseTo(expected.height, 2);
+    });
+
     it("yMin/yMax son el dominio automático Real+Programado ± 10%, independiente de yScaleMode seleccionado", () => {
         // Real: 80,88,91.47 · Programado: 85,90,95 → low=80, high=95, margen = 15*0.1 = 1.5.
         const objects = { trend: { yScaleMode: { displayName: "Desde cero", value: "zero" } } };
@@ -170,5 +207,64 @@ describe("0.4.1.0 — getFormattingModel(): defaults efectivos de la tarjeta «G
         const second = visual.getFormattingModel();
         expect(trendValue(second, "trend-posXPct")).toBe(trendValue(model, "trend-posXPct"));
         expect(liveSettings.posXPct.value).toBeUndefined();
+    });
+});
+
+/**
+ * 0.4.1.1 — `trend-angle` NUNCA queda sin valor (default 0°, no "auto" como las 7 propiedades de
+ * arriba): `getFormattingModel()` (visual.ts) sobreescribe el valor MOSTRADO con el ángulo EFECTIVO
+ * (`clampTrendAngle`, mismo límite ±TREND_MAX_ANGLE_DEG que settings.ts valida y Gauge.tsx aplica en
+ * tiempo de ejecución) cuando el valor guardado lo excede o no es finito — así el panel siempre
+ * refleja lo que de verdad se dibuja, sin escribir ningún override real en el documento (el modelo de
+ * settings vivo, `formattingSettings.trendCard.angle.value`, nunca se toca).
+ */
+describe("0.4.1.1 — getFormattingModel(): ángulo EFECTIVO (recortado a ±TREND_MAX_ANGLE_DEG) de la tarjeta «Gráfico de tendencia»", () => {
+    it("sin tocar el panel (default 0°, dentro de rango): se muestra tal cual, 0", () => {
+        const visual = createVisual();
+        update(visual, monthlyDataView(months, columns));
+        const model = visual.getFormattingModel();
+        expect(trendValue(model, "trend-angle")).toBe(0);
+    });
+
+    it("un ángulo guardado DENTRO de ±TREND_MAX_ANGLE_DEG se muestra tal cual, sin recortar", () => {
+        const objects = { trend: { angle: 5 } };
+        const visual = createVisual();
+        update(visual, monthlyDataView(months, columns, objects));
+        const model = visual.getFormattingModel();
+        expect(trendValue(model, "trend-angle")).toBe(5);
+
+        const negative = createVisual();
+        update(negative, monthlyDataView(months, columns, { trend: { angle: -5 } }));
+        expect(trendValue(negative.getFormattingModel(), "trend-angle")).toBe(-5);
+    });
+
+    it("un ángulo guardado FUERA de ±TREND_MAX_ANGLE_DEG (15°, la estimación inicial descartada; también 100°) se muestra recortado a ±8, nunca el valor nominal guardado", () => {
+        for (const stored of [15, 100]) {
+            const visual = createVisual();
+            update(visual, monthlyDataView(months, columns, { trend: { angle: stored } }));
+            const model = visual.getFormattingModel();
+            expect(trendValue(model, "trend-angle")).toBe(8);
+        }
+        const negative = createVisual();
+        update(negative, monthlyDataView(months, columns, { trend: { angle: -100 } }));
+        expect(trendValue(negative.getFormattingModel(), "trend-angle")).toBe(-8);
+    });
+
+    it("un ángulo guardado no finito (NaN/Infinity) se muestra como 0° (mismo criterio que finiteAngle en visual.ts)", () => {
+        for (const stored of [NaN, Infinity, -Infinity]) {
+            const visual = createVisual();
+            update(visual, monthlyDataView(months, columns, { trend: { angle: stored } }));
+            expect(trendValue(visual.getFormattingModel(), "trend-angle")).toBe(0);
+        }
+    });
+
+    it("el recorte sólo afecta el valor MOSTRADO en este FormattingModel: el modelo de settings vivo conserva el valor nominal guardado (extractSettings/Gauge.tsx lo recortan por su lado, por separado)", () => {
+        const visual = createVisual();
+        update(visual, monthlyDataView(months, columns, { trend: { angle: 100 } }));
+        const model = visual.getFormattingModel();
+        expect(trendValue(model, "trend-angle")).toBe(8);
+        const liveAngle = (visual as unknown as { formattingSettings: { trendCard: { angle: { value: number } } } })
+            .formattingSettings.trendCard.angle.value;
+        expect(liveAngle).toBe(100); // sin override real escrito: sigue siendo el valor guardado tal cual.
     });
 });

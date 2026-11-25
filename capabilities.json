@@ -363,7 +363,8 @@
                     }
                 },
                 "angle": {
-                    "displayName": "Ángulo (grados)",
+                    "displayName": "Ángulo (grados, −8 a 8)",
+                    "description": "Rotación de la serie, entre -8° y 8° (límite validado por el panel; fuera de ese rango la homotecia anticolisión no garantiza separarla del arco sin reducirla por debajo de un tamaño legible).",
                     "type": {
                         "numeric": true
                     }

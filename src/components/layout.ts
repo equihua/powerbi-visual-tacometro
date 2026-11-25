@@ -213,7 +213,8 @@ export function computeInnerTrendBox(
     startAngle: number,
     endAngle: number,
     cardWidth: number,
-    showRanges: boolean = true
+    showRanges: boolean = true,
+    extraHalfWidth: number = 0
 ): Box | null {
     const { innerRadius: inner, outerRadius: outer } = bandRadii(radius, thickness);
     const height = inner * TREND_HEIGHT_FACTOR;
@@ -232,11 +233,22 @@ export function computeInnerTrendBox(
     // veces (punto→caja, caja→tarjeta): sin esto, el lado sin barrido (ver arriba) crecería sin límite.
     const halfWidthCap = Math.max(0, cardWidth / 2 - 2 * TREND_PADDING);
 
-    // ¿El lado `sign` (−1 izquierda, +1 derecha) de la caja, con medio ancho `x`, libra el sector anular
-    // [r0, r1] × [lo, hi]? Mismo mecanismo que el anillo del semáforo en 0.3.3.1-0.3.4.1, aplicado sólo
-    // al medio rectángulo de ese lado (de x=0, bajo el centro, a x=sign·x).
+    // 0.4.1.1 — fix QA rotación 30°/Barras (DICTAMEN-QA.md): `extraHalfWidth` (por omisión 0, idéntico a
+    // antes) es la holgura horizontal EXTRA que el contenido real puede ocupar más allá de la posición de
+    // su propio punto — para "bars" (único caso que la usa, ver `computeInnerTrendBoxForChartType` en
+    // trend.ts) es `computeTrendBarWidth(...)/2`: media barra, que puede exceder el margen `reach`
+    // pensado sólo para el radio de un punto. Sin esta holgura, la caja alcanza a quedar tan ancha que su
+    // propia esquina (el pivote de la homotecia de rotación, `trendTransform.ts`) cae dentro de la corona
+    // del arco — ninguna reducción de escala puede entonces evitar la colisión de una barra cercana a ese
+    // pivote, por mucho que se reduzca (el pivote en sí mismo ya está colisionando). Con extraHalfWidth=0
+    // (todos los chartType salvo "bars") el resultado es IDÉNTICO al de antes (regresión exacta).
+    // ¿El lado `sign` (−1 izquierda, +1 derecha) de la caja, con medio ancho `x` (más `extraHalfWidth`),
+    // libra el sector anular [r0, r1] × [lo, hi]? Mismo mecanismo que el anillo del semáforo en
+    // 0.3.3.1-0.3.4.1, aplicado sólo al medio rectángulo de ese lado (de x=0, bajo el centro, a
+    // x=sign·(x+extraHalfWidth) — el borde real más lejano que el contenido puede alcanzar).
     const clearOfSector = (x: number, sign: 1 | -1, r0: number, r1: number): boolean => {
-        const corners: Point[] = [[0, top], [sign * x, top], [sign * x, bottom], [0, bottom]];
+        const reach_x = x + extraHalfWidth;
+        const corners: Point[] = [[0, top], [sign * reach_x, top], [sign * reach_x, bottom], [0, bottom]];
         return corners.every(
             (corner, i) => segmentToAnnularSector(corner, corners[(i + 1) % 4], r0, r1, lo, hi) >= reach
         );
@@ -251,8 +263,10 @@ export function computeInnerTrendBox(
     // garantiza que las 4 esquinas, incluida la de `bottom`, ya están a radio > r1max de CUALQUIER sector
     // que se evalúe aquí) ningún punto de la caja puede estar a [r0, r1] de ningún sector sin importar el
     // ángulo: a salvo de forma incondicional. Acota la bisección a la zona donde el supuesto de
-    // segmentToAnnularSector sí se cumple, y evita evaluarla fuera de ese rango.
-    const xSafeBeyond = Math.sqrt(Math.max(0, r1Max * r1Max - top * top));
+    // segmentToAnnularSector sí se cumple, y evita evaluarla fuera de ese rango. Restamos `extraHalfWidth`:
+    // el punto REALMENTE evaluado por `clearOfSector` es `x + extraHalfWidth`, así que el límite
+    // incondicional debe aplicarse a ESE punto desplazado, no al candidato `x` sin desplazar.
+    const xSafeBeyond = Math.max(0, Math.sqrt(Math.max(0, r1Max * r1Max - top * top)) - extraHalfWidth);
 
     // Mayor medio ancho seguro para un lado: libre de la banda (+ sobresaliente de marcadores) y, si
     // aplica, del anillo del semáforo — acotado por halfWidthCap. Se bisecta sólo hasta xSafeBeyond (la
@@ -416,7 +430,23 @@ export interface GaugeGeometryInputs {
     showRanges: boolean;
     /** Equivalente a `trend !== null` en Gauge.tsx: hay serie mensual (>= 2 puntos) que mostrar. */
     hasFooter: boolean;
-}
+    /**
+     * 0.4.1.1 — fix desajuste panel/render: `computeGaugeGeometry` calculaba `autoTrendBox` con
+     * `computeInnerTrendBox` directo, SIN la holgura extra que `computeInnerTrendBoxForChartType`
+     * (trend.ts) exige para chartType "bars" (mitad del ancho REAL de barra, no sólo el radio de un
+     * punto) — la misma caja que Gauge.tsx ya usa para dibujar. Resultado: con "bars" el panel de
+     * formato mostraba un valor "automático" (posX/posY/width/height%) que NO coincidía con lo
+     * realmente dibujado (ver tests/visualFormattingDefaults.test.ts, RED 0.4.1.1). No se importa
+     * `computeInnerTrendBoxForChartType` aquí porque trend.ts YA importa de layout.ts — un import en
+     * sentido inverso crearía un ciclo; en vez de eso el caller (visual.ts, que importa de ambos
+     * módulos sin problema) INYECTA la fórmula exacta que usa. Sin este parámetro (compatibilidad con
+     * cualquier otro caller/prueba existente) se usa `computeInnerTrendBox` sin holgura extra —
+     * resultado IDÉNTICO a 0.4.1.0, regresión exacta para quien no lo pase.
+     */
+    computeAutoTrendBox?: (
+        radius: number, thickness: number, startAngle: number, endAngle: number, cardWidth: number, showRanges: boolean
+    ) => Box | null;
+    }
 
 export interface GaugeGeometry {
     layout: GaugeLayout;
@@ -447,8 +477,9 @@ export function computeGaugeGeometry(inputs: GaugeGeometryInputs): GaugeGeometry
         inputs.arcScale,
         inputs.offsetY
     );
+    const computeBox = inputs.computeAutoTrendBox ?? computeInnerTrendBox;
     const autoTrendBox = layout.footer
-        ? computeInnerTrendBox(frame.radius, inputs.thickness, inputs.startAngle, inputs.endAngle, inputs.width, inputs.showRanges)
+        ? computeBox(frame.radius, inputs.thickness, inputs.startAngle, inputs.endAngle, inputs.width, inputs.showRanges)
         : null;
     return { layout, frame, autoTrendBox };
 }

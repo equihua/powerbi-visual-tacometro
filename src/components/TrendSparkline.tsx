@@ -1,11 +1,16 @@
 import * as React from 'react';
 import {
+    areaPolygonPoints,
     buildTrendGeometry,
+    computeBarRect,
+    computeTrendBarWidth,
     computeTrendYDomain,
     createTrendYScale,
     lastIndexWithReal,
+    runsOf,
     statusColor,
     StatusColors,
+    TrendChartType,
     TrendPoint,
     TrendVertex,
     YScaleMode,
@@ -21,8 +26,10 @@ export const TREND_DEFAULT_FIXED_COLOR = "#4472C4";
 /** Diferencia de radio entre el punto del mes actual y el resto (4 − 2.5 de 0.3.3.1), aplicada sobre `pointSize`. */
 const CURRENT_POINT_EXTRA = CURRENT_POINT_RADIUS - POINT_RADIUS;
 
-/** 0.4.0.0 — tipo de gráfico de la serie Real (tarjeta «Gráfico de tendencia»). */
-export type TrendChartType = "lineDots" | "line" | "bars" | "area";
+/** 0.4.1.1 — el tipo vive en trend.ts (módulo puro, sin JSX; lo necesita `buildTrendDrawnShapes` para
+ * la homotecia anticolisión); se re-exporta aquí para no romper ningún import existente
+ * (`from "./TrendSparkline"`). */
+export type { TrendChartType };
 
 export interface TrendSparklineProps {
     points: TrendPoint[];
@@ -69,23 +76,12 @@ export interface TrendSparklineProps {
     pointSize?: number;
 }
 
-/** Agrupa vértices consecutivos (mismo criterio que corta la línea en los huecos: `toPath` en trend.ts). */
-function runsOf(vertices: TrendVertex[]): TrendVertex[][] {
-    const runs: TrendVertex[][] = [];
-    vertices.forEach((vertex, i) => {
-        if (i > 0 && vertices[i - 1].index === vertex.index - 1) {
-            runs[runs.length - 1].push(vertex);
-        } else {
-            runs.push([vertex]);
-        }
-    });
-    return runs;
-}
-
-/** Trazo cerrado (área) de un run bajo/sobre `baselineY`: sube por los vértices y regresa por la base. */
+/** Trazo cerrado (área) de un run bajo/sobre `baselineY`: sube por los vértices y regresa por la base.
+ * 0.4.1.1: construido desde `areaPolygonPoints` (trend.ts) — fuente única con la geometría real de
+ * colisión (`buildTrendDrawnShapes`); mismo trazo SVG exacto que antes (verificado en tests/trendSparkline.test.ts). */
 function areaPathOf(run: TrendVertex[], baselineY: number): string {
-    const top = run.map((v) => `${v.x},${v.y}`).join("L");
-    return `M${run[0].x},${baselineY}L${top}L${run[run.length - 1].x},${baselineY}Z`;
+    const [first, ...rest] = areaPolygonPoints(run, baselineY);
+    return `M${first.x},${first.y}${rest.map((p) => `L${p.x},${p.y}`).join("")}Z`;
 }
 
 /**
@@ -155,9 +151,9 @@ export const TrendSparkline: React.FC<TrendSparklineProps> = ({
     };
 
     const baselineY = createTrendYScale(domain, height, PADDING)(Math.min(domain[1], Math.max(domain[0], 0)));
-    const innerWidth = Math.max(0, width - PADDING * 2);
-    const step = points.length > 1 ? innerWidth / (points.length - 1) : innerWidth;
-    const barWidth = Math.max(2, step * 0.6);
+    // 0.4.1.1: fuente única con `buildTrendDrawnShapes` (trend.ts) — así el ancho de barra que se DIBUJA
+    // y el que se usa para la homotecia anticolisión nunca pueden divergir.
+    const barWidth = computeTrendBarWidth(width, points.length, PADDING);
 
     const realRuns = runsOf(geometry.realPoints);
 
@@ -195,17 +191,16 @@ export const TrendSparkline: React.FC<TrendSparklineProps> = ({
     let realContent: React.ReactNode;
     if (chartType === "bars") {
         realContent = geometry.realPoints.map((vertex) => {
-            const barHeight = Math.abs(vertex.y - baselineY);
-            const y = Math.min(vertex.y, baselineY);
+            const rect = computeBarRect(vertex.x, vertex.y, baselineY, barWidth);
             return (
                 <rect
                     key={vertex.index}
                     className="trend-bar"
                     data-trend-index={vertex.index}
-                    x={vertex.x - barWidth / 2}
-                    y={y}
-                    width={barWidth}
-                    height={Math.max(barHeight, 0.5)}
+                    x={rect.x}
+                    y={rect.y}
+                    width={rect.width}
+                    height={rect.height}
                     fill={pointColor(vertex)}
                 />
             );

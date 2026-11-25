@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
     arcRepresentativePoint,
+    clampTrendAngle,
+    fitTrendAngleAndScaleForShapes,
     fitTrendScale,
+    fitTrendScaleForShapes,
     pointDistanceToAnnularSector,
     pointInConvexPolygon,
     segmentDistanceToAnnularSector,
+    TREND_MAX_ANGLE_DEG,
     TREND_MIN_SCALE,
+    TREND_SAFETY_CLEARANCE,
 } from "../src/components/trendFit";
+import { trendBoxCorners } from "../src/components/trendTransform";
 
 /**
  * Homotecia automática anticolisión: reduce la escala de la caja de tendencia (nunca su posición ni su
@@ -64,6 +70,20 @@ describe("fitTrendScale — colisión con el viewport (fijable reduciendo escala
         const result = fitTrendScale(100, 50, { x: 80, y: 10 }, 0, 1, { viewportWidth: 150, viewportHeight: 200 });
         expect(result.fits).toBe(true);
         expect(result.scale).toBeCloseTo(0.7, 2);
+    });
+
+    /**
+     * Cobertura — las 2 pruebas anteriores de esta sección sólo ejercitan el borde DERECHO del
+     * viewport (`corner.x > viewportWidth`); ninguna prueba en todo el repo llega nunca a
+     * `corner.y < 0` (borde SUPERIOR) en `polygonClearsViewportAndFooter` (trendFit.ts). Caja 100×50
+     * en (0,−10), ángulo 0: a escala 1 la esquina superior (local y=0) queda en y = −10 (fuera, por
+     * encima del viewport); la homotecia la reduce hasta que esa esquina vuelva a y=0 — con la fórmula
+     * de ángulo 0 (y' = height·(1−scale)), eso ocurre exactamente en scale = 1 − 10/50 = 0.8.
+     */
+    it("caja 100x50 en (0,-10), ángulo 0 (esquina SUPERIOR por encima del viewport, y<0): la escala máxima segura es exactamente 0.8", () => {
+        const result = fitTrendScale(100, 50, { x: 0, y: -10 }, 0, 1, { viewportWidth: 1000, viewportHeight: 1000 });
+        expect(result.fits).toBe(true);
+        expect(result.scale).toBeCloseTo(0.8, 6);
     });
 });
 
@@ -367,5 +387,204 @@ describe("fitTrendScale — colisión por ENCIERRO con la corona del arco (Revie
         });
         expect(control).toEqual({ scale: TREND_MIN_SCALE, fits: false });
         expect(reversed).toEqual(control);
+    });
+});
+
+/**
+ * 0.4.1.1 (Reviewer — fix final QA rotación 30°/Barras): el usuario autorizó LIMITAR el ángulo de la
+ * serie cuando la homotecia de escala (fitTrendScaleForShapes) no basta para separarla del arco — en vez
+ * de forzar un recorte (clip-path) o tolerar la colisión documentada a ±30°/45°/90° (ver
+ * tests/trendRotationMatrixIndependentCollision.test.ts, versión anterior de esta rama).
+ *
+ * `TREND_MAX_ANGLE_DEG` es el ángulo simétrico máximo ENTERO (±A) determinado EMPÍRICAMENTE: se barrió
+ * cada combinación de 2 tamaños de tarjeta reales (430×338, 430×268) × 4 chartType × Programado
+ * visible/oculto (16 combinaciones, posición/tamaño AUTOMÁTICOS, ángulos enteros 0..45° en ambos
+ * signos) verificando colisión con la MISMA implementación independiente de
+ * tests/trendRotationMatrixIndependentCollision.test.ts (clearance 0, nunca con fitTrendScaleForShapes
+ * mismo). Resultado: +21° es el primer entero positivo que colisiona (chartType "area", ambos tamaños);
+ * −9° es el primer entero NEGATIVO que colisiona (chartType "area" primero, extendiéndose a "line"/
+ * "lineDots" en magnitudes mayores) — la asimetría viene del barrido del arco por omisión (−120°..60°,
+ * NO simétrico respecto al vertical) combinado con que "area" dibuja un polígono a todo el ancho de la
+ * caja hasta su borde superior, el contenido con mayor brazo de palanca respecto al pivote (esquina
+ * inferior izquierda). El máximo simétrico (±A con 0 colisiones en AMBOS signos) es entonces
+ * min(20, 8) = 8 — confirmado idéntico aplicando `TREND_SAFETY_CLEARANCE` (0.5px) en el fitter (el
+ * margen no mueve la frontera: los 50 casos conocidos ya colisionaban por el PISO TREND_MIN_SCALE
+ * agotado, no por redondeo). Queda por DEBAJO de la expectativa inicial (~15°) porque esa cifra no
+ * consideraba el signo negativo ni "area"; se documenta el valor real en vez de forzarlo a 15.
+ */
+describe("TREND_MAX_ANGLE_DEG / clampTrendAngle — límite simétrico del ángulo, determinado empíricamente (ver JSDoc)", () => {
+    it("TREND_MAX_ANGLE_DEG es 8 (ver JSDoc arriba para la evidencia); si cambia, debe actualizarse junto con settings.ts/CHANGELOG", () => {
+        expect(TREND_MAX_ANGLE_DEG).toBe(8);
+    });
+
+    it("dentro del rango [-A, A] (inclusive), clampTrendAngle no altera el valor", () => {
+        expect(clampTrendAngle(0)).toBe(0);
+        expect(clampTrendAngle(3.5)).toBe(3.5);
+        expect(clampTrendAngle(-3.5)).toBe(-3.5);
+        expect(clampTrendAngle(TREND_MAX_ANGLE_DEG)).toBe(TREND_MAX_ANGLE_DEG);
+        expect(clampTrendAngle(-TREND_MAX_ANGLE_DEG)).toBe(-TREND_MAX_ANGLE_DEG);
+    });
+
+    it("fuera del rango, recorta a ±A preservando el signo", () => {
+        expect(clampTrendAngle(100)).toBe(TREND_MAX_ANGLE_DEG);
+        expect(clampTrendAngle(-100)).toBe(-TREND_MAX_ANGLE_DEG);
+        expect(clampTrendAngle(30)).toBe(TREND_MAX_ANGLE_DEG);
+        expect(clampTrendAngle(-30)).toBe(-TREND_MAX_ANGLE_DEG);
+    });
+});
+
+describe("TREND_SAFETY_CLEARANCE — margen mínimo de seguridad (0.5px) para el FITTER de producción", () => {
+    it("es 0.5px — el verificador independiente de colisión sigue evaluando con clearance 0 (ver JSDoc de trendRotationMatrixIndependentCollision.test.ts)", () => {
+        expect(TREND_SAFETY_CLEARANCE).toBe(0.5);
+    });
+});
+
+/**
+ * `fitTrendAngleAndScaleForShapes` — generaliza `fitTrendScaleForShapes` para también limitar/ajustar el
+ * ÁNGULO: (1) recorta el ángulo pedido a ±TREND_MAX_ANGLE_DEG (mismo criterio que el panel/runtime clamp,
+ * ver settings.ts/visual.ts); (2) si ese ángulo (ya recortado) no libra los obstáculos ni con
+ * TREND_MIN_SCALE, busca de forma DETERMINISTA (bisección en el valor absoluto del ángulo, mismo patrón
+ * que la bisección de escala de fitTrendScaleForShapes — 50 iteraciones, nunca aleatoria) el mayor
+ * ángulo (mismo signo, hacia cero) para el que SÍ exista una escala válida; nunca mueve X/Y ni el pivote.
+ * Caso de uso: posición/tamaño PERSONALIZADOS de la caja (panel), donde ni el límite global del ángulo
+ * garantiza por sí solo que una caja fuera de lo automático libre el arco.
+ */
+describe("fitTrendAngleAndScaleForShapes — recorte global de ángulo + búsqueda determinista hacia cero para cajas personalizadas", () => {
+    const box = { width: 200, height: 50 };
+    // boxOrigin lejos de los bordes del viewport (500,500 en un viewport 1000x1000): así "sin
+    // obstáculos" es realmente sin obstáculos (ninguna esquina roza x=0/y=0/viewport, sólo footerTop
+    // cuando se pide explícitamente) — con boxOrigin (0,0) una rotación, aun pequeña, saca una esquina a
+    // x<0 (el propio borde izquierdo del viewport), un obstáculo oculto que invalidaría estos casos.
+    const origin = { x: 500, y: 500 };
+    const shapesOf = (w: number, h: number) => ({ polygons: [trendBoxCorners(w, h)], circles: [] as { center: { x: number; y: number }; radius: number }[] });
+
+    it("sin obstáculos y dentro de ±A: no recorta el ángulo ni reduce la escala pedida", () => {
+        const result = fitTrendAngleAndScaleForShapes(box.height, origin, 5, 1, shapesOf(box.width, box.height), {
+            viewportWidth: 1000,
+            viewportHeight: 1000,
+        });
+        expect(result).toEqual({ angle: 5, scale: 1, fits: true });
+    });
+
+    it("sin obstáculos pero fuera de ±A: recorta el ángulo a ±A (preservando signo), la escala pedida sigue intacta", () => {
+        const positive = fitTrendAngleAndScaleForShapes(box.height, origin, 30, 1, shapesOf(box.width, box.height), {
+            viewportWidth: 1000,
+            viewportHeight: 1000,
+        });
+        expect(positive).toEqual({ angle: TREND_MAX_ANGLE_DEG, scale: 1, fits: true });
+
+        const negative = fitTrendAngleAndScaleForShapes(box.height, origin, -30, 1, shapesOf(box.width, box.height), {
+            viewportWidth: 1000,
+            viewportHeight: 1000,
+        });
+        expect(negative).toEqual({ angle: -TREND_MAX_ANGLE_DEG, scale: 1, fits: true });
+    });
+
+    /**
+     * Caja 200×50 en boxOrigin (500,500) (pivote absoluto fijo en (500,550)), pie en y=555: a escala 1 y
+     * ángulo −A (−8°), la esquina inferior-derecha (la más lejana del pivote en el sentido que este
+     * ángulo mueve) queda en y = 550 + 200·sin(8°) ≈ 577.84 — por encima del pie, y NI SIQUIERA
+     * TREND_MIN_SCALE (0.3) la libra (y = 550 + 0.3·200·sin(8°) ≈ 558.35 > 555): `fitTrendScaleForShapes`
+     * a −8° reportaría `fits:false`. El ángulo máximo (mismo signo, hacia 0°) para el que SÍ existe una
+     * escala válida es exactamente el que deja esa esquina, a escala TREND_MIN_SCALE (el extremo más
+     * favorable del rango de escala — y crece con la escala, ver JSDoc), justo en el límite:
+     * 550 + 0.3·200·sin(x) = 555 → x = asin(5/60) — valor confirmado con un oráculo independiente
+     * (bisección en Python replicando `applyTrendTransform`, fuera de este repo). La bisección
+     * determinista de `fitTrendAngleAndScaleForShapes` debe converger ahí, sin mover X/Y ni el pivote.
+     */
+    it("obstáculo que SÍ colisiona a −A incluso en TREND_MIN_SCALE: busca hacia 0° el mayor ángulo (mismo signo) con escala válida", () => {
+        const expectedAngleMagnitude = (Math.asin(5 / 60) * 180) / Math.PI;
+        const result = fitTrendAngleAndScaleForShapes(box.height, origin, -TREND_MAX_ANGLE_DEG, 1, shapesOf(box.width, box.height), {
+            viewportWidth: 1000,
+            viewportHeight: 1000,
+            footerTop: 555,
+        });
+        expect(result.fits).toBe(true);
+        expect(result.angle).toBeCloseTo(-expectedAngleMagnitude, 4); // conserva el signo (negativo), hacia 0°.
+        expect(result.angle).toBeGreaterThan(-TREND_MAX_ANGLE_DEG); // SÍ redujo la magnitud del ángulo pedido.
+        expect(result.scale).toBeCloseTo(TREND_MIN_SCALE, 6); // en el límite exacto, la escala válida es la mínima posible.
+
+        // Verificación independiente (sin pasar por fitTrendScaleForShapes): la esquina inferior-derecha
+        // transformada al ángulo/escala devueltos queda exactamente en el borde del pie (<=555 + epsilon).
+        // Cálculo directo (ver JSDoc): y = 550 + scale·width·sin(|angle|) para ángulo negativo.
+        const theta = Math.abs((result.angle * Math.PI) / 180);
+        const bottomRightY = 550 + result.scale * box.width * Math.sin(theta);
+        expect(bottomRightY).toBeLessThanOrEqual(555 + 1e-6);
+    });
+
+    it("mismo obstáculo pero con ángulo pedido POSITIVO: la búsqueda nunca cruza a ángulos negativos (el signo pedido se conserva)", () => {
+        // A +8° la esquina problemática (inferior-derecha) se aleja del pie (ver JSDoc del fitter: un
+        // ángulo positivo mueve esa esquina hacia ARRIBA, nunca hacia el pie) — así que a +A ya libra sin
+        // necesitar ninguna reducción de ángulo.
+        const result = fitTrendAngleAndScaleForShapes(box.height, origin, TREND_MAX_ANGLE_DEG, 1, shapesOf(box.width, box.height), {
+            viewportWidth: 1000,
+            viewportHeight: 1000,
+            footerTop: 555,
+        });
+        expect(result).toEqual({ angle: TREND_MAX_ANGLE_DEG, scale: 1, fits: true });
+    });
+
+    /**
+     * Cobertura — el caso anterior (obstáculo en el PIE) nunca requiere la bisección de ÁNGULO con
+     * signo POSITIVO (+A ya libra de entrada); todos los casos NEGATIVOS de esta suite cubren
+     * `sign = -1`, pero ninguno cubre la rama `sign = 1` (clampedAngle >= 0, línea 538 de trendFit.ts).
+     * Caja 200×50 en boxOrigin (500,−30) (pivote absoluto en (500,20)), SIN pie ni arco, sólo el
+     * viewport (1000×1000): la esquina superior-derecha (local (width,0)) es la que un ángulo
+     * POSITIVO acerca al borde SUPERIOR del viewport (y<0, ver `trendTransform.ts`: un ángulo positivo
+     * sube esa esquina). A +8° ni siquiera TREND_MIN_SCALE libra esa esquina (queda en y ≈ −3.19); a
+     * 0° sí libra (con una reducción de escala, y ≈ +5 al piso) — la búsqueda determinista encuentra,
+     * hacia 0° y CONSERVANDO el signo positivo pedido, el ángulo límite (~4.8313°, valor verificado con
+     * un oráculo independiente: réplica en Python del mismo algoritmo, fuera de este repo).
+     */
+    it("obstáculo en el borde SUPERIOR del viewport que SÍ colisiona a +A incluso en TREND_MIN_SCALE: busca hacia 0° el mayor ángulo POSITIVO con escala válida (cobertura de la rama sign=+1)", () => {
+        const topOrigin = { x: 500, y: -30 };
+        const topBox = { width: 200, height: 50 };
+        const result = fitTrendAngleAndScaleForShapes(topBox.height, topOrigin, TREND_MAX_ANGLE_DEG, 1, shapesOf(topBox.width, topBox.height), {
+            viewportWidth: 1000,
+            viewportHeight: 1000,
+        });
+        expect(result.fits).toBe(true);
+        expect(result.angle).toBeGreaterThan(0); // conserva el signo POSITIVO pedido (sign=+1, nunca cruza a negativo).
+        expect(result.angle).toBeLessThan(TREND_MAX_ANGLE_DEG); // SÍ redujo la magnitud del ángulo pedido (+A no libraba).
+        expect(result.angle).toBeCloseTo(4.831263626144967, 4); // oráculo independiente (bisección en Python, ver JSDoc).
+        expect(result.scale).toBeCloseTo(TREND_MIN_SCALE, 6); // en el límite exacto, la escala válida es la mínima posible.
+
+        // Control: a +A (sin recortar) ni siquiera TREND_MIN_SCALE libra el borde superior.
+        const atFullAngle = fitTrendScaleForShapes(topBox.height, topOrigin, TREND_MAX_ANGLE_DEG, 1, shapesOf(topBox.width, topBox.height), {
+            viewportWidth: 1000,
+            viewportHeight: 1000,
+        });
+        expect(atFullAngle).toEqual({ scale: TREND_MIN_SCALE, fits: false });
+    });
+
+    /**
+     * El pivote absoluto (esquina inferior izquierda, invariante ante CUALQUIER ángulo/escala) queda en
+     * (origin.x, origin.y + height) = (500, 550). Con footerTop=510 (por debajo del propio pivote), NI
+     * el ángulo 0° ni ninguna escala lo libran jamás — se documenta explícito (`fits:false`, ángulo 0,
+     * escala en el piso), nunca se inventa una posición ni se fuerza un recorte.
+     */
+    it("si NI SIQUIERA el ángulo 0° cabe (el propio pivote ya colisiona): documenta fits:false sin mover X/Y, ángulo 0", () => {
+        const result = fitTrendAngleAndScaleForShapes(box.height, origin, -TREND_MAX_ANGLE_DEG, 1, shapesOf(box.width, box.height), {
+            viewportWidth: 1000,
+            viewportHeight: 1000,
+            footerTop: 510,
+        });
+        expect(result).toEqual({ angle: 0, scale: TREND_MIN_SCALE, fits: false });
+    });
+
+    it("la holgura (clearance) de TrendFitObstacles sigue respetándose (compatibilidad con TREND_SAFETY_CLEARANCE del fitter de producción)", () => {
+        const withoutClearance = fitTrendAngleAndScaleForShapes(box.height, origin, -TREND_MAX_ANGLE_DEG, 1, shapesOf(box.width, box.height), {
+            viewportWidth: 1000,
+            viewportHeight: 1000,
+            footerTop: 555,
+        });
+        const withClearance = fitTrendAngleAndScaleForShapes(box.height, origin, -TREND_MAX_ANGLE_DEG, 1, shapesOf(box.width, box.height), {
+            viewportWidth: 1000,
+            viewportHeight: 1000,
+            footerTop: 555,
+            clearance: TREND_SAFETY_CLEARANCE,
+        });
+        // Con más holgura exigida, el ángulo seguro (hacia 0°) nunca puede ser MAYOR en magnitud.
+        expect(Math.abs(withClearance.angle)).toBeLessThanOrEqual(Math.abs(withoutClearance.angle));
     });
 });

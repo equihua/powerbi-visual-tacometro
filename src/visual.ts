@@ -20,6 +20,7 @@ import Gauge from "./components/Gauge";
 import { GaugeSettings, GaugeData, DataFormat } from "./components/types";
 import {
   computeEffectivePointSize, computeTrendYDomain, findCurrentPosition, lastIndexWithReal, orderPeriodRows, periodSortKey, TrendPoint,
+  computeInnerTrendBoxForChartType, TrendChartType,
 } from "./components/trend";
 import { isFiniteNumber, resolveRange, resolveThresholds } from "./components/scales";
 import { formatGaugeValue } from "./components/CenterText";
@@ -27,6 +28,7 @@ import { applyHighContrast } from "./highContrast";
 import { buildTrendPointTooltipItems, TooltipItem } from "./tooltips";
 import { computeGaugeGeometry } from "./components/layout";
 import { boxToPercent, PercentBox } from "./components/trendBoxPercent";
+import { clampTrendAngle } from "./components/trendFit";
 
 /** Redondeo a centésimas para los valores efectivos que se muestran en el panel de formato. */
 function round2(value: number): number {
@@ -123,6 +125,20 @@ function applyEffectiveDisplayDefaults(
       if (!("control" in slice) || slice.control.type !== "NumUpDown") {
         return;
       }
+      // 0.4.1.1 — "trend-angle" NUNCA queda sin valor (default 0, no "auto" como las 7 propiedades de
+      // arriba): en vez de rellenar un hueco, aquí se SOBREESCRIBE el valor mostrado con el ÁNGULO
+      // EFECTIVO (`clampTrendAngle`, mismo límite ±TREND_MAX_ANGLE_DEG que settings.ts valida/Gauge.tsx
+      // aplica en tiempo de ejecución) cuando el valor guardado lo excede o no es finito (bookmark/API,
+      // mismo criterio que `finiteAngle`) — así el panel SIEMPRE refleja lo que de verdad se dibuja, sin
+      // escribir ningún override real en el documento (sólo en este `FormattingModel` ya construido).
+      if (slice.uid === "trend-angle") {
+        const raw = slice.control.properties.value;
+        const clamped = clampTrendAngle(isFiniteNumber(raw) ? raw : 0);
+        if (clamped !== raw) {
+          slice.control.properties.value = clamped;
+        }
+        return;
+      }
       const uid = slice.uid as TrendAutoSliceUid;
       const value = effective[uid];
       if (value !== undefined && slice.control.properties.value === undefined) {
@@ -202,6 +218,9 @@ export class Visual implements IVisual {
    * 0.4.1.0 — reproduce, con `computeGaugeGeometry` (misma fuente que Gauge.tsx, ver layout.ts), la
    * caja automática de la sparkline del render actual, convertida a % del viewport (trendBoxPercent.ts),
    * y la serie Real+Programado completa; insumos de `applyEffectiveDisplayDefaults` (getFormattingModel).
+   * 0.4.1.1 — inyecta `computeInnerTrendBoxForChartType` (vía `computeAutoTrendBox`) para que, con
+   * chartType "bars", la caja "automática" mostrada en el panel sea EXACTAMENTE la misma que Gauge.tsx
+   * dibuja (incluida la holgura extra de media barra) — ver JSDoc de `GaugeGeometryInputs.computeAutoTrendBox`.
    */
   private computeDisplayDefaults(settings: GaugeSettings, gaugeData: GaugeData, viewport: IViewport): TrendDisplayDefaults {
     const hasFooter = gaugeData.trend !== undefined && gaugeData.trend.length >= 2;
@@ -217,6 +236,12 @@ export class Visual implements IVisual {
       centerTextHeight: settings.showValueLabel ? settings.fontSize : 0,
       showRanges: settings.showRanges,
       hasFooter,
+      computeAutoTrendBox: (radius, thickness, startAngle, endAngle, cardWidth, showRanges) =>
+        computeInnerTrendBoxForChartType(
+          radius, thickness, startAngle, endAngle, cardWidth, showRanges,
+          settings.trendChartType as TrendChartType | undefined,
+          gaugeData.trend?.length ?? 0
+        ),
     });
     const autoBoxPercent = geometry.autoTrendBox
       ? boxToPercent(geometry.autoTrendBox, { x: geometry.frame.cx, y: geometry.frame.cy }, { width: viewport.width, height: viewport.height })

@@ -3,6 +3,142 @@
 Formato basado en *Keep a Changelog*. La versión del visual la define `pbiviz.json`
 (`visual.version`, 4 partes exigidas por `powerbi-visuals-tools` 7.2.1).
 
+## [0.4.1.1] — 2026-11-25 (fix QA rotación 30°/Barras: colisión real barra↔arco, + desajuste panel/render para "bars", + matriz explícita de regresión, + fix FINAL: límite de ángulo ±8° validado empíricamente + matriz independiente de 176 casos, pre-1.0, sin validación en Power BI)
+
+### Versión
+
+- `pbiviz.json`, `package.json` y la raíz + el paquete `""` de `package-lock.json` (4 apariciones en
+  total): `0.4.1.0` → **`0.4.1.1`** (`tests/version.test.ts`). Cuarto dígito: corrección (ningún rol ni
+  objeto se quita; sin cambio visual con los defaults salvo cuando `chartType="Barras"` y el ángulo de
+  la serie rota la caja cerca de la corona del arco — ver abajo).
+
+### Corregido (QA rotación 30°/Barras, DICTAMEN-QA.md — ver evidencia independiente en
+`TableroMaestro-build/qa/tacometros-0.4.1.0-20261124T215229-0600/verificacion-independiente/`)
+
+- **Colisión real barra↔arco con `chartType="Barras"` + rotación**: la homotecia automática
+  anticolisión de la serie («Gráfico de tendencia») sólo probaba el rectángulo NOMINAL de la caja
+  (`fitTrendScale`/4 esquinas), suficiente para puntos/línea pero NO para barras — una barra extrema
+  puede sobresalir de ese rectángulo en X. `Gauge.tsx` ahora prueba la geometría REAL de todo lo
+  dibujado (`buildTrendDrawnShapes`, `trend.ts`: rectángulos de barra, polígonos de área/línea ya
+  engrosados por su medio grosor de trazo, y puntos como círculos con su radio real) contra los MISMOS
+  2 arcos que de verdad se dibujan (banda + sobresaliente de marcadores, y el anillo delgado del
+  indicador del semáforo cuando «Mostrar Rangos» está activo) — `fitTrendScaleForShapes` (`trendFit.ts`)
+  generaliza la homotecia a un conjunto arbitrario de polígonos/círculos; `fitTrendScale` (todas sus
+  pruebas previas intactas) pasa a ser el caso particular de un único polígono rectangular.
+- **Holgura de caja insuficiente para "Barras"**: `computeInnerTrendBox` (layout.ts) sólo garantizaba
+  holgura para contenido puntual (radio de un punto); para "Barras" cada barra ocupa, a cada lado de su
+  punto, hasta la mitad de su ancho real — que puede exceder esa holgura y dejar la propia ESQUINA de la
+  caja (el pivote fijo de la rotación) sin margen frente al arco, caso que ninguna reducción de escala
+  puede corregir. `computeInnerTrendBoxForChartType` (`trend.ts`) delega en `computeInnerTrendBox`
+  pasándole la holgura real de media barra para "Barras" (punto fijo iterativo, estable en pocas
+  iteraciones); para cualquier otro `chartType` el resultado es idéntico al automático existente.
+- **Desajuste panel de formato vs render para "Barras"**: `visual.ts` calculaba el valor "automático"
+  de posX/posY/width/height% mostrado en el panel con `computeGaugeGeometry` (layout.ts →
+  `computeInnerTrendBox` directo, SIN la holgura de "Barras" anterior) mientras que `Gauge.tsx` ya
+  renderizaba con `computeInnerTrendBoxForChartType` — con `chartType="Barras"` el panel mostraba una
+  caja "automática" más ancha/desplazada que la realmente dibujada (RED reproducido en
+  `tests/visualFormattingDefaults.test.ts`, ~32px/~12% de diferencia a 300×300 con 3 meses). Fix:
+  `computeGaugeGeometry` acepta un parámetro opcional `computeAutoTrendBox` (inyección de dependencia,
+  sin crear un import circular `layout.ts`↔`trend.ts`, ya que `trend.ts` importa de `layout.ts`); sin
+  pasarlo (cualquier otro caller/prueba existente) el comportamiento es IDÉNTICO a 0.4.1.0. `visual.ts`
+  inyecta `computeInnerTrendBoxForChartType` con el `chartType`/longitud de serie reales — el panel
+  ahora coincide EXACTAMENTE con lo que Gauge.tsx dibuja, para los 4 `chartType`.
+
+### Corregido (fix FINAL, autorizado por el usuario — DICTAMEN-QA.md: LIMITAR el ángulo cuando la
+homotecia de escala no basta, en vez de tolerar la colisión documentada a ±30°/45°/90° o forzar un
+recorte visual)
+
+- **Hallazgo que motiva este fix final**: al reescribir `tests/trendRotationMatrixIndependentCollision.test.ts`
+  con verificación verdaderamente independiente (sin pasar por `fitTrendScaleForShapes`), 53 de 96
+  combinaciones (ángulos ±30°/45°/90°/−30°) SÍ colisionaban con el arco a la escala realmente emitida: el
+  piso `TREND_MIN_SCALE` (30 %) no bastaba para separar la geometría real del arco a esas magnitudes de
+  ángulo. Tocar `TREND_MIN_SCALE` o el padding/holgura de la caja automática quedaba fuera de
+  autorización (cambios de mayor alcance); el usuario autorizó en su lugar limitar el ángulo
+  efectivamente dibujado.
+- **`TREND_MAX_ANGLE_DEG = 8`** (`trendFit.ts`), determinado **empíricamente** (no estimado): se barrieron
+  las **16 combinaciones** de posición/tamaño AUTOMÁTICOS (2 tamaños de tarjeta reales del reporte,
+  430×338/430×268 × 4 `TrendChartType` × `trendShowProgrammed` true/false) a cada ángulo **entero** de 0°
+  a 45° en ambos signos, verificando colisión con la misma implementación independiente (`clearance = 0`,
+  nunca `fitTrendScaleForShapes`) que usa la matriz de regresión. Resultado:
+  - **+21°** es el primer entero **positivo** que colisiona (chartType `"area"`, ambos tamaños de tarjeta).
+  - **−9°** es el primer entero **negativo** que colisiona (`"area"` primero; `"line"`/`"lineDots"` se unen
+    en magnitudes mayores). La asimetría viene del barrido del arco por omisión (−120°..60°, NO simétrico
+    respecto al eje vertical) combinado con que `"area"` dibuja un polígono a todo el ancho de la caja
+    hasta su borde superior — el contenido con mayor brazo de palanca respecto al pivote (esquina
+    inferior izquierda, `trendTransform.ts`).
+  - El máximo **simétrico** (±A sin colisión en ambos signos, las 16 combinaciones) es `min(20, 8) = 8` —
+    confirmado idéntico aplicando `TREND_SAFETY_CLEARANCE` (el margen no desplaza la frontera: los casos
+    que colisionan ya agotan el piso `TREND_MIN_SCALE`, no son redondeo). Queda por debajo de una
+    estimación inicial de ~15° porque esa cifra no consideraba el signo negativo ni `"area"`; se
+    documenta el valor real (8°) en vez de forzarlo.
+- **`clampTrendAngle(angleDeg)`** (`trendFit.ts`): recorta a ±`TREND_MAX_ANGLE_DEG` preservando el signo.
+  Único mecanismo de saneo en tiempo de ejecución para un ángulo fuera de rango que llegue sin pasar por
+  el panel (bookmark/API) — mismo criterio que `finiteAngle` ya aplicaba a valores no finitos.
+- **`fitTrendAngleAndScaleForShapes`** (`trendFit.ts`, generaliza `fitTrendScaleForShapes`): (1) recorta
+  el ángulo pedido a ±`TREND_MAX_ANGLE_DEG`; (2) si ese ángulo ya recortado no libra los obstáculos ni con
+  `TREND_MIN_SCALE` —posible sólo con posición/tamaño **personalizados** del panel, una caja que el
+  límite global no contempla— busca de forma **determinista** (bisección en el valor absoluto del
+  ángulo, 50 iteraciones, nunca aleatoria), **hacia 0° y conservando el signo pedido**, el mayor ángulo
+  para el que sí exista una escala válida, sin mover X/Y ni el pivote. `Gauge.tsx` consume el ángulo y la
+  escala efectivos de este fitter (`trendEffectiveAngle`/`trendScale`) en vez del `settings.trendAngle`
+  crudo; con posición/tamaño automáticos el recorte global (8°) siempre basta, nunca entra la búsqueda.
+- **Caso límite documentado — "sin cabida ni a 0°"**: si el propio pivote (esquina inferior izquierda,
+  invariante ante cualquier ángulo/escala) ya colisiona con un obstáculo (p. ej. un `footerTop`
+  personalizado por debajo del pivote), ni el ángulo 0° ni ninguna escala lo libran — el fitter lo
+  documenta explícito (`{ angle: 0, scale: TREND_MIN_SCALE, fits: false }`), nunca inventa una posición ni
+  fuerza un recorte (`clip-path`); cubierto por `tests/trendFit.test.ts` ("si NI SIQUIERA el ángulo 0°
+  cabe... documenta fits:false sin mover X/Y, ángulo 0").
+- **`TREND_SAFETY_CLEARANCE = 0.5` px** (`trendFit.ts`): margen mínimo que el fitter de producción exige
+  de más frente al pie/arco (cubre el redondeo de precisión del `matrix(...)` emitido, `MATRIX_PRECISION`
+  de `trendTransform.ts`) sin enmascarar colisiones reales — el verificador independiente de la matriz
+  de 176 casos sigue midiendo con `clearance = 0`.
+- **Panel de formato**: `angle` (tarjeta «Gráfico de tendencia») gana `displayName` exacto
+  `"Ángulo (grados, −8 a 8)"` (minus sign U+2212, igual que el resto de literales matemáticos del panel),
+  `description` con el porqué del límite, y `options: ANGLE_BOUNDS` (`NumUpDown`, `minValue=-8`,
+  `maxValue=8`, mismo mecanismo que `PERCENT_BOUNDS`) — valida el rango en la UI del panel.
+  `capabilities.json` refleja el mismo `displayName`/`description`.
+- **Defaults/runtime**: `getFormattingModel()` (`visual.ts`, vía `applyEffectiveDisplayDefaults`) muestra
+  siempre el **ángulo EFECTIVO** en el panel: si el valor guardado excede ±8° o no es finito (bookmark/API),
+  lo sobreescribe con `clampTrendAngle` (sin escribir ningún override real en el documento) — el panel
+  nunca muestra un valor que Gauge.tsx no vaya a respetar.
+
+### Verificación
+
+- `npx tsc -p tsconfig.test.json` y `npx tsc -p tsconfig.json --noEmit`: exit 0. `npx eslint .`: exit 0.
+- `npx vitest run --coverage`: **773 pruebas**, 0 fallos. Cobertura Stmts 100 % · Branch 97.31 % ·
+  Funcs 100 % · Lines 100 % (las ramas defensivas sin cubrir — `arcUtils.ts:23`, `visual.ts` 3 líneas de
+  `getFormattingModel()` — son preexistentes/externas a este fix, no introducidas por él; todo el código
+  nuevo del límite de ángulo —`clampTrendAngle`, `fitTrendAngleAndScaleForShapes`, `shapesClear`,
+  `polygonClearsArc`/`circleClearsArc`, la inyección en `visual.ts`/`Gauge.tsx`— queda 100 % cubierto en
+  las 4 métricas).
+- **Matriz explícita de regresión** (`tests/trendRotationMatrix.test.ts`, reescrita): 2 tamaños de tarjeta
+  REALES del reporte (430×338 "4 en fila", 430×268 "1 grande") × 6 ángulos (0°, 15°, 30°, 45°, 90°,
+  -30°) × 4 `chartType` (lineDots/line/bars/area) × Programado visible/oculto = **96 combinaciones**,
+  cada una verificando que el ángulo y la escala realmente emitidos por `Gauge.tsx` coinciden EXACTAMENTE
+  con `fitTrendAngleAndScaleForShapes` evaluada de forma independiente sobre la geometría real dibujada,
+  nunca exceden ±`TREND_MAX_ANGLE_DEG`/1/`TREND_MIN_SCALE`, y nunca recortan (`clip-path`) el contenido —
+  las 96 pasan.
+- **Matriz independiente de 176 casos** (`tests/trendRotationMatrixIndependentCollision.test.ts`,
+  reescrita por completo): 2 tamaños de tarjeta × 4 `chartType` × Programado visible/oculto × **11
+  ángulos** (0°, ±5°, ±10°, ±8° = ±`TREND_MAX_ANGLE_DEG`, 30°, 45°, 90°, −30°) = **176 combinaciones**,
+  verificadas con primitivas geométricas de bajo nivel (nunca `fitTrendScaleForShapes`/
+  `fitTrendAngleAndScaleForShapes`, para no heredar un posible bug de cableado) y **margen 0.5 px**
+  (`clearance = 0`, sin el margen adicional `TREND_SAFETY_CLEARANCE` que el fitter de producción exige de
+  más): **cero colisiones** en las 176 — los ángulos ±30°/45°/90°/−30°/±10° ya no colisionan porque
+  `Gauge.tsx` los recorta a ±8° antes de dibujar; 0°/±5°/±8° están dentro del límite global y nunca lo
+  necesitaron. `KNOWN_COLLIDING_CASES` (lista de colisiones toleradas de la versión anterior de este
+  archivo) queda vacía a propósito, con una prueba dedicada que falla si alguien la repuebla sin
+  autorización.
+- RED→GREEN de esta versión: `tests/trendShapes.test.ts`, `tests/trendFitShapes.test.ts`,
+  `tests/trendBarArcCollision.test.ts` (reproducción exacta del escenario QA rechazado), el nuevo caso
+  de `tests/visualFormattingDefaults.test.ts` (desajuste panel/render), y el nuevo bloque del fix FINAL en
+  `tests/trendFit.test.ts` (`TREND_MAX_ANGLE_DEG`/`clampTrendAngle`/`TREND_SAFETY_CLEARANCE`/
+  `fitTrendAngleAndScaleForShapes`, incluido el caso "sin cabida ni a 0°").
+- Limpieza: scripts de QA pesados (automatización de navegador, auditoría de color de píxeles) y un
+  script de depuración ad hoc usados para diagnosticar este defecto se movieron fuera del repositorio
+  (no aportan valor como herramienta reutilizable del harness: dependían de un escenario temporal del
+  harness que no quedó commiteado); no se incluyen en este commit.
+
 ## [0.4.1.0] — 2026-11-24 (compatibilidad px/% legado de «Gráfico de tendencia» + guards angle/rango, pre-1.0, sin validación en Power BI)
 
 ### Versión
@@ -70,7 +206,7 @@ Formato basado en *Keep a Changelog*. La versión del visual la define `pbiviz.j
 | `widthPct` | NumUpDown | % (0-100) | sin valor → **auto** | Ancho como % del ancho del viewport. Reemplaza a `width` (px, legado). |
 | `heightPct` | NumUpDown | % (0-100) | sin valor → **auto** | Alto como % del alto del viewport. Reemplaza a `height` (px, legado). |
 | `posX`/`posY`/`width`/`height` *(legado, 0.4.0.0)* | NumUpDown (sin slice en el panel) | px | — | **Obsoletos desde 0.4.1.0**: declarados en `capabilities.json` únicamente para que Power BI conserve el valor de un reporte guardado en 0.4.0.0 **sin reinterpretarlo ni borrarlo**; el panel ya no los muestra y ningún código los lee — quedan **ignorados**, no migrados automáticamente a `*Pct`. Migración manual: volver a fijar el valor equivalente con las propiedades `*Pct`. |
-| `angle` | NumUpDown | grados | `0` | Rota el grupo de la serie alrededor del pivote (esquina inferior-izquierda LOCAL de la caja, `trendTransform.ts`). Un ángulo **positivo gira en sentido visualmente ANTIHORARIO (CCW)** en pantalla (la fórmula compensa la inversión del eje Y de SVG). Guard: un valor no finito (NaN/±Infinity, sólo alcanzable fuera del panel) cae a `0` (matriz identidad, sin rotación). |
+| `angle` | NumUpDown | grados, **acotado ±8** (`options: ANGLE_BOUNDS`, panel) | `0` | Rota el grupo de la serie alrededor del pivote (esquina inferior-izquierda LOCAL de la caja, `trendTransform.ts`). Un ángulo **positivo gira en sentido visualmente ANTIHORARIO (CCW)** en pantalla (la fórmula compensa la inversión del eje Y de SVG). **Desde 0.4.1.1 (fix FINAL QA rotación 30°/Barras)**: el panel valida/muestra `displayName = "Ángulo (grados, −8 a 8)"`; `8 = TREND_MAX_ANGLE_DEG` (`trendFit.ts`) es el máximo simétrico sin colisión con el arco, determinado empíricamente barriendo 16 combinaciones de tamaño/chartType/Programado de 0° a 45° (primera colisión: **+21°** positivo, **−9°** negativo — asimetría por el barrido no simétrico del arco y chartType `"area"`). Un valor guardado fuera de ±8° (o no finito, incluido NaN/±Infinity sólo alcanzable fuera del panel) se **recorta en tiempo de ejecución** (`clampTrendAngle`) antes de dibujar, nunca se propaga crudo; el panel siempre refleja el ángulo EFECTIVO. Con posición/tamaño PERSONALIZADOS que ni ±8° libran ni con `TREND_MIN_SCALE`, `fitTrendAngleAndScaleForShapes` busca de forma determinista, hacia 0° y conservando el signo, el mayor ángulo con escala válida (sin mover X/Y ni el pivote); si ni 0° cabe, se documenta `fits:false` explícito, nunca se recorta visualmente (`clip-path`). |
 | `yScaleMode` | ItemDropdown | — | `"auto"` | Alternativas: `"zero"` (desde cero, sin margen) y `"manual"` (usa `yMin`/`yMax`). |
 | `yMin` | NumUpDown | — | sin valor → **auto** | Sólo tiene efecto con `yScaleMode = "manual"`; incompleto o invertido (`yMin >= yMax`) cae a `"auto"`. Sin tocar, el panel muestra el mínimo EFECTIVO del dominio automático (Real+Programado −10 % de margen), no en blanco (`applyEffectiveDisplayDefaults`). |
 | `yMax` | NumUpDown | — | sin valor → **auto** | Idem, máximo efectivo (+10 %). |
